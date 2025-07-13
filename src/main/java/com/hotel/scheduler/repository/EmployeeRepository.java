@@ -1,0 +1,25 @@
+package com.hotel.scheduler.repository;
+
+import com.hotel.scheduler.model.Employee;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    
+    Optional<Employee> findByEmail(String email);
+    
+    List<Employee> findByActiveTrue();
+    
+    List<Employee> findByDepartmentIdAndActiveTrue(Long departmentId);
+    
+    @Query("SELECT e FROM Employee e WHERE e.role = :role AND e.active = true")
+    List<Employee> findByRoleAndActiveTrue(@Param("role") Employee.Role role);
+    
+    boolean existsByEmail(String email);
+}

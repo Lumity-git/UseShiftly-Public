@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Scheduler - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 500px;
+        }
+
+        .login-left {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-left::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(0) translateY(0); }
+            100% { transform: translateX(-20px) translateY(-20px); }
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            z-index: 1;
+            position: relative;
+        }
+
+        .login-right {
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h2 {
+            color: #2c3e50;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .test-accounts {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-accounts h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e1e8ed;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .account-item:last-child {
+            border-bottom: none;
+        }
+
+        .account-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+            padding-left: 10px;
+            border-radius: 4px;
+        }
+
+        .account-info {
+            font-size: 0.8rem;
+        }
+
+        .account-role {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .account-email {
+            color: #7f8c8d;
+        }
+
+        .use-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .use-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+            }
+
+            .login-left {
+                padding: 40px 30px;
+                text-align: center;
+            }
+
+            .login-right {
+                padding: 40px 30px;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-left">
+            <div class="logo">🏨 Hotel Scheduler</div>
+            <div class="tagline">
+                Professional employee scheduling made simple. 
+                Streamline your hotel operations with our comprehensive 
+                shift management system.
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-header">
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your dashboard</p>
+            </div>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="Enter your email address">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Enter your password">
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Signing you in...</span>
+            </div>
+
+            <div class="test-accounts">
+                <h4>Demo Accounts (Click to Use)</h4>
+                
+                <div class="account-item" onclick="fillCredentials('admin@hotel.com', 'admin123')">
+                    <div class="account-info">
+                        <div class="account-role">Administrator</div>
+                        <div class="account-email">admin@hotel.com</div>
+                    </div>
+                    <button class="use-btn" type="button">Use</button>
+                </div>
+
+                <div class="account-item" onclick="fillCredentials('manager@hotel.com', 'manager123')">
+                    <div class="account-info">
+                        <div class="account-role">Manager</div>
+                        <div class="account-email">manager@hotel.com</div>
+                    </div>
+                    <button class="use-btn" type="button">Use</button>
+                </div>
+
+                <div class="account-item" onclick="fillCredentials('employee@hotel.com', 'employee123')">
+                    <div class="account-info">
+                        <div class="account-role">Employee</div>
+                        <div class="account-email">employee@hotel.com</div>
+                    </div>
+                    <button class="use-btn" type="button">Use</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        
+        // Form elements
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const alertDiv = document.getElementById('alert');
+        const loadingDiv = document.getElementById('loading');
+
+        // Fill credentials for demo accounts
+        function fillCredentials(email, password) {
+            emailInput.value = email;
+            passwordInput.value = password;
+            hideAlert();
+        }
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            alertDiv.textContent = message;
+            alertDiv.className = `alert ${type}`;
+            alertDiv.style.display = 'block';
+        }
+
+        // Hide alert message
+        function hideAlert() {
+            alertDiv.style.display = 'none';
+        }
+
+        // Show loading state
+        function showLoading() {
+            loginBtn.style.display = 'none';
+            loadingDiv.style.display = 'block';
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            loginBtn.style.display = 'block';
+            loadingDiv.style.display = 'none';
+        }
+
+        // Handle form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!email || !password) {
+                showAlert('Please fill in all fields');
+                return;
+            }
+
+            showLoading();
+            hideAlert();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Store token and user info
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userInfo', JSON.stringify({
+                        email: data.email,
+                        firstName: data.firstName,
+                        lastName: data.lastName,
+                        role: data.role
+                    }));
+
+                    showAlert(`Welcome back, ${data.firstName}!`, 'success');
+                    
+                    // Redirect based on user role after short delay
+                    setTimeout(() => {
+                        if (data.role === 'EMPLOYEE') {
+                            window.location.href = '/frontend/employee-dashboard.html';
+                        } else {
+                            window.location.href = '/frontend/dashboard.html';
+                        }
+                    }, 1500);
+
+                } else {
+                    showAlert(data.message || 'Invalid email or password');
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert('Unable to connect to server. Please try again.');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Clear alert when user starts typing
+        emailInput.addEventListener('input', hideAlert);
+        passwordInput.addEventListener('input', hideAlert);
+
+        // Check if user is already logged in
+        if (localStorage.getItem('authToken')) {
+            const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+            showAlert(`You're already logged in as ${userInfo.firstName || 'User'}`, 'success');
+            setTimeout(() => {
+                if (userInfo.role === 'EMPLOYEE') {
+                    window.location.href = '/frontend/employee-dashboard.html';
+                } else {
+                    window.location.href = '/frontend/dashboard.html';
+                }
+            }, 2000);
+        }
+
+        // Focus on email field when page loads
+        window.addEventListener('load', () => {
+            emailInput.focus();
+        });
+    </script>
+</body>
+</html>

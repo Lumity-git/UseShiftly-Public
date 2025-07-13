@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f4f4f4;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button {
+            background: #007cba;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .output {
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Final Authentication System Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Authentication Status</h3>
+        <p>Current Status: <span id="authStatus">Checking...</span></p>
+        <p>User Info: <span id="userInfo">Loading...</span></p>
+        <button onclick="checkCurrentAuth()">Refresh Status</button>
+        <button onclick="testLogout()">Test Logout</button>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Login Test</h3>
+        <input type="email" id="loginEmail" placeholder="Email" value="employee@hotel.com">
+        <input type="password" id="loginPassword" placeholder="Password" value="password123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult" class="output"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. API Endpoint Tests</h3>
+        <button onclick="testEmployeesMe()">Test /api/employees/me</button>
+        <button onclick="testTokenValidation()">Test Token Validation</button>
+        <button onclick="testDepartments()">Test /api/departments</button>
+        <div id="apiResults" class="output"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Multiple API Calls Test</h3>
+        <p>This tests if multiple API calls trigger aggressive logout behavior:</p>
+        <button onclick="testMultipleApiCalls()">Run Multiple API Calls</button>
+        <div id="multipleCallsResult" class="output"></div>
+    </div>
+
+    <script src="auth-manager.js"></script>
+    <script>
+        const authManager = new AuthManager();
+        
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'warning';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function checkCurrentAuth() {
+            const isAuth = authManager.isAuthenticated();
+            const userInfo = authManager.getUserInfo();
+            
+            document.getElementById('authStatus').textContent = isAuth ? 'Authenticated' : 'Not Authenticated';
+            document.getElementById('authStatus').className = isAuth ? 'success' : 'error';
+            
+            if (userInfo) {
+                document.getElementById('userInfo').innerHTML = `
+                    ${userInfo.firstName} ${userInfo.lastName} (${userInfo.role}) - ID: ${userInfo.id}
+                `;
+                document.getElementById('userInfo').className = 'success';
+            } else {
+                document.getElementById('userInfo').textContent = 'No user information available';
+                document.getElementById('userInfo').className = 'error';
+            }
+
+            // Test token validation
+            if (isAuth) {
+                try {
+                    const isValid = await authManager.validateToken();
+                    document.getElementById('authStatus').textContent += ` (Token: ${isValid ? 'Valid' : 'Invalid'})`;
+                } catch (error) {
+                    document.getElementById('authStatus').textContent += ' (Token validation failed)';
+                }
+            }
+        }
+
+        async function testLogin() {
+            clearLog('loginResult');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            log('loginResult', `Attempting login with ${email}...`);
+            
+            try {
+                const result = await authManager.login(email, password);
+                if (result.success) {
+                    log('loginResult', `Login successful! Token: ${result.token.substring(0, 20)}...`, 'success');
+                    log('loginResult', `User: ${result.user.firstName} ${result.user.lastName} (${result.user.role})`, 'success');
+                    checkCurrentAuth();
+                } else {
+                    log('loginResult', `Login failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log('loginResult', `Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testEmployeesMe() {
+            clearLog('apiResults');
+            log('apiResults', 'Testing /api/employees/me endpoint...');
+            
+            try {
+                const result = await authManager.apiRequest('/employees/me', 'GET');
+                log('apiResults', `SUCCESS: ${JSON.stringify(result, null, 2)}`, 'success');
+            } catch (error) {
+                log('apiResults', `ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTokenValidation() {
+            clearLog('apiResults');
+            log('apiResults', 'Testing token validation...');
+            
+            try {
+                const isValid = await authManager.validateToken();
+                log('apiResults', `Token validation result: ${isValid}`, isValid ? 'success' : 'error');
+            } catch (error) {
+                log('apiResults', `Token validation error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDepartments() {
+            clearLog('apiResults');
+            log('apiResults', 'Testing /api/departments endpoint...');
+            
+            try {
+                const result = await authManager.apiRequest('/departments', 'GET');
+                log('apiResults', `SUCCESS: Found ${result.length} departments`, 'success');
+                log('apiResults', JSON.stringify(result, null, 2));
+            } catch (error) {
+                log('apiResults', `ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMultipleApiCalls() {
+            clearLog('multipleCallsResult');
+            log('multipleCallsResult', 'Starting multiple API calls test...');
+            
+            const tests = [
+                { name: 'employees/me', endpoint: '/employees/me' },
+                { name: 'departments', endpoint: '/departments' },
+                { name: 'validate token', endpoint: '/auth/validate' },
+                { name: 'employees/me (again)', endpoint: '/employees/me' },
+                { name: 'departments (again)', endpoint: '/departments' }
+            ];
+
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                log('multipleCallsResult', `Test ${i + 1}: ${test.name}...`);
+                
+                try {
+                    const result = await authManager.apiRequest(test.endpoint, 'GET');
+                    log('multipleCallsResult', `✓ ${test.name} - Success`, 'success');
+                    
+                    // Check if we're still authenticated after each call
+                    const stillAuth = authManager.isAuthenticated();
+                    if (!stillAuth) {
+                        log('multipleCallsResult', `⚠ Lost authentication after ${test.name}!`, 'error');
+                        break;
+                    }
+                } catch (error) {
+                    log('multipleCallsResult', `✗ ${test.name} - Error: ${error.message}`, 'error');
+                    
+                    // Check if we're still authenticated after error
+                    const stillAuth = authManager.isAuthenticated();
+                    if (!stillAuth) {
+                        log('multipleCallsResult', `⚠ Lost authentication after error in ${test.name}!`, 'error');
+                        break;
+                    }
+                }
+                
+                // Small delay between calls
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            log('multipleCallsResult', 'Multiple API calls test completed.', 'success');
+        }
+
+        function testLogout() {
+            authManager.logout();
+            checkCurrentAuth();
+        }
+
+        // Initialize
+        checkCurrentAuth();
+    </script>
+</body>
+</html>

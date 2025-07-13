@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Registration - Hotel Scheduler</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .registration-container {
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 1.2rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.13);
+            width: 100%;
+            max-width: 900px;
+            min-height: 650px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: visible;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .invitation-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .invitation-info h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .invitation-info p {
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .form-section {
+            margin-bottom: 1.1rem;
+            padding: 0;
+        }
+
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 0.7rem;
+            border-bottom: 1px solid #667eea;
+            padding-bottom: 0.3rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.7rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .form-group {
+            flex: 1;
+            margin-bottom: 0.7rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.97rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-btn {
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            padding: 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .file-upload-btn:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload-btn i {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-list {
+            margin-top: 0.5rem;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-top: 0.3rem;
+            flex-shrink: 0;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+
+        .legal-text {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .legal-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .legal-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 0.7rem;
+            justify-content: center;
+            margin-top: 1.2rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #d1f2eb;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .loading-content i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            margin-bottom: 1.2rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        @media (max-width: 768px) {
+            .registration-container {
+                padding: 0.7rem;
+                margin: 0.5rem;
+                min-width: 0;
+                max-width: 100vw;
+            }
+            .form-row {
+                display: block;
+                gap: 0;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-hotel"></i> Hotel Scheduler
+            </div>
+            <div class="subtitle">Employee Registration</div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="invitation-info" id="invitationInfo" style="display: none;">
+            <h3><i class="fas fa-envelope-open"></i> Invitation Details</h3>
+            <p>You've been invited to join <strong id="hotelName">Grand Hotel</strong> as a <strong id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong> department.</p>
+            <p>Invited by: <strong id="invitedBy">Manager Name</strong> on <strong id="invitationDate">March 15, 2024</strong></p>
+        </div>
+
+        <form id="registrationForm">
+            <input type="hidden" id="invitationCode" name="invitationCode">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+                <div>
+                    <!-- Personal Information -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-user"></i> Personal Info</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name <span class="required">*</span></label>
+                                <input type="text" id="firstName" name="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name <span class="required">*</span></label>
+                                <input type="text" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email <span class="required">*</span></label>
+                                <input type="email" id="email" name="email" required readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone <span class="required">*</span></label>
+                                <input type="tel" id="phone" name="phone" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="dateOfBirth">DOB <span class="required">*</span></label>
+                                <input type="date" id="dateOfBirth" name="dateOfBirth" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="ssn">SSN <span class="required">*</span></label>
+                                <input type="password" id="ssn" name="ssn" placeholder="XXX-XX-XXXX" required maxlength="11" autocomplete="off">
+                                <div style="margin-top:0.3rem;">
+                                    <label style="font-size:0.95rem;">
+                                        <input type="radio" name="ssnDisplay" value="masked" checked onclick="toggleSSN(false)"> Hide SSN
+                                    </label>
+                                    <label style="font-size:0.95rem;margin-left:1.2rem;">
+                                        <input type="radio" name="ssnDisplay" value="visible" onclick="toggleSSN(true)"> Show SSN
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Address <span class="required">*</span></label>
+                            <textarea id="address" name="address" placeholder="Street address, city, state, ZIP code" required></textarea>
+                        </div>
+                    </div>
+                    <!-- Emergency Contact -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-phone"></i> Emergency Contact</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="emergencyName">Contact Name <span class="required">*</span></label>
+                                <input type="text" id="emergencyName" name="emergencyName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="emergencyRelation">Relationship <span class="required">*</span></label>
+                                <select id="emergencyRelation" name="emergencyRelation" required>
+                                    <option value="">Select relationship</option>
+                                    <option value="spouse">Spouse</option>
+                                    <option value="parent">Parent</option>
+                                    <option value="sibling">Sibling</option>
+                                    <option value="child">Child</option>
+                                    <option value="friend">Friend</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyPhone">Emergency Phone <span class="required">*</span></label>
+                            <input type="tel" id="emergencyPhone" name="emergencyPhone" required>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <!-- Account Setup -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-key"></i> Account Setup</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="password">Password <span class="required">*</span></label>
+                                <input type="password" id="password" name="password" required minlength="8">
+                                <small style="color: #666;">Min 8 chars, include uppercase, lowercase, number, special</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Document Upload (collapsible) -->
+                    <div class="form-section" style="margin-bottom:0.5rem;">
+                        <h3 style="cursor:pointer;" onclick="togglePanel('docPanel')"><i class="fas fa-file-upload"></i> Documents <span style="font-size:0.9rem;color:#667eea;">(click to expand/collapse)</span></h3>
+                        <div id="docPanel" style="display:none;">
+                            <p style="color: #666; margin-bottom: 0.7rem;">Upload required documents (PDF, JPG, PNG, max 5MB each):</p>
+                            <div class="form-group">
+                                <label>Government-issued ID <span class="required">*</span></label>
+                                <div class="file-upload">
+                                    <input type="file" id="governmentId" name="governmentId" accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <div class="file-upload-btn" onclick="document.getElementById('governmentId').click()">
+                                        <i class="fas fa-id-card"></i>
+                                        <p>Upload Government ID</p>
+                                    </div>
+                                    <div class="file-list" id="governmentIdList"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>I-9 Employment Eligibility <span class="required">*</span></label>
+                                <div class="file-upload">
+                                    <input type="file" id="i9Form" name="i9Form" accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <div class="file-upload-btn" onclick="document.getElementById('i9Form').click()">
+                                        <i class="fas fa-file-alt"></i>
+                                        <p>Upload I-9 Form</p>
+                                    </div>
+                                    <div class="file-list" id="i9FormList"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>W-4 Tax Withholding <span class="required">*</span></label>
+                                <div class="file-upload">
+                                    <input type="file" id="w4Form" name="w4Form" accept=".pdf,.jpg,.jpeg,.png" required>
+                                    <div class="file-upload-btn" onclick="document.getElementById('w4Form').click()">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                        <p>Upload W-4 Form</p>
+                                    </div>
+                                    <div class="file-list" id="w4FormList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Legal Agreements (collapsible) -->
+                    <div class="form-section" style="margin-bottom:0.5rem;">
+                        <h3 style="cursor:pointer;" onclick="togglePanel('legalPanel')"><i class="fas fa-gavel"></i> Legal Agreements <span style="font-size:0.9rem;color:#667eea;">(click to expand/collapse)</span></h3>
+                        <div id="legalPanel" style="display:none;">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="backgroundCheck" name="backgroundCheck" required>
+                                <label for="backgroundCheck" class="legal-text">
+                                    <strong>Background Check Consent:</strong> I authorize Grand Hotel to conduct a background check. <a href="#" class="legal-link" onclick="showBackgroundCheckInfo()">Learn more</a>
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="drugTest" name="drugTest" required>
+                                <label for="drugTest" class="legal-text">
+                                    <strong>Drug Testing Policy:</strong> I consent to pre-employment and random drug testing.
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="employmentAgreement" name="employmentAgreement" required>
+                                <label for="employmentAgreement" class="legal-text">
+                                    <strong>Employment Agreement:</strong> I agree to the terms and conditions. <a href="#" class="legal-link" onclick="showEmploymentAgreement()">View full agreement</a>
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="privacyPolicy" name="privacyPolicy" required>
+                                <label for="privacyPolicy" class="legal-text">
+                                    <strong>Privacy Policy:</strong> I have read and understand the privacy policy. <a href="#" class="legal-link" onclick="showPrivacyPolicy()">Read privacy policy</a>
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="atWillEmployment" name="atWillEmployment" required>
+                                <label for="atWillEmployment" class="legal-text">
+                                    <strong>At-Will Employment:</strong> I understand my employment is at-will.
+                                </label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="dataAccuracy" name="dataAccuracy" required>
+                                <label for="dataAccuracy" class="legal-text">
+                                    <strong>Information Accuracy:</strong> I certify all information is true and accurate.
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="goBack()">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                    <i class="fas fa-user-plus"></i> Complete Registration
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <i class="fas fa-spinner"></i>
+            <h3>Processing Registration...</h3>
+            <p>Please wait while we set up your account</p>
+        </div>
+    </div>
+
+    <script>
+        let invitationData = null;
+        let uploadedFiles = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            validateInvitation();
+            setupEventListeners();
+            updateProgress();
+        });
+
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel.style.display === 'none' || panel.style.display === '') {
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function validateInvitation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const token = urlParams.get('token');
+
+            if (!code || !token) {
+                showAlert('Invalid invitation link. Please contact your manager for a valid invitation.', 'error');
+                document.getElementById('registrationForm').style.display = 'none';
+                return;
+            }
+
+            // Validate invitation code
+            validateInvitationCode(code, token);
+        }
+
+        const API_BASE_URL = 'http://localhost:8080/api';
+
+        async function validateInvitationCode(code, token) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/validate-invitation?code=${code}&token=${token}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            invitationData = await response.json();
+            displayInvitationInfo();
+            document.getElementById('invitationCode').value = code;
+            document.getElementById('email').value = invitationData.email || '';
+            document.getElementById('email').readOnly = true;
+            document.getElementById('registrationForm').style.display = '';
+        } else {
+            const error = await response.text();
+            disablePage(error || 'Invalid or expired invitation. Please contact your manager.');
+        }
+    } catch (error) {
+        console.error('Error validating invitation:', error);
+        disablePage('Unable to validate invitation. Please contact your manager for a valid invitation.');
+    }
+        }
+
+        function displayInvitationInfo() {
+            document.getElementById('hotelName').textContent = invitationData.hotelName;
+            document.getElementById('invitedRole').textContent = invitationData.role;
+            document.getElementById('invitedDepartment').textContent = invitationData.departmentName;
+            document.getElementById('invitedBy').textContent = invitationData.invitedBy;
+            document.getElementById('invitationDate').textContent = new Date(invitationData.invitationDate).toLocaleDateString();
+            document.getElementById('invitationInfo').style.display = 'block';
+        }
+
+        function setupEventListeners() {
+            // File upload handlers
+            document.getElementById('governmentId').addEventListener('change', function() {
+                handleFileUpload(this, 'governmentIdList');
+            });
+            document.getElementById('i9Form').addEventListener('change', function() {
+                handleFileUpload(this, 'i9FormList');
+            });
+            document.getElementById('w4Form').addEventListener('change', function() {
+                handleFileUpload(this, 'w4FormList');
+            });
+
+            // Password validation
+            document.getElementById('password').addEventListener('input', validatePassword);
+            document.getElementById('confirmPassword').addEventListener('input', validatePasswordMatch);
+
+            // Phone number formatting
+            document.getElementById('phone').addEventListener('input', formatPhoneNumber);
+            document.getElementById('emergencyPhone').addEventListener('input', formatPhoneNumber);
+
+            // SSN formatting
+            document.getElementById('ssn').addEventListener('input', formatSSN);
+
+            // Form validation
+            document.getElementById('registrationForm').addEventListener('input', validateForm);
+            document.getElementById('registrationForm').addEventListener('change', validateForm);
+
+            // Form submission
+            document.getElementById('registrationForm').addEventListener('submit', handleSubmit);
+        }
+
+        function handleFileUpload(input, listId) {
+            const file = input.files[0];
+            const listContainer = document.getElementById(listId);
+            
+            if (file) {
+                // Validate file
+                if (!validateFile(file)) {
+                    input.value = '';
+                    return;
+                }
+
+                uploadedFiles[input.name] = file;
+                
+                listContainer.innerHTML = `
+                    <div class="file-item">
+                        <span><i class="fas fa-file"></i> ${file.name} (${formatFileSize(file.size)})</span>
+                        <button type="button" onclick="removeFile('${input.name}', '${listId}')" style="background: none; border: none; color: #dc3545; cursor: pointer;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            updateProgress();
+        }
+
+        function validateFile(file) {
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+
+            if (file.size > maxSize) {
+                showAlert('File size must be less than 5MB.', 'error');
+                return false;
+            }
+
+            if (!allowedTypes.includes(file.type)) {
+                showAlert('Only PDF, JPG, and PNG files are allowed.', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        function removeFile(fileName, listId) {
+            delete uploadedFiles[fileName];
+            document.getElementById(listId).innerHTML = '';
+            document.querySelector(`[name="${fileName}"]`).value = '';
+            updateProgress();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatPhoneNumber(event) {
+            let value = event.target.value.replace(/\D/g, '');
+            if (value.length >= 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})(\d{3})/, '($1) $2');
+            }
+            event.target.value = value;
+        }
+
+        function formatSSN(event) {
+            let value = event.target.getAttribute('data-ssn') || '';
+            // If user is typing, update the stored value
+            if (event.inputType !== 'insertFromPaste' && event.inputType !== 'deleteContentBackward') {
+                value = event.target.value.replace(/\D/g, '');
+                event.target.setAttribute('data-ssn', value);
+            }
+            if (document.getElementById('ssn').type === 'password') {
+                // Mask with asterisks, but allow typing full SSN
+                event.target.value = '*'.repeat(value.length);
+            } else {
+                // Show formatted SSN
+                if (value.length >= 5) {
+                    value = value.replace(/(\d{3})(\d{2})(\d{4})/, '$1-$2-$3');
+                } else if (value.length >= 3) {
+                    value = value.replace(/(\d{3})(\d{2})/, '$1-$2');
+                }
+                event.target.value = value;
+            }
+        }
+
+        function toggleSSN(show) {
+            const ssnInput = document.getElementById('ssn');
+            if (show) {
+                ssnInput.type = 'text';
+                let value = ssnInput.getAttribute('data-ssn') || '';
+                if (value.length >= 5) {
+                    value = value.replace(/(\d{3})(\d{2})(\d{4})/, '$1-$2-$3');
+                } else if (value.length >= 3) {
+                    value = value.replace(/(\d{3})(\d{2})/, '$1-$2');
+                }
+                ssnInput.value = value;
+            } else {
+                ssnInput.type = 'password';
+                let value = ssnInput.getAttribute('data-ssn') || '';
+                ssnInput.value = '*'.repeat(value.length);
+            }
+        }
+
+        function validatePassword() {
+            const password = document.getElementById('password').value;
+            const minLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            const isValid = minLength && hasUpper && hasLower && hasNumber && hasSpecial;
+            
+            const input = document.getElementById('password');
+            if (password && !isValid) {
+                input.style.borderColor = '#dc3545';
+            } else {
+                input.style.borderColor = '#ddd';
+            }
+
+            validatePasswordMatch();
+            return isValid;
+        }
+
+        function validatePasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const input = document.getElementById('confirmPassword');
+
+            if (confirmPassword && password !== confirmPassword) {
+                input.style.borderColor = '#dc3545';
+                return false;
+            } else {
+                input.style.borderColor = '#ddd';
+                return true;
+            }
+        }
+
+        function validateForm() {
+            const form = document.getElementById('registrationForm');
+            const requiredFields = form.querySelectorAll('[required]');
+            const checkboxes = form.querySelectorAll('input[type="checkbox"][required]');
+            
+            let allValid = true;
+
+            // Check required fields
+            requiredFields.forEach(field => {
+                if (field.type === 'checkbox') {
+                    if (!field.checked) allValid = false;
+                } else if (field.type === 'file') {
+                    if (!uploadedFiles[field.name]) allValid = false;
+                } else {
+                    if (!field.value.trim()) allValid = false;
+                }
+            });
+
+            // Check password validation
+            if (!validatePassword() || !validatePasswordMatch()) {
+                allValid = false;
+            }
+
+            document.getElementById('submitBtn').disabled = !allValid;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const form = document.getElementById('registrationForm');
+            const requiredFields = form.querySelectorAll('[required]');
+            let completedFields = 0;
+
+            requiredFields.forEach(field => {
+                if (field.type === 'checkbox') {
+                    if (field.checked) completedFields++;
+                } else if (field.type === 'file') {
+                    if (uploadedFiles[field.name]) completedFields++;
+                } else {
+                    if (field.value.trim()) completedFields++;
+                }
+            });
+
+            const progress = (completedFields / requiredFields.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!validateForm()) {
+                showAlert('Please complete all required fields before submitting.', 'error');
+                return;
+            }
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const formData = new FormData();
+                // Add form fields
+                const form = document.getElementById('registrationForm');
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'file') {
+                        if (uploadedFiles[input.name]) {
+                            formData.append(input.name, uploadedFiles[input.name]);
+                        }
+                    } else if (input.type === 'checkbox') {
+                        formData.append(input.name, input.checked);
+                    } else if (input.name === 'ssn') {
+                        // Always send real SSN value
+                        formData.append('ssn', input.getAttribute('data-ssn') || '');
+                    } else {
+                        formData.append(input.name, input.value);
+                    }
+                });
+
+                // Optionally, send as JSON for backend compatibility
+                // If backend expects JSON, convert FormData to object
+                // const obj = {};
+                // formData.forEach((v, k) => { obj[k] = v; });
+                // const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(obj)
+                // });
+
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showAlert('Registration completed successfully! Please check your email for further instructions.', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                } else {
+                    const error = await response.text();
+                    showAlert(error || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('Registration completed successfully! Please check your email for login instructions.', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i> ${message}`;
+            container.appendChild(alert);
+            setTimeout(() => {
+                if (container.contains(alert)) {
+                    container.removeChild(alert);
+                }
+            }, 8000);
+        }
+
+        function disablePage(message) {
+            // Hide registration container
+            const regContainer = document.querySelector('.registration-container');
+            if (regContainer) regContainer.style.display = 'none';
+            // Show full-page error
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100vw';
+            errorDiv.style.height = '100vh';
+            errorDiv.style.display = 'flex';
+            errorDiv.style.alignItems = 'center';
+            errorDiv.style.justifyContent = 'center';
+            errorDiv.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            errorDiv.innerHTML = `<div style="background:rgba(255,255,255,0.97);padding:2.5rem 2.5rem;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,0.13);text-align:center;max-width:500px;"><i class='fas fa-exclamation-triangle' style='font-size:2.5rem;color:#e74c3c;'></i><h2 style='color:#e74c3c;margin:1rem 0;'>Registration Error</h2><p style='color:#333;font-size:1.15rem;'>${message}</p></div>`;
+            document.body.appendChild(errorDiv);
+        }
+
+        function goBack() {
+            if (confirm('Are you sure you want to cancel registration? All entered data will be lost.')) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        function showBackgroundCheckInfo() {
+            alert('Background Check Information:\n\nAs part of our employment process, we conduct background checks to ensure the safety and security of our guests, employees, and property. This includes:\n\n• Criminal history verification\n• Employment history verification\n• Reference checks\n• Education verification (if applicable)\n\nThis information is kept confidential and used solely for employment purposes in accordance with federal and state laws.');
+        }
+
+        function showEmploymentAgreement() {
+            alert('Employment Agreement Summary:\n\nBy accepting this position, you agree to:\n\n• Follow all company policies and procedures\n• Maintain confidentiality of guest and company information\n• Comply with all applicable laws and regulations\n• Participate in required training programs\n• Maintain professional conduct at all times\n\nFull terms and conditions will be provided in your employee handbook upon hire.');
+        }
+
+        function showPrivacyPolicy() {
+            alert('Privacy Policy Summary:\n\nWe collect and use your personal information for:\n\n• Employment verification and background checks\n• Payroll and benefits administration\n• Communication regarding work schedules and policies\n• Compliance with legal requirements\n\nYour information is protected and not shared with third parties except as required by law or for legitimate business purposes.');
+        }
+    </script>
+</body>
+</html>

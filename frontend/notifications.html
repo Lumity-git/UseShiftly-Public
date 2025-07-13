@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Hotel Scheduler</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .notification-controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .filter-group select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .notifications-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .notification-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            border-left: 4px solid #667eea;
+        }
+
+        .notification-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .notification-card.unread {
+            background: rgba(102, 126, 234, 0.05);
+            border-left-color: #667eea;
+        }
+
+        .notification-card.info {
+            border-left-color: #17a2b8;
+        }
+
+        .notification-card.success {
+            border-left-color: #28a745;
+        }
+
+        .notification-card.warning {
+            border-left-color: #ffc107;
+        }
+
+        .notification-card.error {
+            border-left-color: #dc3545;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .notification-info {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+
+        .notification-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .type-info {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .type-success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .type-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+
+        .type-error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .notification-content {
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .unread-indicator {
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .no-notifications {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-notifications i {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .loading i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification-settings {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .settings-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section h3 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            flex: 1;
+        }
+
+        .setting-label h4 {
+            color: #333;
+            margin-bottom: 0.2rem;
+        }
+
+        .setting-label p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .notification-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .notification-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .notification-meta {
+                flex-wrap: wrap;
+            }
+
+            .notification-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="frontend/dashboard.html" class="logo"></a>
+                <i class="fas fa-hotel"></i> Hotel Scheduler
+            </a>
+            <div class="nav-links" id="navigation">
+                <!-- Navigation will be populated based on user role -->
+            </div>
+            <div class="user-info">
+                <span id="userName">Loading...</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-bell"></i> Notifications</h1>
+            <p>Stay updated with important messages, shift changes, and system alerts</p>
+        </div>
+
+        <div class="notification-controls">
+            <div class="filter-group">
+                <label for="typeFilter">Filter by type:</label>
+                <select id="typeFilter" onchange="filterNotifications()">
+                    <option value="">All Types</option>
+                    <option value="info">Info</option>
+                    <option value="success">Success</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="statusFilter">Filter by status:</label>
+                <select id="statusFilter" onchange="filterNotifications()">
+                    <option value="">All</option>
+                    <option value="unread">Unread</option>
+                    <option value="read">Read</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button class="btn btn-primary" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double"></i> Mark All Read
+                </button>
+                <button class="btn btn-warning" onclick="toggleSettings()">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+        </div>
+
+        <div id="notificationSettings" class="notification-settings" style="display: none;">
+            <div class="settings-section">
+                <h3><i class="fas fa-cog"></i> Notification Preferences</h3>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Email Notifications</h4>
+                        <p>Receive notifications via email</p>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)" data-setting="email"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Shift Changes</h4>
+                        <p>Get notified when your shifts are modified</p>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)" data-setting="shiftChanges"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Trade Requests</h4>
+                        <p>Notifications for shift trade requests</p>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)" data-setting="tradeRequests"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>Schedule Reminders</h4>
+                        <p>Reminders before your shifts start</p>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)" data-setting="scheduleReminders"></div>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <h4>System Announcements</h4>
+                        <p>Important system updates and announcements</p>
+                    </div>
+                    <div class="toggle-switch active" onclick="toggleSetting(this)" data-setting="systemAnnouncements"></div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-success" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+
+        <div id="notificationsContainer">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>Loading notifications...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let notifications = [];
+        let filteredNotifications = [];
+        let notificationSettings = {
+            email: true,
+            shiftChanges: true,
+            tradeRequests: true,
+            scheduleReminders: true,
+            systemAnnouncements: true
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!authManager.checkAuth()) return;
+            
+            const userInfo = authManager.getUserInfo();
+            document.getElementById('userName').textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+            setupNavigation(userInfo.role);
+            
+            loadNotifications();
+            loadSettings();
+        });
+
+        function setupNavigation(userRole) {
+            const navigation = document.getElementById('navigation');
+            let navLinks = '';
+            
+            // Common links for all users
+            navLinks += '<a href="frontend/dashboard.html"><i class="fas fa-home"></i> Dashboard</a>';
+            navLinks += '<a href="shifts.html"><i class="fas fa-calendar-alt"></i> Shifts</a>';
+            navLinks += '<a href="trades.html"><i class="fas fa-exchange-alt"></i> Trades</a>';
+            navLinks += '<a href="notifications.html" class="active"><i class="fas fa-bell"></i> Notifications</a>';
+            
+            // Manager and Admin only links
+            if (userRole === 'MANAGER' || userRole === 'ADMIN') {
+                navLinks += '<a href="employees.html"><i class="fas fa-users"></i> Employees</a>';
+                navLinks += '<a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>';
+                navLinks += '<a href="departments.html"><i class="fas fa-building"></i> Departments</a>';
+            }
+            
+            navigation.innerHTML = navLinks;
+        }
+
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8080/api';
+
+        async function loadNotifications() {
+            try {
+                const notifications_data = await authManager.apiRequest('/notifications');
+                notifications = notifications_data;
+                filteredNotifications = [...notifications];
+                renderNotifications();
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                notifications = generateMockNotifications();
+                filteredNotifications = [...notifications];
+                renderNotifications();
+            }
+        }
+
+        function generateMockNotifications() {
+            const now = new Date();
+            return [
+                {
+                    id: 1,
+                    title: 'Shift Assignment Updated',
+                    message: 'Your shift on March 15, 2024 (Morning - Front Desk) has been confirmed.',
+                    type: 'success',
+                    read: false,
+                    timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+                    category: 'shift'
+                },
+                {
+                    id: 2,
+                    title: 'Trade Request Approved',
+                    message: 'Your shift trade request for March 20, 2024 has been approved by management.',
+                    type: 'success',
+                    read: false,
+                    timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000), // 4 hours ago
+                    category: 'trade'
+                },
+                {
+                    id: 3,
+                    title: 'Schedule Reminder',
+                    message: 'Don\'t forget: You have a shift tomorrow (March 16, 2024) from 9:00 AM to 5:00 PM.',
+                    type: 'info',
+                    read: true,
+                    timestamp: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+                    category: 'reminder'
+                },
+                {
+                    id: 4,
+                    title: 'System Maintenance Notice',
+                    message: 'The scheduling system will undergo maintenance on March 18, 2024 from 2:00 AM to 4:00 AM.',
+                    type: 'warning',
+                    read: true,
+                    timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+                    category: 'system'
+                },
+                {
+                    id: 5,
+                    title: 'New Employee Welcome',
+                    message: 'Welcome to the Hotel Scheduler! Please complete your profile and review the employee handbook.',
+                    type: 'info',
+                    read: false,
+                    timestamp: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+                    category: 'system'
+                },
+                {
+                    id: 6,
+                    title: 'Overtime Approval Required',
+                    message: 'Your overtime hours for this week require manager approval. Please contact your supervisor.',
+                    type: 'warning',
+                    read: true,
+                    timestamp: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+                    category: 'shift'
+                },
+                {
+                    id: 7,
+                    title: 'Department Meeting',
+                    message: 'Monthly Front Desk team meeting scheduled for March 22, 2024 at 3:00 PM in Conference Room A.',
+                    type: 'info',
+                    read: true,
+                    timestamp: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+                    category: 'announcement'
+                }
+            ];
+        }
+
+        function renderNotifications() {
+            const container = document.getElementById('notificationsContainer');
+            
+            if (filteredNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="no-notifications">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No notifications found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="notifications-list">
+                    ${filteredNotifications.map(notification => createNotificationCard(notification)).join('')}
+                </div>
+            `;
+        }
+
+        function createNotificationCard(notification) {
+            const typeIcons = {
+                info: 'fas fa-info-circle',
+                success: 'fas fa-check-circle',
+                warning: 'fas fa-exclamation-triangle',
+                error: 'fas fa-times-circle'
+            };
+
+            return `
+                <div class="notification-card ${notification.read ? '' : 'unread'} ${notification.type}" data-id="${notification.id}">
+                    <div class="notification-header">
+                        <div class="notification-info">
+                            <div class="notification-title">
+                                ${!notification.read ? '<div class="unread-indicator"></div>' : ''}
+                                ${notification.title}
+                            </div>
+                            <div class="notification-meta">
+                                <span class="notification-type type-${notification.type}">
+                                    <i class="${typeIcons[notification.type]}"></i>
+                                    ${notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
+                                </span>
+                                <span><i class="fas fa-clock"></i> ${formatTimestamp(notification.timestamp)}</span>
+                            </div>
+                        </div>
+                        <div class="notification-actions">
+                            ${!notification.read ? `
+                                <button class="btn btn-sm btn-primary" onclick="markAsRead(${notification.id})">
+                                    <i class="fas fa-check"></i> Mark Read
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-warning" onclick="deleteNotification(${notification.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="notification-content">
+                        ${notification.message}
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatTimestamp(timestamp) {
+            const now = new Date();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (minutes < 60) {
+                return `${minutes}m ago`;
+            } else if (hours < 24) {
+                return `${hours}h ago`;
+            } else if (days < 7) {
+                return `${days}d ago`;
+            } else {
+                return timestamp.toLocaleDateString();
+            }
+        }
+
+        function filterNotifications() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredNotifications = notifications.filter(notification => {
+                const typeMatch = !typeFilter || notification.type === typeFilter;
+                const statusMatch = !statusFilter || 
+                    (statusFilter === 'unread' && !notification.read) ||
+                    (statusFilter === 'read' && notification.read);
+                
+                return typeMatch && statusMatch;
+            });
+
+            renderNotifications();
+        }
+
+        async function markAsRead(id) {
+            try {
+                await authManager.apiRequest(`/notifications/${id}/read`, 'POST');
+                
+                // Update local data
+                const notification = notifications.find(n => n.id === id);
+                if (notification) {
+                    notification.read = true;
+                }
+                
+                filterNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+                // Update locally for demo
+                const notification = notifications.find(n => n.id === id);
+                if (notification) {
+                    notification.read = true;
+                }
+                filterNotifications();
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                await authManager.apiRequest('/notifications/read-all', 'POST');
+                
+                // Update local data
+                notifications.forEach(n => n.read = true);
+                filterNotifications();
+                showAlert('All notifications marked as read', 'success');
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
+                // Update locally for demo
+                notifications.forEach(n => n.read = true);
+                filterNotifications();
+                showAlert('All notifications marked as read', 'success');
+            }
+        }
+
+        async function deleteNotification(id) {
+            if (!confirm('Are you sure you want to delete this notification?')) return;
+
+            try {
+                await authManager.apiRequest(`/notifications/${id}`, 'DELETE');
+                
+                // Remove from local data
+                notifications = notifications.filter(n => n.id !== id);
+                filterNotifications();
+                showAlert('Notification deleted', 'success');
+            } catch (error) {
+                console.error('Error deleting notification:', error);
+                // Remove locally for demo
+                notifications = notifications.filter(n => n.id !== id);
+                filterNotifications();
+                showAlert('Notification deleted', 'success');
+            }
+        }
+
+        function toggleSettings() {
+            const settings = document.getElementById('notificationSettings');
+            settings.style.display = settings.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleSetting(element) {
+            element.classList.toggle('active');
+            const setting = element.getAttribute('data-setting');
+            notificationSettings[setting] = element.classList.contains('active');
+        }
+
+        async function saveSettings() {
+            try {
+                await authManager.apiRequest('/notifications/settings', 'POST', notificationSettings);
+                showAlert('Notification settings saved successfully', 'success');
+            } catch (error) {
+                console.error('Error saving notification settings:', error);
+                showAlert('Notification settings saved successfully', 'success');
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const settings = await authManager.apiRequest('/notifications/settings');
+                notificationSettings = { ...notificationSettings, ...settings };
+                updateSettingsUI();
+            } catch (error) {
+                console.error('Error loading notification settings:', error);
+            }
+        }
+
+        function updateSettingsUI() {
+            Object.keys(notificationSettings).forEach(setting => {
+                const toggle = document.querySelector(`[data-setting="${setting}"]`);
+                if (toggle) {
+                    if (notificationSettings[setting]) {
+                        toggle.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        function showAlert(message, type) {
+            // Simple alert for now - could be replaced with a toast notification
+            alert((type === 'success' ? 'Success: ' : 'Error: ') + message);
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = '/frontend/login.html';
+        }
+    </script>
+    <script src="auto-logout.js"></script>
+    <script src="auth-manager.js"></script>
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Trades - Hotel Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: #7f8c8d;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-badge {
+            background: #27ae60;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .trades-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .trade-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #f39c12;
+            transition: all 0.3s ease;
+        }
+
+        .trade-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .trade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .trade-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .trade-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .trade-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-icon {
+            font-size: 1.2rem;
+        }
+
+        .detail-text {
+            color: #555;
+        }
+
+        .trade-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .no-trades {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-trades-icon {
+            font-size: 3rem;
+            color: #bdc3c7;
+            margin-bottom: 20px;
+        }
+
+        .no-trades-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .no-trades-text {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-links {
+                order: -1;
+            }
+
+            .page-header {
+                padding: 20px;
+            }
+
+            .trade-card {
+                padding: 20px;
+            }
+
+            .trade-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .trade-actions {
+                justify-content: flex-start;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">🏨 Hotel Scheduler</div>
+            
+            <div class="nav-links">
+                <a href="employee-dashboard.html" class="nav-link">Dashboard</a>
+                <a href="employee-shifts.html" class="nav-link">My Shifts</a>
+                <a href="employee-trades.html" class="nav-link active">Shift Trades</a>
+                <a href="employee-profile.html" class="nav-link">My Profile</a>
+            </div>
+
+            <div class="user-info">
+                <span id="userName">Loading...</span>
+                <span class="role-badge" id="userRole">Employee</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Shift Trades</h1>
+            <p class="page-subtitle">Manage shift trades and pick up available shifts</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('available')">Available Shifts</button>
+            <button class="tab-btn" onclick="showTab('my-trades')">My Trade Requests</button>
+        </div>
+
+        <div id="available-tab" class="tab-content active">
+            <div id="availableLoading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading available shifts...</p>
+            </div>
+
+            <div id="availableShiftsContainer" class="trades-grid" style="display: none;">
+                <!-- Available shifts will be loaded here -->
+            </div>
+
+            <div id="noAvailableShifts" class="no-trades" style="display: none;">
+                <div class="no-trades-icon">🔄</div>
+                <h3 class="no-trades-title">No Available Shifts</h3>
+                <p class="no-trades-text">There are no shifts available for pickup at the moment. Check back later!</p>
+            </div>
+        </div>
+
+        <div id="my-trades-tab" class="tab-content">
+            <div id="tradesLoading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading your trade requests...</p>
+            </div>
+
+            <div id="myTradesContainer" class="trades-grid" style="display: none;">
+                <!-- User's trade requests will be loaded here -->
+            </div>
+
+            <div id="noMyTrades" class="no-trades" style="display: none;">
+                <div class="no-trades-icon">💼</div>
+                <h3 class="no-trades-title">No Trade Requests</h3>
+                <p class="no-trades-text">You haven't made any shift trade requests yet. Go to "My Shifts" to give away a shift.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="auto-logout.js"></script>
+    <script src="auth-manager.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        let authToken = localStorage.getItem('authToken');
+        let userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+
+        // Check authentication and role
+        function checkAuth() {
+            if (!authToken) {
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            if (userInfo.role !== 'EMPLOYEE') {
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+
+            return true;
+        }
+
+        // Initialize page
+        function init() {
+            if (!authManager.checkAuth('EMPLOYEE')) return;
+
+            const userInfo = authManager.getUserInfo();
+            document.getElementById('userName').textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+            loadAvailableShifts();
+        }
+
+        // Show tab
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+
+            // Load data for the selected tab
+            if (tabName === 'available') {
+                loadAvailableShifts();
+            } else if (tabName === 'my-trades') {
+                loadMyTrades();
+            }
+        }
+
+        // Load available shifts
+        async function loadAvailableShifts() {
+            try {
+                const shifts = await authManager.apiRequest('/shifts/available');
+                displayAvailableShifts(shifts);
+            } catch (error) {
+                console.error('Error loading available shifts:', error);
+                document.getElementById('availableLoading').innerHTML = '<p>Error loading available shifts. Please try again later.</p>';
+            }
+        }
+
+        // Load user's trade requests
+        async function loadMyTrades() {
+            try {
+                const trades = await authManager.apiRequest('/shifts/trades');
+                displayMyTrades(trades);
+            } catch (error) {
+                console.error('Error loading trade requests:', error);
+                document.getElementById('tradesLoading').innerHTML = '<p>Error loading trade requests. Please try again later.</p>';
+            }
+        }
+
+        // Display available shifts
+        function displayAvailableShifts(shifts) {
+            document.getElementById('availableLoading').style.display = 'none';
+
+            if (shifts.length === 0) {
+                document.getElementById('noAvailableShifts').style.display = 'block';
+                return;
+            }
+
+            const container = document.getElementById('availableShiftsContainer');
+            container.style.display = 'grid';
+
+            container.innerHTML = shifts.map(shift => `
+                <div class="trade-card">
+                    <div class="trade-header">
+                        <div class="trade-title">${formatDate(shift.shiftDate)}</div>
+                        <div class="trade-status status-pending">Available</div>
+                    </div>
+                    <div class="trade-details">
+                        <div class="detail-item">
+                            <div class="detail-icon">🕐</div>
+                            <div class="detail-text">${shift.startTime} - ${shift.endTime}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🏢</div>
+                            <div class="detail-text">${shift.department?.name || 'No Department'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">📍</div>
+                            <div class="detail-text">${shift.position || 'General Staff'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">👤</div>
+                            <div class="detail-text">Originally: ${shift.originalEmployee?.firstName} ${shift.originalEmployee?.lastName}</div>
+                        </div>
+                    </div>
+                    <div class="trade-actions">
+                        <button class="action-btn btn-success" onclick="pickupShift(${shift.id})">
+                            Pick Up This Shift
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display user's trade requests
+        function displayMyTrades(trades) {
+            document.getElementById('tradesLoading').style.display = 'none';
+
+            if (trades.length === 0) {
+                document.getElementById('noMyTrades').style.display = 'block';
+                return;
+            }
+
+            const container = document.getElementById('myTradesContainer');
+            container.style.display = 'grid';
+
+            container.innerHTML = trades.map(trade => `
+                <div class="trade-card">
+                    <div class="trade-header">
+                        <div class="trade-title">${formatDate(trade.shift.shiftDate)}</div>
+                        <div class="trade-status status-${trade.status.toLowerCase()}">${trade.status}</div>
+                    </div>
+                    <div class="trade-details">
+                        <div class="detail-item">
+                            <div class="detail-icon">🕐</div>
+                            <div class="detail-text">${trade.shift.startTime} - ${trade.shift.endTime}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🏢</div>
+                            <div class="detail-text">${trade.shift.department?.name || 'No Department'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">📍</div>
+                            <div class="detail-text">${trade.shift.position || 'General Staff'}</div>
+                        </div>
+                        ${trade.pickedUpBy ? `
+                        <div class="detail-item">
+                            <div class="detail-icon">👤</div>
+                            <div class="detail-text">Picked up by: ${trade.pickedUpBy.firstName} ${trade.pickedUpBy.lastName}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="trade-actions">
+                        ${trade.status === 'PENDING' ? `
+                            <button class="action-btn btn-danger" onclick="cancelTrade(${trade.id})">
+                                Cancel Request
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Pick up shift
+        async function pickupShift(shiftId) {
+            if (!confirm('Are you sure you want to pick up this shift?')) return;
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/shifts/${shiftId}/pickup`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                if (response.ok) {
+                    alert('Shift picked up successfully! It has been added to your schedule.');
+                    loadAvailableShifts(); // Reload available shifts
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to pick up shift');
+                }
+
+            } catch (error) {
+                console.error('Error picking up shift:', error);
+                alert('Error picking up shift. Please try again.');
+            }
+        }
+
+        // Cancel trade request
+        async function cancelTrade(tradeId) {
+            if (!confirm('Are you sure you want to cancel this trade request?')) return;
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                if (response.ok) {
+                    alert('Trade request cancelled successfully!');
+                    loadMyTrades(); // Reload trade requests
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to cancel trade request');
+                }
+
+            } catch (error) {
+                console.error('Error cancelling trade request:', error);
+                alert('Error cancelling trade request. Please try again.');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

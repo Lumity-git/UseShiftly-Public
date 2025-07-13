@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Hotel Scheduler",
+			"type": "shell",
+			"command": "mvn spring-boot:run",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"args": []
+		}
+	]
+}
