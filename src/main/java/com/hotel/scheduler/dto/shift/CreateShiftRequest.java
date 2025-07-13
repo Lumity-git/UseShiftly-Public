@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 public class CreateShiftRequest {
     
     @NotNull(message = "Start time is required")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX]", shape = JsonFormat.Shape.STRING)
     private LocalDateTime startTime;
-    
+
     @NotNull(message = "End time is required")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX]", shape = JsonFormat.Shape.STRING)
     private LocalDateTime endTime;
     
     private Long employeeId;

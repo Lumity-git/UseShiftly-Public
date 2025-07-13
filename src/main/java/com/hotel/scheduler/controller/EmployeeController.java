@@ -17,6 +17,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
+    /**
+     * Get employee details by ID (Manager/Admin only)
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
+        try {
+            var employeeOpt = employeeService.getEmployeeById(id);
+            if (employeeOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new MessageResponse("Employee not found"));
+            }
+            return ResponseEntity.ok(EmployeeDTO.fromEntity(employeeOpt.get()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
     
     private final EmployeeService employeeService;
     

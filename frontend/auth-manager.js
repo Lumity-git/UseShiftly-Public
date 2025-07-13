@@ -165,12 +165,15 @@ class AuthManager {
   }
 
   // Make authenticated API request
-  async apiRequest(endpoint, method = "GET", body = null) {
+  async apiRequest(endpoint, method = "GET", body = null, options = {}) {
+    // options: { suppressLogout: true }
     const token = this.getToken();
-    console.debug('[AuthManager] apiRequest called:', endpoint, method, body, 'token:', token);
+    console.debug('[AuthManager] apiRequest called:', endpoint, method, body, 'token:', token, 'options:', options);
     if (!token) {
       console.warn('[AuthManager] apiRequest: No token, redirecting to login');
-      this.redirectToLogin();
+      if (!options.suppressLogout) {
+        this.redirectToLogin();
+      }
       throw new Error("No authentication token");
     }
 
@@ -204,8 +207,10 @@ class AuthManager {
         console.debug('[AuthManager] apiRequest tokenValid:', tokenValid);
         if (!tokenValid) {
           console.warn("Token confirmed invalid - logging out");
-          this.logout();
-          this.redirectToLogin();
+          if (!options.suppressLogout) {
+            this.logout();
+            this.redirectToLogin();
+          }
         } else {
           console.warn(
             "Token seems valid but got 401 - may be endpoint permission issue"

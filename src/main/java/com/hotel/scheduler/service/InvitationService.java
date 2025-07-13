@@ -50,4 +50,31 @@ public class InvitationService {
             invitationRepository.save(inv);
         });
     }
+
+    /**
+     * Get all active (not used, not expired) invitations
+     */
+    public java.util.List<Invitation> getActiveInvitations() {
+        LocalDateTime now = LocalDateTime.now();
+        return invitationRepository.findAll().stream()
+            .filter(inv -> !inv.isUsed() && inv.getExpiresAt().isAfter(now))
+            .toList();
+    }
+
+    /**
+     * Delete invitation by code (if not used/expired)
+     * @return true if deleted, false if not found or already used/expired
+     */
+    @Transactional
+    public boolean deleteInvitationByCode(String code) {
+        Optional<Invitation> invitationOpt = invitationRepository.findByCode(code);
+        if (invitationOpt.isPresent()) {
+            Invitation inv = invitationOpt.get();
+            if (!inv.isUsed() && inv.getExpiresAt().isAfter(LocalDateTime.now())) {
+                invitationRepository.delete(inv);
+                return true;
+            }
+        }
+        return false;
+    }
 }

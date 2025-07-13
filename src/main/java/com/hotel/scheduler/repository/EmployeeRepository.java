@@ -11,6 +11,8 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    // Find all employees by department (active or not)
+    List<Employee> findByDepartmentId(Long departmentId);
     
     Optional<Employee> findByEmail(String email);
     

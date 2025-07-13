@@ -33,24 +33,46 @@ public class ShiftController {
     public ResponseEntity<List<ShiftResponse>> getShifts(
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) Long departmentId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @AuthenticationPrincipal Employee currentUser) {
-        
+        LocalDateTime start = parseDateOrDateTime(startDate);
+        LocalDateTime end = parseDateOrDateTime(endDate);
+
         List<ShiftResponse> shifts;
-        
+
         // If regular employee, only show their own shifts
         if (currentUser.getRole() == Employee.Role.EMPLOYEE) {
-            shifts = shiftService.getShiftsForEmployee(currentUser.getId(), startDate, endDate);
+            shifts = shiftService.getShiftsForEmployee(currentUser.getId(), start, end);
         } else if (employeeId != null) {
-            shifts = shiftService.getShiftsForEmployee(employeeId, startDate, endDate);
+            shifts = shiftService.getShiftsForEmployee(employeeId, start, end);
         } else if (departmentId != null) {
-            shifts = shiftService.getShiftsForDepartment(departmentId, startDate, endDate);
+            shifts = shiftService.getShiftsForDepartment(departmentId, start, end);
         } else {
-            shifts = shiftService.getAllShifts(startDate, endDate);
+            shifts = shiftService.getAllShifts(start, end);
         }
-        
+
         return ResponseEntity.ok(shifts);
+    }
+
+    /**
+     * Parse ISO date or datetime string to LocalDateTime. Accepts yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss[.SSS][Z]
+     */
+    private LocalDateTime parseDateOrDateTime(String value) {
+        if (value == null || value.isEmpty()) return null;
+        try {
+            if (value.length() == 10) { // yyyy-MM-dd
+                return java.time.LocalDate.parse(value).atStartOfDay();
+            } else {
+                return java.time.LocalDateTime.parse(value);
+            }
+        } catch (Exception e) {
+            // Try parsing with offset
+            try {
+                return java.time.OffsetDateTime.parse(value).toLocalDateTime();
+            } catch (Exception ignored) {}
+        }
+        return null;
     }
     
     @GetMapping("/my-shifts")
@@ -233,17 +255,8 @@ public class ShiftController {
                                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String endDate,
                                                @RequestParam(required = false) Long departmentId) {
         try {
-            // Mock statistics - in real app this would calculate actual statistics
-            Map<String, Object> statistics = Map.of(
-                "totalShifts", 156,
-                "completedShifts", 142,
-                "cancelledShifts", 8,
-                "availableShifts", 6,
-                "totalHours", 1248.5,
-                "averageShiftLength", 8.0,
-                "mostActiveEmployee", "John Smith",
-                "busiestDepartment", "Front Desk"
-            );
+            // Delegate to service for real statistics
+            Map<String, Object> statistics = shiftService.getShiftStatistics(startDate, endDate, departmentId);
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -256,18 +269,8 @@ public class ShiftController {
                                               @RequestParam(required = false) String endDate,
                                               @RequestParam(required = false) Long departmentId) {
         try {
-            // Mock analytics data - in real app this would perform complex analytics
-            Map<String, Object> analytics = Map.of(
-                "shiftsPerDay", List.of(12, 15, 18, 14, 16, 20, 10),
-                "hoursPerDepartment", Map.of(
-                    "Front Desk", 320.5,
-                    "Housekeeping", 480.0,
-                    "Maintenance", 240.5,
-                    "Food Service", 360.0
-                ),
-                "employeeUtilization", 85.2,
-                "peakHours", List.of("08:00", "14:00", "20:00")
-            );
+            // Delegate to service for analytics
+            Map<String, Object> analytics = shiftService.getShiftAnalytics(startDate, endDate, departmentId);
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -280,13 +283,8 @@ public class ShiftController {
                                              @RequestParam(required = false) String endDate,
                                              @RequestParam(required = false) Long departmentId) {
         try {
-            // Mock employee hours data
-            List<Map<String, Object>> employeeHours = List.of(
-                Map.of("employeeName", "John Smith", "totalHours", 40.0, "overtimeHours", 0.0),
-                Map.of("employeeName", "Jane Doe", "totalHours", 45.5, "overtimeHours", 5.5),
-                Map.of("employeeName", "Mike Johnson", "totalHours", 38.0, "overtimeHours", 0.0),
-                Map.of("employeeName", "Sarah Wilson", "totalHours", 42.5, "overtimeHours", 2.5)
-            );
+            // Delegate to service for employee hours
+            List<Map<String, Object>> employeeHours = shiftService.getEmployeeHours(startDate, endDate, departmentId);
             return ResponseEntity.ok(employeeHours);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -298,13 +296,8 @@ public class ShiftController {
     public ResponseEntity<?> getDepartmentStats(@RequestParam(required = false) String startDate,
                                                @RequestParam(required = false) String endDate) {
         try {
-            // Mock department statistics
-            List<Map<String, Object>> departmentStats = List.of(
-                Map.of("departmentName", "Front Desk", "totalShifts", 45, "totalHours", 360.0, "employeeCount", 8),
-                Map.of("departmentName", "Housekeeping", "totalShifts", 60, "totalHours", 480.0, "employeeCount", 12),
-                Map.of("departmentName", "Maintenance", "totalShifts", 30, "totalHours", 240.0, "employeeCount", 6),
-                Map.of("departmentName", "Food Service", "totalShifts", 50, "totalHours", 400.0, "employeeCount", 10)
-            );
+            // Delegate to service for department stats
+            List<Map<String, Object>> departmentStats = shiftService.getDepartmentStats(startDate, endDate);
             return ResponseEntity.ok(departmentStats);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));

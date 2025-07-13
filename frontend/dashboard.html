@@ -510,42 +510,125 @@
             // Show modal to collect employee email
             const modal = document.createElement('div');
             modal.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;">
-                        <h3 style="margin-bottom: 20px; color: #2c3e50;">Invite New Employee</h3>
-                        <label for="inviteEmail" style="display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;">Employee Email:</label>
-                        <input type="email" id="inviteEmail" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;" placeholder="employee@email.com" required>
-                        <div style="display: flex; gap: 10px;">
-                            <button id="generateInviteBtn" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Generate Invitation</button>
-                            <button onclick="this.closest('div').parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 95%; position: relative;">
+                        <button class="modal-close-btn" style="position: absolute; top: 18px; right: 18px; background: transparent; border: none; font-size: 1.7rem; color: #888; cursor: pointer;" title="Close">&times;</button>
+                        <div style="display: flex; border-bottom: 1px solid #eee; margin-bottom: 20px;">
+                            <button id="tabGenerate" style="flex:1;padding:12px 0;border:none;background:#fff;color:#2c3e50;font-weight:600;cursor:pointer;border-bottom:2px solid #667eea;">Generate Invitation</button>
+                            <button id="tabActive" style="flex:1;padding:12px 0;border:none;background:#fff;color:#2c3e50;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;">Active Invitations</button>
                         </div>
-                        <div id="inviteLinkContainer" style="margin-top:20px;"></div>
+                        <div id="tabContentGenerate">
+                            <h3 style="margin-bottom: 20px; color: #2c3e50;">Invite New Employee</h3>
+                            <label for="inviteEmail" style="display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;">Employee Email:</label>
+                            <input type="email" id="inviteEmail" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;" placeholder="employee@email.com" required>
+                            <label for="inviteRole" style="display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;">Role:</label>
+                            <select id="inviteRole" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;">
+                                <option value="EMPLOYEE">Employee</option>
+                                <option value="MANAGER">Manager</option>
+                            </select>
+                            <label for="inviteDepartmentSelect" style="display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;">Department:</label>
+                            <select id="inviteDepartmentSelect" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;">
+                                <option value="">Loading departments...</option>
+                            </select>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="generateInviteBtn" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Generate Invitation</button>
+                                <button onclick="this.closest('div').parentElement.parentElement.parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancel</button>
+                            </div>
+                            <div id="inviteLinkContainer" style="margin-top:20px;"></div>
+                        </div>
+                        <div id="tabContentActive" style="display:none;">
+                            <h3 style="margin-bottom: 20px; color: #2c3e50;">Active Invitations</h3>
+                            <div id="activeInvitationsList" style="min-height:80px;"></div>
+                        </div>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
 
+            // Add close button event
+            const closeBtn = modal.querySelector('.modal-close-btn');
+            closeBtn.onclick = function() {
+                modal.remove();
+            };
+
+            // Add click outside to close
+            const overlay = modal.querySelector('.modal-overlay');
+            overlay.addEventListener('mousedown', function(e) {
+                if (e.target === overlay) {
+                    modal.remove();
+                }
+            });
+            document.body.appendChild(modal);
+
+            // Tab switching logic
+            const tabGenerate = modal.querySelector('#tabGenerate');
+            const tabActive = modal.querySelector('#tabActive');
+            const tabContentGenerate = modal.querySelector('#tabContentGenerate');
+            const tabContentActive = modal.querySelector('#tabContentActive');
+            tabGenerate.onclick = function() {
+                tabGenerate.style.borderBottom = '2px solid #667eea';
+                tabActive.style.borderBottom = '2px solid transparent';
+                tabContentGenerate.style.display = '';
+                tabContentActive.style.display = 'none';
+            };
+            tabActive.onclick = function() {
+                tabGenerate.style.borderBottom = '2px solid transparent';
+                tabActive.style.borderBottom = '2px solid #667eea';
+                tabContentGenerate.style.display = 'none';
+                tabContentActive.style.display = '';
+                loadActiveInvitations();
+            };
+
+            // Populate department dropdown from backend (async IIFE)
+            const deptSelect = modal.querySelector('#inviteDepartmentSelect');
+            deptSelect.innerHTML = '<option value="">Loading departments...</option>';
+            (async () => {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const response = await fetch(`${API_BASE_URL}/departments`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (response.ok) {
+                        const departments = await response.json();
+                        deptSelect.innerHTML = '<option value="">Select a department...</option>' +
+                            departments.map(dept => `<option value="${dept.id}" data-name="${dept.name}">${dept.name} (ID: ${dept.id})</option>`).join('');
+                    } else {
+                        deptSelect.innerHTML = '<option value="">Failed to load departments</option>';
+                    }
+                } catch (err) {
+                    deptSelect.innerHTML = '<option value="">Failed to load departments</option>';
+                }
+            })();
+
             // Handle invitation generation
             modal.querySelector('#generateInviteBtn').onclick = async function() {
                 const email = modal.querySelector('#inviteEmail').value.trim();
-                if (!email) {
-                    alert('Please enter a valid email address.');
+                const role = modal.querySelector('#inviteRole').value;
+                const deptOption = deptSelect.options[deptSelect.selectedIndex];
+                const departmentId = deptOption.value;
+                const departmentName = deptOption.getAttribute('data-name') || '';
+                const invitedBy = window.authManager.getUserInfo()?.email || '';
+                if (!email || !role || !departmentId || !departmentName) {
+                    alert('Please fill in all required fields.');
                     return;
                 }
                 // Call backend to create invitation and get code/token
                 try {
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch(`${API_BASE_URL}/auth/invitations`, {
+                    const response = await fetch(`${API_BASE_URL}/auth/generate-invitation`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ email })
+                        body: JSON.stringify({ email, role, departmentId, departmentName, invitedBy })
                     });
                     if (response.ok) {
                         const data = await response.json();
-                        const invitationLink = `${window.location.origin}/frontend/register.html?code=${data.code}&token=${data.token}`;
+                        const invitationLink = `${window.location.origin}/frontend/register.html?code=${data.invitationCode}&token=${data.invitationToken}`;
                         modal.querySelector('#inviteLinkContainer').innerHTML = `
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; word-break: break-all; margin-bottom: 20px; font-family: monospace; font-size: 0.9rem;">
                                 ${invitationLink}
@@ -558,6 +641,77 @@
                     }
                 } catch (err) {
                     alert('Error generating invitation.');
+                }
+            };
+
+            // Add a debug log area to the modal for easier inspection
+            let debugLogArea = modal.querySelector('#debugLogArea');
+            if (!debugLogArea) {
+                debugLogArea = document.createElement('div');
+                debugLogArea.id = 'debugLogArea';
+                debugLogArea.style = 'background:#222;color:#fff;padding:8px 12px;margin:10px 0 0 0;border-radius:6px;font-size:0.9em;max-height:120px;overflow:auto;';
+                debugLogArea.innerHTML = '<strong>Debug Log:</strong><br>';
+                modal.appendChild(debugLogArea);
+            }
+
+            function logDebug(msg) {
+                console.log(msg);
+                if (debugLogArea) {
+                    debugLogArea.innerHTML += msg + '<br>';
+                }
+            }
+
+            // Load active invitations and allow deletion
+            async function loadActiveInvitations() {
+                const container = modal.querySelector('#activeInvitationsList');
+                container.innerHTML = '<div style="color:#888;">Loading...</div>';
+                try {
+                    logDebug('[DEBUG] Loading active invitations...');
+                    const response = await window.authManager.apiRequest('/auth/active-invitations', 'GET', null, { suppressLogout: true });
+                    logDebug('[DEBUG] Active invitations response: ' + JSON.stringify({status: response.status, statusText: response.statusText}));
+                    if (response.status === 401) {
+                        logDebug('[DEBUG] Received 401 Unauthorized from /auth/active-invitations');
+                        container.innerHTML = '<div style="color:#e74c3c;">Not authorized. Please refresh or log in again.</div>';
+                        return;
+                    }
+                    const invitations = response;
+                    logDebug('[DEBUG] Invitations data: ' + JSON.stringify(invitations));
+                    if (!invitations.length) {
+                        container.innerHTML = '<div style="color:#888;">No active invitations.</div>';
+                        return;
+                    }
+                    container.innerHTML = invitations.map(invite => `
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+                            <div style="flex:1;word-break:break-all;font-size:0.95rem;">
+                                <strong>${invite.email}</strong> (${invite.role}, ${invite.departmentName})<br>
+                                <span style="font-family:monospace;">${window.location.origin}/frontend/register.html?code=${invite.code}&token=${invite.token}</span>
+                                <br><span style="color:#888;font-size:0.85rem;">Expires: ${new Date(invite.expiresAt).toLocaleString()}</span>
+                            </div>
+                            <button style="background:#e74c3c;color:white;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;margin-left:10px;" onclick="deleteInvitation('${invite.code}')">Delete</button>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    logDebug('[DEBUG] Error loading invitations: ' + err);
+                    container.innerHTML = '<div style="color:#e74c3c;">Failed to load invitations.</div>';
+                }
+            }
+
+            // Delete invitation handler
+            window.deleteInvitation = async function(invitationCode) {
+                if (!confirm('Delete this invitation?')) return;
+                try {
+                    logDebug('[DEBUG] Deleting invitation: ' + invitationCode);
+                    const response = await window.authManager.apiRequest(`/auth/delete-invitation/${invitationCode}`, 'DELETE', null, { suppressLogout: true });
+                    logDebug('[DEBUG] Delete response: ' + JSON.stringify({status: response.status, statusText: response.statusText}));
+                    if (response.status === 401) {
+                        logDebug('[DEBUG] Received 401 Unauthorized from /auth/delete-invitation');
+                        alert('Not authorized to delete invitation. Please refresh or log in again.');
+                        return;
+                    }
+                    loadActiveInvitations();
+                } catch (err) {
+                    logDebug('[DEBUG] Error deleting invitation: ' + err);
+                    alert('Failed to delete invitation.');
                 }
             };
         }

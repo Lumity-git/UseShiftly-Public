@@ -21,6 +21,261 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class ShiftService {
+    /**
+     * Aggregates department statistics for reporting endpoints.
+     * @param startDate ISO date string (optional)
+     * @param endDate ISO date string (optional)
+     * @return List of department stats maps (production ready)
+     */
+    public java.util.List<java.util.Map<String, Object>> getDepartmentStats(String startDate, String endDate) {
+        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        try {
+            if (startDate != null && !startDate.isBlank()) {
+                start = java.time.LocalDateTime.parse(startDate);
+            }
+            if (endDate != null && !endDate.isBlank()) {
+                end = java.time.LocalDateTime.parse(endDate);
+            }
+        } catch (Exception e) {
+            // Invalid date format, return empty result
+            return result;
+        }
+
+        java.util.List<Department> departments = departmentRepository.findAll();
+        for (Department dept : departments) {
+            java.util.List<Shift> shifts;
+            if (start != null && end != null) {
+                shifts = shiftRepository.findByDepartmentAndDateRange(dept.getId(), start, end);
+            } else {
+                shifts = shiftRepository.findByDepartmentId(dept.getId());
+            }
+            int totalShifts = shifts.size();
+            double totalHours = shifts.stream()
+                .mapToDouble(s -> java.time.Duration.between(s.getStartTime(), s.getEndTime()).toHours())
+                .sum();
+            int employeeCount = (int) shifts.stream()
+                .map(Shift::getEmployee)
+                .filter(java.util.Objects::nonNull)
+                .map(Employee::getId)
+                .distinct()
+                .count();
+
+            java.util.Map<String, Object> deptMap = new java.util.HashMap<>();
+            deptMap.put("departmentName", dept.getName());
+            deptMap.put("totalShifts", totalShifts);
+            deptMap.put("totalHours", totalHours);
+            deptMap.put("employeeCount", employeeCount);
+            result.add(deptMap);
+        }
+        return result;
+    }
+    /**
+     * Aggregates employee hours for reporting endpoints.
+     * @param startDate ISO date string (optional)
+     * @param endDate ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return List of employee hour maps (to be implemented with real aggregation)
+     */
+    public java.util.List<java.util.Map<String, Object>> getEmployeeHours(String startDate, String endDate, Long departmentId) {
+        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        try {
+            if (startDate != null && !startDate.isBlank()) {
+                start = java.time.LocalDateTime.parse(startDate);
+            }
+            if (endDate != null && !endDate.isBlank()) {
+                end = java.time.LocalDateTime.parse(endDate);
+            }
+        } catch (Exception e) {
+            // Invalid date format, return empty result or handle as needed
+            return result;
+        }
+
+        java.util.List<Employee> employees;
+        if (departmentId != null) {
+            employees = employeeRepository.findByDepartmentId(departmentId);
+        } else {
+            employees = employeeRepository.findAll();
+        }
+
+        for (Employee emp : employees) {
+            java.util.List<Shift> shifts;
+            if (start != null && end != null) {
+                shifts = shiftRepository.findByEmployeeAndDateRange(emp.getId(), start, end);
+            } else {
+                shifts = shiftRepository.findByEmployeeId(emp.getId());
+            }
+            double totalHours = shifts.stream()
+                .mapToDouble(s -> java.time.Duration.between(s.getStartTime(), s.getEndTime()).toHours())
+                .sum();
+            double overtimeHours = Math.max(0, totalHours - 40); // Overtime if > 40 hours
+
+            java.util.Map<String, Object> empMap = new java.util.HashMap<>();
+            empMap.put("employeeName", emp.getFirstName() + " " + emp.getLastName());
+            empMap.put("totalHours", totalHours);
+            empMap.put("overtimeHours", overtimeHours);
+            result.add(empMap);
+        }
+        return result;
+    }
+    /**
+     * Aggregates shift analytics for reporting endpoints.
+     * @param startDate ISO date string (optional)
+     * @param endDate ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return Map of analytics (to be implemented with real aggregation)
+     */
+    public java.util.Map<String, Object> getShiftAnalytics(String startDate, String endDate, Long departmentId) {
+        java.util.Map<String, Object> analytics = new java.util.HashMap<>();
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        try {
+            if (startDate != null && !startDate.isBlank()) {
+                start = java.time.LocalDateTime.parse(startDate);
+            }
+            if (endDate != null && !endDate.isBlank()) {
+                end = java.time.LocalDateTime.parse(endDate);
+            }
+        } catch (Exception e) {
+            // Invalid date format, return empty analytics
+            return analytics;
+        }
+
+        java.util.List<Shift> shifts;
+        if (departmentId != null && start != null && end != null) {
+            shifts = shiftRepository.findByDepartmentAndDateRange(departmentId, start, end);
+        } else if (departmentId != null) {
+            shifts = shiftRepository.findByDepartmentId(departmentId);
+        } else if (start != null && end != null) {
+            shifts = shiftRepository.findByDateRange(start, end);
+        } else {
+            shifts = shiftRepository.findAll();
+        }
+
+        // Shifts per day
+        java.util.Map<java.time.LocalDate, Long> shiftsPerDay = shifts.stream()
+            .collect(java.util.stream.Collectors.groupingBy(s -> s.getStartTime().toLocalDate(), java.util.stream.Collectors.counting()));
+        analytics.put("shiftsPerDay", shiftsPerDay);
+
+        // Hours per department
+        java.util.Map<String, Double> hoursPerDepartment = new java.util.HashMap<>();
+        for (Shift s : shifts) {
+            if (s.getDepartment() != null) {
+                String deptName = s.getDepartment().getName();
+                double hours = java.time.Duration.between(s.getStartTime(), s.getEndTime()).toHours();
+                hoursPerDepartment.put(deptName, hoursPerDepartment.getOrDefault(deptName, 0.0) + hours);
+            }
+        }
+        analytics.put("hoursPerDepartment", hoursPerDepartment);
+
+        // Employee utilization (average hours per employee)
+        java.util.Map<Long, Double> hoursByEmployee = new java.util.HashMap<>();
+        for (Shift s : shifts) {
+            if (s.getEmployee() != null) {
+                Long empId = s.getEmployee().getId();
+                double hours = java.time.Duration.between(s.getStartTime(), s.getEndTime()).toHours();
+                hoursByEmployee.put(empId, hoursByEmployee.getOrDefault(empId, 0.0) + hours);
+            }
+        }
+        double employeeUtilization = hoursByEmployee.isEmpty() ? 0.0 : hoursByEmployee.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        analytics.put("employeeUtilization", employeeUtilization);
+
+        // Peak hours (most common shift start times, rounded to hour)
+        java.util.Map<Integer, Long> hourCounts = shifts.stream()
+            .collect(java.util.stream.Collectors.groupingBy(s -> s.getStartTime().getHour(), java.util.stream.Collectors.counting()));
+        java.util.List<Integer> peakHours = hourCounts.entrySet().stream()
+            .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+            .limit(3)
+            .map(java.util.Map.Entry::getKey)
+            .toList();
+        analytics.put("peakHours", peakHours);
+
+        return analytics;
+    }
+    /**
+     * Aggregates shift statistics for reporting endpoints.
+     * @param startDate ISO date string (optional)
+     * @param endDate ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return Map of statistics (to be implemented with real aggregation)
+     */
+    public java.util.Map<String, Object> getShiftStatistics(String startDate, String endDate, Long departmentId) {
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        java.time.LocalDateTime start = null;
+        java.time.LocalDateTime end = null;
+        try {
+            if (startDate != null && !startDate.isBlank()) {
+                start = java.time.LocalDateTime.parse(startDate);
+            }
+            if (endDate != null && !endDate.isBlank()) {
+                end = java.time.LocalDateTime.parse(endDate);
+            }
+        } catch (Exception e) {
+            // Invalid date format, return empty stats
+            return stats;
+        }
+
+        java.util.List<Shift> shifts;
+        if (departmentId != null && start != null && end != null) {
+            shifts = shiftRepository.findByDepartmentAndDateRange(departmentId, start, end);
+        } else if (departmentId != null) {
+            shifts = shiftRepository.findByDepartmentId(departmentId);
+        } else if (start != null && end != null) {
+            shifts = shiftRepository.findByDateRange(start, end);
+        } else {
+            shifts = shiftRepository.findAll();
+        }
+
+        int totalShifts = shifts.size();
+        int completedShifts = (int) shifts.stream().filter(s -> s.getStatus() == Shift.ShiftStatus.COMPLETED).count();
+        int cancelledShifts = (int) shifts.stream().filter(s -> s.getStatus() == Shift.ShiftStatus.CANCELLED).count();
+        int availableShifts = (int) shifts.stream().filter(s -> s.getStatus() == Shift.ShiftStatus.AVAILABLE_FOR_PICKUP).count();
+        double totalHours = shifts.stream()
+            .mapToDouble(s -> java.time.Duration.between(s.getStartTime(), s.getEndTime()).toHours())
+            .sum();
+        double averageShiftLength = totalShifts > 0 ? totalHours / totalShifts : 0.0;
+
+        // Most active employee
+        java.util.Map<Long, Long> shiftCountByEmployee = shifts.stream()
+            .filter(s -> s.getEmployee() != null)
+            .collect(java.util.stream.Collectors.groupingBy(s -> s.getEmployee().getId(), java.util.stream.Collectors.counting()));
+        Long mostActiveEmployeeId = shiftCountByEmployee.entrySet().stream()
+            .max(java.util.Map.Entry.comparingByValue())
+            .map(java.util.Map.Entry::getKey)
+            .orElse(null);
+        String mostActiveEmployee = mostActiveEmployeeId != null
+            ? employeeRepository.findById(mostActiveEmployeeId)
+                .map(e -> e.getFirstName() + " " + e.getLastName())
+                .orElse("")
+            : "";
+
+        // Busiest department
+        java.util.Map<Long, Long> shiftCountByDept = shifts.stream()
+            .filter(s -> s.getDepartment() != null)
+            .collect(java.util.stream.Collectors.groupingBy(s -> s.getDepartment().getId(), java.util.stream.Collectors.counting()));
+        Long busiestDeptId = shiftCountByDept.entrySet().stream()
+            .max(java.util.Map.Entry.comparingByValue())
+            .map(java.util.Map.Entry::getKey)
+            .orElse(null);
+        String busiestDepartment = busiestDeptId != null
+            ? departmentRepository.findById(busiestDeptId)
+                .map(d -> d.getName())
+                .orElse("")
+            : "";
+
+        stats.put("totalShifts", totalShifts);
+        stats.put("completedShifts", completedShifts);
+        stats.put("cancelledShifts", cancelledShifts);
+        stats.put("availableShifts", availableShifts);
+        stats.put("totalHours", totalHours);
+        stats.put("averageShiftLength", averageShiftLength);
+        stats.put("mostActiveEmployee", mostActiveEmployee);
+        stats.put("busiestDepartment", busiestDepartment);
+        return stats;
+    }
     
     private final ShiftRepository shiftRepository;
     private final EmployeeRepository employeeRepository;

@@ -20,9 +20,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -39,25 +36,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         try {
-            log.info("[DEBUG] Login attempt for email: {}", loginRequest.getEmail());
-            log.info("[DEBUG] Raw password: {}", loginRequest.getPassword());
-            var userOpt = employeeService.getEmployeeByEmail(loginRequest.getEmail());
-            if (userOpt.isEmpty()) {
-                log.warn("[DEBUG] No user found for email: {}", loginRequest.getEmail());
-            } else {
-                var user = userOpt.get();
-                log.info("[DEBUG] Found user: {} {} | role: {} | active: {} | password hash: {}", user.getFirstName(), user.getLastName(), user.getRole(), user.getActive(), user.getPassword());
-            }
-
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-            log.info("[DEBUG] Authentication object: {}", authentication);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtils.generateJwtToken((Employee) authentication.getPrincipal());
 
             Employee employee = (Employee) authentication.getPrincipal();
-            log.info("[DEBUG] Authentication successful for user: {} {} | role: {} | enabled: {}", employee.getFirstName(), employee.getLastName(), employee.getRole(), employee.isEnabled());
 
             // Create response manually to avoid serialization issues
             String responseJson = String.format(
@@ -69,23 +54,19 @@ public class AuthController {
                 employee.getRole().name()
             );
 
-            log.info("[DEBUG] Sending response for user: {}", employee.getEmail());
-
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")
                     .body(responseJson);
 
         } catch (Exception e) {
-            log.error("[DEBUG] Login failed for email: {} | Exception: {}", loginRequest.getEmail(), e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: Invalid credentials!"));
         }
     }
     
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest signUpRequest) {
+    public ResponseEntity<?> registerUser(@Valid @ModelAttribute RegisterRequest signUpRequest) {
         try {
-            // Validate invitation
             String code = signUpRequest.getInvitationCode();
             String token = signUpRequest.getInvitationToken();
             if (code == null || token == null) {
@@ -112,7 +93,7 @@ public class AuthController {
 
             // Set department if provided
             if (signUpRequest.getDepartmentId() != null) {
-                Department department = departmentRepository.findById(signUpRequest.getDepartmentId())
+                    Department department = departmentRepository.findById(signUpRequest.getDepartmentId())
                         .orElseThrow(() -> new RuntimeException("Department not found"));
                 employee.setDepartment(department);
             }
@@ -189,6 +170,38 @@ public class AuthController {
             return ResponseEntity.ok(new MessageResponse("Token is valid"));
         }
         return ResponseEntity.badRequest().body(new MessageResponse("Invalid token"));
+    }
+
+    /**
+     * List all active (not used, not expired) invitations for managers/admins
+     */
+    @GetMapping("/active-invitations")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getActiveInvitations() {
+        try {
+            var invitations = invitationService.getActiveInvitations();
+            return ResponseEntity.ok(invitations);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete an invitation by code (for managers/admins)
+     */
+    @DeleteMapping("/delete-invitation/{code}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> deleteInvitation(@PathVariable String code) {
+        try {
+            boolean deleted = invitationService.deleteInvitationByCode(code);
+            if (deleted) {
+                return ResponseEntity.ok(new MessageResponse("Invitation deleted successfully."));
+            } else {
+                return ResponseEntity.status(404).body(new MessageResponse("Invitation not found or already used/expired."));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
     }
 
     // Helper class for response messages
