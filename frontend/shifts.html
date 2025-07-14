@@ -504,6 +504,19 @@
         </div>
     </div>
 
+    <!-- Trade/Post Shift Modal -->
+    <div id="tradePostModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="tradePostModalTitle">Trade Shift</h3>
+                <button class="close" onclick="closeTradePostModal()">&times;</button>
+            </div>
+            <div id="tradePostModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script>
@@ -513,6 +526,7 @@
         let employees = [];
         let departments = [];
         let editingShiftId = null;
+        let tradeOrPostShiftId = null;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', async function() {
@@ -782,8 +796,11 @@
                             </button>
                         ` : ''}
                         ${shift.status === 'SCHEDULED' && shift.employeeId === currentUser?.id ? `
-                            <button class="btn btn-warning btn-small" onclick="giveAwayShift(${shift.id})">
-                                🔄 Give Away
+                            <button class="btn btn-warning btn-small" onclick="openTradeModal(${shift.id})">
+                                🔁 Trade
+                            </button>
+                            <button class="btn btn-success btn-small" onclick="openPostShiftModal(${shift.id})">
+                                📢 Post Shift
                             </button>
                         ` : ''}
                         ${shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser?.id ? `
@@ -829,12 +846,115 @@
             }
         }
 
+        function openTradeModal(shiftId) {
+            tradeOrPostShiftId = shiftId;
+            showTradePostBox('trade');
+        }
+
+        function openPostShiftModal(shiftId) {
+            tradeOrPostShiftId = shiftId;
+            showTradePostBox('post');
+        }
+
+        function showTradePostBox(mode) {
+            // Create modal if not exists
+            let modal = document.getElementById('tradePostModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'tradePostModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="tradePostModalTitle">${mode === 'trade' ? 'Trade Shift' : 'Post Shift'}</h3>
+                            <button class="close" onclick="closeTradePostModal()">&times;</button>
+                        </div>
+                        <div id="tradePostModalBody"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('tradePostModalTitle').textContent = mode === 'trade' ? 'Trade Shift' : 'Post Shift';
+            const body = document.getElementById('tradePostModalBody');
+            body.innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <button class="btn btn-primary" onclick="showPickPerson()">Pick a Person</button>
+                    <button class="btn btn-secondary" onclick="postToEveryone()">Post to Everyone</button>
+                </div>
+                <div id="pickPersonContainer"></div>
+            `;
+            modal.style.display = 'block';
+        }
+
+        function closeTradePostModal() {
+            const modal = document.getElementById('tradePostModal');
+            if (modal) modal.style.display = 'none';
+            document.getElementById('pickPersonContainer').innerHTML = '';
+            tradeOrPostShiftId = null;
+        }
+
+        function showPickPerson() {
+            // Filter employees (exclude self only)
+            const eligible = employees.filter(e => e.id !== currentUser.id);
+            const container = document.getElementById('pickPersonContainer');
+            if (eligible.length === 0) {
+                container.innerHTML = '<div>No eligible employees found.</div>';
+                return;
+            }
+            container.innerHTML = `
+                <label for="pickPersonSelect">Select Employee:</label>
+                <select id="pickPersonSelect">
+                    <option value="">-- Select --</option>
+                    ${eligible.map(e => `<option value="${e.id}">${e.firstName} ${e.lastName} (${e.role})</option>`).join('')}
+                </select>
+                <button class="btn btn-success" onclick="submitTradeToPerson()">Send Trade Request</button>
+            `;
+        }
+
+        async function submitTradeToPerson() {
+            const select = document.getElementById('pickPersonSelect');
+            const employeeId = select.value;
+            if (!employeeId) return showAlert('Please select an employee.', 'error');
+            try {
+                await apiRequest(`/shifts/${tradeOrPostShiftId}/trade`, {
+                    method: 'POST',
+                    body: JSON.stringify({ targetEmployeeId: employeeId })
+                });
+                showAlert('Trade request sent!', 'success');
+                closeTradePostModal();
+                loadShifts();
+            } catch (error) {
+                showAlert('Failed to send trade request.', 'error');
+            }
+        }
+
+        async function postToEveryone() {
+            try {
+                await apiRequest(`/shifts/${tradeOrPostShiftId}/post-to-everyone`, {
+                    method: 'POST'
+                });
+                showAlert('Shift posted to everyone!', 'success');
+                closeTradePostModal();
+                loadShifts();
+            } catch (error) {
+                showAlert('Failed to post shift.', 'error');
+            }
+        }
+
         async function handleShiftSubmit(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
+            // Convert local datetime to ISO string with timezone offset (CST)
+            function toCSTISOString(localDateTimeStr) {
+                const localDate = new Date(localDateTimeStr);
+                // CST is UTC-6, but account for daylight saving (CDT is UTC-5)
+                // We'll use browser's local offset
+                return localDate.toISOString(); // This is UTC, backend should treat as UTC
+            }
+
             const shiftData = {
-                startTime: authManager.formatDateTimeForApi(formData.get('startTime')),
-                endTime: authManager.formatDateTimeForApi(formData.get('endTime')),
+                startTime: toCSTISOString(formData.get('startTime')),
+                endTime: toCSTISOString(formData.get('endTime')),
                 employeeId: formData.get('employeeId') || null,
                 departmentId: parseInt(formData.get('departmentId')),
                 notes: formData.get('notes') || null
@@ -871,22 +991,6 @@
                 loadShifts();
             } catch (error) {
                 showAlert('Failed to delete shift', 'error');
-            }
-        }
-
-        async function giveAwayShift(shiftId) {
-            const reason = prompt('Please provide a reason for giving away this shift:');
-            if (!reason) return;
-            
-            try {
-                await apiRequest(`/shifts/${shiftId}/give-away`, {
-                    method: 'POST',
-                    body: JSON.stringify({ reason })
-                });
-                showAlert('Shift marked as available for pickup!', 'success');
-                loadShifts();
-            } catch (error) {
-                showAlert('Failed to give away shift', 'error');
             }
         }
 
@@ -976,9 +1080,13 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('shiftModal');
-            if (event.target === modal) {
+            const shiftModal = document.getElementById('shiftModal');
+            if (event.target === shiftModal) {
                 closeShiftModal();
+            }
+            const tradePostModal = document.getElementById('tradePostModal');
+            if (event.target === tradePostModal) {
+                closeTradePostModal();
             }
         }
     </script>

@@ -53,7 +53,7 @@ public class Shift {
     private Employee createdBy;
     
     public enum ShiftStatus {
-        SCHEDULED, COMPLETED, CANCELLED, AVAILABLE_FOR_PICKUP
+        SCHEDULED, COMPLETED, CANCELLED, AVAILABLE_FOR_PICKUP, PENDING
     }
     
     @PreUpdate

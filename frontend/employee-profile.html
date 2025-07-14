@@ -337,6 +337,7 @@
                 </div>
 
                 <div class="profile-body">
+
                     <h3 class="section-title">Personal Information</h3>
                     <div class="info-grid">
                         <div class="info-item">
@@ -381,25 +382,12 @@
                             </div>
                             <div class="info-value" id="accountStatus">Active</div>
                         </div>
-                    </div>
-
-                    <h3 class="section-title">Work Statistics</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-number" id="totalShifts">0</div>
-                            <div class="stat-label">Total Shifts</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="upcomingShifts">0</div>
-                            <div class="stat-label">Upcoming Shifts</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="completedShifts">0</div>
-                            <div class="stat-label">Completed Shifts</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-number" id="hoursWorked">0</div>
-                            <div class="stat-label">Hours This Month</div>
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>📞</span>
+                                Phone Number
+                            </div>
+                            <div class="info-value" id="phoneNumber">Loading...</div>
                         </div>
                     </div>
 
@@ -424,27 +412,9 @@
     </div>
 
     <script src="auto-logout.js"></script>
-    <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script>
         const API_BASE_URL = 'http://localhost:8080/api';
-        let authToken = localStorage.getItem('authToken');
-        let userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-
-        // Check authentication and role
-        function checkAuth() {
-            if (!authToken) {
-                window.location.href = 'login.html';
-                return false;
-            }
-
-            if (userInfo.role !== 'EMPLOYEE') {
-                window.location.href = 'dashboard.html';
-                return false;
-            }
-
-            return true;
-        }
 
         // Initialize page
         function init() {
@@ -452,35 +422,16 @@
 
             const userInfo = authManager.getUserInfo();
             document.getElementById('userName').textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+            document.getElementById('userRole').textContent = userInfo.role || 'Employee';
             loadProfile();
         }
 
-        // Load user profile
+
+        // Load user profile only
         async function loadProfile() {
             try {
-                // Load basic profile info
                 const profile = await authManager.apiRequest('/employees/profile');
                 displayProfile(profile);
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                showMessage('Failed to load profile data', 'error');
-            }
-        }
-
-                const profile = await profileResponse.json();
-
-                // Load shift statistics
-                const shiftsResponse = await fetch(`${API_BASE_URL}/shifts/my`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
-
-                displayProfile(profile, shifts);
-
             } catch (error) {
                 console.error('Error loading profile:', error);
                 document.getElementById('loading').innerHTML = '<p>Error loading profile. Please try again later.</p>';
@@ -488,57 +439,21 @@
         }
 
         // Display profile information
-        function displayProfile(profile, shifts) {
+        function displayProfile(profile) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('profileContent').style.display = 'block';
 
-            // Basic info
             document.getElementById('profileName').textContent = `${profile.firstName} ${profile.lastName}`;
             document.getElementById('profileEmail').textContent = profile.email;
             document.getElementById('fullName').textContent = `${profile.firstName} ${profile.lastName}`;
             document.getElementById('emailAddress').textContent = profile.email;
-            document.getElementById('department').textContent = profile.department?.name || 'Not Assigned';
+            document.getElementById('department').textContent = profile.department && profile.department.name ? profile.department.name : 'Not Assigned';
             document.getElementById('roleInfo').textContent = profile.role;
             document.getElementById('hireDate').textContent = profile.hireDate ? formatDate(profile.hireDate) : 'Not Available';
-
-            // Calculate statistics
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-
-            const totalShifts = shifts.length;
-            const upcomingShifts = shifts.filter(shift => new Date(shift.shiftDate) > now).length;
-            const completedShifts = shifts.filter(shift => shift.status === 'COMPLETED' || (new Date(shift.shiftDate) < now && shift.status === 'SCHEDULED')).length;
-            
-            // Calculate hours worked this month
-            const thisMonthShifts = shifts.filter(shift => {
-                const shiftDate = new Date(shift.shiftDate);
-                return shiftDate.getMonth() === currentMonth && 
-                       shiftDate.getFullYear() === currentYear &&
-                       (shift.status === 'COMPLETED' || (shiftDate < now && shift.status === 'SCHEDULED'));
-            });
-
-            const hoursWorked = thisMonthShifts.reduce((total, shift) => {
-                const startTime = new Date(`2000-01-01T${shift.startTime}`);
-                const endTime = new Date(`2000-01-01T${shift.endTime}`);
-                let hours = (endTime - startTime) / (1000 * 60 * 60);
-                
-                // Handle overnight shifts
-                if (hours < 0) {
-                    hours += 24;
-                }
-                
-                return total + hours;
-            }, 0);
-
-            // Update statistics
-            document.getElementById('totalShifts').textContent = totalShifts;
-            document.getElementById('upcomingShifts').textContent = upcomingShifts;
-            document.getElementById('completedShifts').textContent = completedShifts;
-            document.getElementById('hoursWorked').textContent = Math.round(hoursWorked * 10) / 10;
+            document.getElementById('accountStatus').textContent = profile.active ? 'Active' : 'Inactive';
+            document.getElementById('phoneNumber').textContent = profile.phoneNumber || 'Not Provided';
         }
 
-        // Format date for display
         function formatDate(dateString) {
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', {
@@ -548,14 +463,12 @@
             });
         }
 
-        // Logout function
         function logout() {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userInfo');
             window.location.href = 'login.html';
         }
 
-        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>

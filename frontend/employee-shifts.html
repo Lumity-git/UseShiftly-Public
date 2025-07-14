@@ -460,6 +460,45 @@
                 justify-content: flex-end;
             }
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -487,66 +526,26 @@
         </div>
 
         <div class="calendar-container">
-            <div class="calendar-header">
-                <h2>Schedule Calendar</h2>
-                <div class="calendar-controls">
-                    <div class="view-toggle">
-                        <button class="view-btn active" id="monthViewBtn" onclick="setView('month')">Month</button>
-                        <button class="view-btn" id="twoWeekViewBtn" onclick="setView('twoWeek')">2 Weeks</button>
-                    </div>
-                    <div class="calendar-nav">
-                        <button class="nav-btn" onclick="previousPeriod()">‹</button>
-                        <span class="current-period" id="currentPeriod">July 2025</span>
-                        <button class="nav-btn" onclick="nextPeriod()">›</button>
-                    </div>
-                </div>
+        <div class="calendar-header">
+            <h2>Schedule Calendar (2 Weeks)</h2>
+            <div class="calendar-nav">
+                <button class="nav-btn" onclick="previousPeriod()">‹</button>
+                <span class="current-period" id="currentPeriod">Loading...</span>
+                <button class="nav-btn" onclick="nextPeriod()">›</button>
             </div>
+        </div>
 
             <div class="calendar-grid" id="calendarGrid">
                 <!-- Calendar will be generated here -->
             </div>
         </div>
 
-        <div class="shifts-list">
-            <h2>📋 Upcoming Shifts</h2>
-            <div id="shiftsList">
-                <div class="shift-item">
-                    <div class="shift-details">
-                        <div class="shift-date">Today - July 12, 2025</div>
-                        <div class="shift-time">2:00 PM - 10:00 PM (8 hours)</div>
-                        <div class="shift-department">Front Desk</div>
-                    </div>
-                    <div class="shift-actions">
-                        <span class="status-badge status-confirmed">Confirmed</span>
-                        <button class="btn btn-warning btn-small" onclick="requestTrade(1)">Trade</button>
-                    </div>
-                </div>
-
-                <div class="shift-item">
-                    <div class="shift-details">
-                        <div class="shift-date">Tomorrow - July 13, 2025</div>
-                        <div class="shift-time">8:00 AM - 4:00 PM (8 hours)</div>
-                        <div class="shift-department">Front Desk</div>
-                    </div>
-                    <div class="shift-actions">
-                        <span class="status-badge status-confirmed">Confirmed</span>
-                        <button class="btn btn-warning btn-small" onclick="requestTrade(2)">Trade</button>
-                    </div>
-                </div>
-
-                <div class="shift-item">
-                    <div class="shift-details">
-                        <div class="shift-date">July 15, 2025</div>
-                        <div class="shift-time">10:00 AM - 6:00 PM (8 hours)</div>
-                        <div class="shift-department">Front Desk</div>
-                    </div>
-                    <div class="shift-actions">
-                        <span class="status-badge status-pending">Pending</span>
-                        <button class="btn btn-danger btn-small" onclick="cancelShift(3)">Request Off</button>
-                    </div>
+            <div class="shifts-list">
+                <h2>📋 Upcoming Shifts</h2>
+                <div id="shiftsList">
+                    <!-- Real shift data will be rendered here -->
                 </div>
             </div>
-        </div>
     </div>
 
     <script src="auto-logout.js"></script>
@@ -555,16 +554,18 @@
         const API_BASE_URL = 'http://localhost:8080/api';
         let currentUser = null;
         let currentDate = new Date();
-        let viewMode = 'month'; // 'month' or 'twoWeek'
         let currentWeekStart = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
             const isAuthenticated = await authManager.checkAuth('EMPLOYEE');
             if (!isAuthenticated) return;
-            
+
             loadUserInfo();
-            generateCalendar();
-            loadMyShifts();
+            // Always use 2-week view
+            const today = new Date();
+            currentWeekStart = new Date(today);
+            currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of current week
+            await loadMyShifts();
         });
 
         async function checkAuth() {
@@ -620,16 +621,299 @@
 
                 if (response.ok) {
                     const shifts = await response.json();
-                    displayShifts(shifts);
+                    renderTwoWeekCalendar(shifts);
+                    renderShiftsList(shifts);
                 }
             } catch (error) {
                 console.error('Error loading shifts:', error);
             }
         }
 
-        function displayShifts(shifts) {
-            // For now, keep the mock data since the API might not be fully implemented
-            // In a real implementation, you would render the actual shifts data here
+        function renderTwoWeekCalendar(shifts) {
+            const calendarGrid = document.getElementById('calendarGrid');
+            const currentPeriod = document.getElementById('currentPeriod');
+            calendarGrid.innerHTML = '';
+
+            // Calculate the two-week period
+            const startDate = new Date(currentWeekStart);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 13); // 14 days total
+
+            // Update period display
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const startStr = `${monthNames[startDate.getMonth()]} ${startDate.getDate()}`;
+            const endStr = `${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${endDate.getFullYear()}`;
+            currentPeriod.textContent = `${startStr} - ${endStr}`;
+
+            // Add day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'calendar-day-header';
+                dayHeader.textContent = day;
+                calendarGrid.appendChild(dayHeader);
+            });
+
+            // Generate 14 days in 2 weeks
+            for (let i = 0; i < 14; i++) {
+                const dayDate = new Date(startDate);
+                dayDate.setDate(startDate.getDate() + i);
+
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day two-week-day';
+
+                if (dayDate.toDateString() === new Date().toDateString()) {
+                    dayElement.classList.add('today');
+                }
+
+                // Find shifts for this day
+                const dayShifts = shifts.filter(shift => {
+                    const shiftDate = new Date(shift.startTime);
+                    return shiftDate.toDateString() === dayDate.toDateString();
+                });
+
+                dayElement.innerHTML = `
+                    <div class="day-number">${dayDate.getDate()}</div>
+                    <div class="day-name">${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                    ${dayShifts.map(shift => `
+                        <div class="shift-detail ${getShiftType(shift)}">
+                            <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                            <div class="shift-dept">${shift.departmentName || ''}</div>
+                        </div>
+                    `).join('')}
+                `;
+
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function renderShiftsList(shifts) {
+            const list = document.getElementById('shiftsList');
+            list.innerHTML = '';
+            if (!shifts || shifts.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
+                return;
+            }
+            shifts.forEach(shift => {
+                const item = document.createElement('div');
+                item.className = 'shift-item';
+                let actions = `<span class="status-badge ${getStatusClass(shift.status)}">${shift.status}</span>`;
+                // Show Trade/Post button only for scheduled shifts
+                if (shift.status === 'SCHEDULED') {
+                    actions += `<button class="btn btn-warning btn-small" onclick="openTradePostModal(${shift.id})">Trade / Post Shift</button>`;
+                }
+                // Show Cancel Post button for posted shifts by current user, not yet picked up/confirmed
+                if (shift.status === 'POSTED' && shift.postedBy === currentUser.id) {
+                    actions += `<button class="btn btn-danger btn-small" onclick="cancelPost(${shift.id})">Cancel Post</button>`;
+                }
+                // Show Cancel Pickup button for picked up but not confirmed shifts
+                if (shift.status === 'PICKED_UP' && shift.pickedUpBy === currentUser.id) {
+                    actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
+                }
+        function cancelPost(shiftId) {
+            if (!confirm('Are you sure you want to cancel your post for this shift?')) return;
+            fetch(`${API_BASE_URL}/shifts/${shiftId}/cancel-post`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Your shift post has been cancelled.');
+                    loadMyShifts();
+                } else {
+                    res.json().then(data => alert(data.message || 'Failed to cancel post.'));
+                }
+            })
+            .catch(() => alert('Network error. Please try again.'));
+        }
+                item.innerHTML = `
+                    <div class="shift-details">
+                        <div class="shift-date">${formatDate(shift.startTime)}</div>
+                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                        <div class="shift-department">${shift.departmentName || ''}</div>
+                    </div>
+                    <div class="shift-actions">${actions}</div>
+                `;
+                list.appendChild(item);
+            });
+        function cancelPickup(shiftId) {
+            if (!confirm('Are you sure you want to cancel your pickup for this shift?')) return;
+            fetch(`${API_BASE_URL}/shifts/${shiftId}/cancel-pickup`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Your pickup has been cancelled.');
+                    loadMyShifts();
+                } else {
+                    res.json().then(data => alert(data.message || 'Failed to cancel pickup.'));
+                }
+            })
+            .catch(() => alert('Network error. Please try again.'));
+        }
+        }
+
+        function openTradePostModal(shiftId) {
+            // Create modal if not exists
+            let modal = document.getElementById('tradePostModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'tradePostModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title">Trade / Post Shift</h3>
+                            <button class="close" onclick="closeTradePostModal()">&times;</button>
+                        </div>
+                        <div id="tradePostModalBody"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            showTradePostOptions(shiftId);
+            modal.style.display = 'block';
+        }
+
+        function closeTradePostModal() {
+            const modal = document.getElementById('tradePostModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function showTradePostOptions(shiftId) {
+            const body = document.getElementById('tradePostModalBody');
+            body.innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <button class="btn btn-primary" onclick="postToEveryone(${shiftId})">Post to Everyone</button>
+                    <button class="btn btn-secondary" onclick="showPickPerson(${shiftId})">Post to Specific Person</button>
+                </div>
+                <div id="pickPersonContainer"></div>
+            `;
+        }
+
+        function showPickPerson(shiftId) {
+            // Fetch eligible coworkers from backend
+            fetchEmployees().then(employees => {
+                const container = document.getElementById('pickPersonContainer');
+                if (employees.length === 0) {
+                    container.innerHTML = '<div>No eligible employees found.</div>';
+                    return;
+                }
+                container.innerHTML = `
+                    <label for="pickPersonSelect">Select Employee:</label>
+                    <select id="pickPersonSelect">
+                        <option value="">-- Select --</option>
+                        ${employees.map(e => `<option value="${e.id}">${e.firstName} ${e.lastName} (${e.role})</option>`).join('')}
+                    </select>
+                    <button class="btn btn-success" onclick="submitPostToPerson(${shiftId})">Send Shift Offer</button>
+                `;
+            });
+        }
+
+        function fetchEmployees() {
+            // Use new backend endpoint for eligible coworkers
+            return fetch(`${API_BASE_URL}/employees/eligible-for-trade`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            }).then(res => res.json());
+        }
+
+        function postToEveryone(shiftId) {
+            fetch(`${API_BASE_URL}/shifts/${shiftId}/post-to-everyone`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Shift posted to everyone! You are still responsible for this shift until someone picks it up and it is confirmed. If no one picks up the shift in time, you are expected to show up for your scheduled shift.');
+                    closeTradePostModal();
+                } else {
+                    res.json().then(data => alert(data.message || 'Failed to post shift.'));
+                }
+            })
+            .catch(() => alert('Network error. Please try again.'));
+        }
+
+        function submitPostToPerson(shiftId) {
+            const select = document.getElementById('pickPersonSelect');
+            const employeeId = select.value;
+            if (!employeeId) {
+                alert('Please select an employee.');
+                return;
+            }
+            fetch(`${API_BASE_URL}/shifts/${shiftId}/trade`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ targetEmployeeId: employeeId })
+            })
+            .then(async res => {
+                if (res.ok) {
+                    alert('Shift offer sent! The employee must accept before a manager can approve or deny the shift change. You are still responsible for this shift until it is accepted and confirmed. If the offer is not accepted in time, you are expected to show up for your scheduled shift.');
+                    closeTradePostModal();
+                } else if (res.status === 401) {
+                    // Unauthorized: token expired or invalid
+                    alert('Session expired or unauthorized. Please log in again.');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                } else {
+                    let data;
+                    try {
+                        data = await res.json();
+                    } catch (e) {
+                        data = null;
+                    }
+                    alert((data && data.message) ? data.message : 'Failed to send shift offer.');
+                }
+            })
+            .catch(() => alert('Network error. Please try again.'));
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const tradePostModal = document.getElementById('tradePostModal');
+            if (event.target === tradePostModal) {
+                closeTradePostModal();
+            }
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        function formatTime(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        function getStatusClass(status) {
+            if (status === 'CONFIRMED') return 'status-confirmed';
+            if (status === 'PENDING') return 'status-pending';
+            if (status === 'CANCELLED') return 'status-cancelled';
+            return '';
+        }
+        function getShiftType(shift) {
+            // Optionally infer shift type by time
+            const hour = new Date(shift.startTime).getHours();
+            if (hour < 12) return 'morning';
+            if (hour < 17) return 'afternoon';
+            if (hour < 22) return 'evening';
+            return 'night';
         }
 
         function generateCalendar() {

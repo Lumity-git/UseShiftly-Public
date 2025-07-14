@@ -47,6 +47,6 @@ public class ShiftTrade {
     private Long approvedByManagerId;
     
     public enum TradeStatus {
-        PENDING, PICKED_UP, CANCELLED, APPROVED, REJECTED
+        PENDING, PICKED_UP, CANCELLED, APPROVED, REJECTED, POSTED_TO_EVERYONE
     }
 }

@@ -464,7 +464,11 @@
 
         // Logout function
         function logout() {
-            authManager.logout();
+            try {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+            } catch (e) {}
+            window.location.replace('login.html');
         }
 
         async function loadDashboardData() {

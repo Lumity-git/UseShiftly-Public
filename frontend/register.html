@@ -1016,7 +1016,13 @@
 
                 if (response.ok) {
                     showAlert('Registration completed successfully! You may now close this tab.', 'success');
-                    // No auto-logout or redirect
+                    // Remove invitation link from localStorage (if present)
+                    try {
+                        const code = document.getElementById('invitationCode').value;
+                        let savedInvites = JSON.parse(localStorage.getItem('invitationLinks') || '[]');
+                        savedInvites = savedInvites.filter(link => !link.includes(code));
+                        localStorage.setItem('invitationLinks', JSON.stringify(savedInvites));
+                    } catch (e) {}
                 } else {
                     const error = await response.text();
                     showAlert(error || 'Registration failed. Please try again.', 'error');

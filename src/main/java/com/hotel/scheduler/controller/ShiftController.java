@@ -15,16 +15,32 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/shifts")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Slf4j
 public class ShiftController {
+    /**
+     * Cancel a posted shift (withdraw post, make unavailable for pickup).
+     * Only the employee who posted the shift can cancel.
+     */
+    @PostMapping("/{id}/cancel-post")
+    public ResponseEntity<?> cancelPostedShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+        try {
+            shiftService.cancelPostedShift(id, currentUser);
+            return ResponseEntity.ok(new MessageResponse("Shift post cancelled successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+    }
     
     private final ShiftService shiftService;
     private final ShiftTradeRepository shiftTradeRepository;
@@ -97,17 +113,19 @@ public class ShiftController {
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<Shift> getShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
-        return shiftService.getShiftById(id)
-                .map(shift -> {
-                    // Check permissions
-                    if (currentUser.getRole() == Employee.Role.EMPLOYEE && 
-                        (shift.getEmployee() == null || !shift.getEmployee().getId().equals(currentUser.getId()))) {
-                        return ResponseEntity.status(403).<Shift>build();
-                    }
-                    return ResponseEntity.ok(shift);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+        Optional<ShiftResponse> shiftOpt = shiftService.getShiftById(id);
+        if (shiftOpt.isPresent()) {
+            ShiftResponse shift = shiftOpt.get();
+            // Check permissions
+            if (currentUser.getRole() == Employee.Role.EMPLOYEE && 
+                (shift.getEmployeeId() == null || !shift.getEmployeeId().equals(currentUser.getId()))) {
+                return ResponseEntity.status(403).body(new MessageResponse("Forbidden"));
+            }
+            return ResponseEntity.ok(shift);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
     
     @PostMapping
@@ -115,7 +133,7 @@ public class ShiftController {
     public ResponseEntity<?> createShift(@Valid @RequestBody CreateShiftRequest request, 
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
-            Shift shift = shiftService.createShift(request, currentUser);
+            ShiftResponse shift = shiftService.createShift(request, currentUser);
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -128,7 +146,7 @@ public class ShiftController {
                                         @Valid @RequestBody CreateShiftRequest request,
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
-            Shift shift = shiftService.updateShift(id, request, currentUser);
+            ShiftResponse shift = shiftService.updateShift(id, request, currentUser);
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -170,7 +188,7 @@ public class ShiftController {
     }
     
     @GetMapping("/trades")
-    public ResponseEntity<List<ShiftTrade>> getShiftTrades(@AuthenticationPrincipal Employee currentUser) {
+    public ResponseEntity<List<com.hotel.scheduler.dto.shift.ShiftTradeResponse>> getShiftTrades(@AuthenticationPrincipal Employee currentUser) {
         try {
             List<ShiftTrade> trades;
             if (currentUser.getRole() == Employee.Role.EMPLOYEE) {
@@ -178,7 +196,23 @@ public class ShiftController {
             } else {
                 trades = shiftTradeRepository.findAll();
             }
-            return ResponseEntity.ok(trades);
+            List<com.hotel.scheduler.dto.shift.ShiftTradeResponse> response = trades.stream().map(trade -> {
+                com.hotel.scheduler.dto.shift.ShiftTradeResponse dto = new com.hotel.scheduler.dto.shift.ShiftTradeResponse();
+                dto.setId(trade.getId());
+                dto.setShiftId(trade.getShift() != null ? trade.getShift().getId() : null);
+                if (trade.getRequestingEmployee() != null) {
+                    dto.setRequestingEmployeeId(trade.getRequestingEmployee().getId());
+                    dto.setRequestingEmployeeName(trade.getRequestingEmployee().getFirstName() + " " + trade.getRequestingEmployee().getLastName());
+                }
+                if (trade.getPickupEmployee() != null) {
+                    dto.setPickupEmployeeId(trade.getPickupEmployee().getId());
+                    dto.setPickupEmployeeName(trade.getPickupEmployee().getFirstName() + " " + trade.getPickupEmployee().getLastName());
+                }
+                dto.setStatus(trade.getStatus() != null ? trade.getStatus().name() : null);
+                dto.setRequestedAt(trade.getRequestedAt());
+                return dto;
+            }).toList();
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
@@ -278,13 +312,21 @@ public class ShiftController {
     }
     
     @GetMapping("/employee-hours")
-    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getEmployeeHours(@RequestParam(required = false) String startDate,
                                              @RequestParam(required = false) String endDate,
-                                             @RequestParam(required = false) Long departmentId) {
+                                             @RequestParam(required = false) Long departmentId,
+                                             @AuthenticationPrincipal Employee currentUser) {
         try {
-            // Delegate to service for employee hours
-            List<Map<String, Object>> employeeHours = shiftService.getEmployeeHours(startDate, endDate, departmentId);
+            List<Map<String, Object>> employeeHours;
+            if (currentUser.getRole() == com.hotel.scheduler.model.Employee.Role.EMPLOYEE) {
+                // Only return hours for the current employee
+                employeeHours = shiftService.getEmployeeHours(startDate, endDate, departmentId)
+                    .stream()
+                    .filter(e -> e.get("employeeId") != null && e.get("employeeId").equals(currentUser.getId()))
+                    .toList();
+            } else {
+                employeeHours = shiftService.getEmployeeHours(startDate, endDate, departmentId);
+            }
             return ResponseEntity.ok(employeeHours);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -318,6 +360,48 @@ public class ShiftController {
         
         public void setMessage(String message) {
             this.message = message;
+        }
+    }
+
+    @PostMapping("/{id}/trade")
+    public ResponseEntity<?> tradeShiftToEmployee(@PathVariable Long id,
+                                                  @RequestBody Map<String, Object> payload,
+                                                  @AuthenticationPrincipal Employee currentUser) {
+        try {
+            Long targetEmployeeId = null;
+            if (payload.containsKey("targetEmployeeId")) {
+                Object val = payload.get("targetEmployeeId");
+                if (val instanceof Number) {
+                    targetEmployeeId = ((Number) val).longValue();
+                } else if (val instanceof String) {
+                    targetEmployeeId = Long.parseLong((String) val);
+                }
+            }
+            log.debug("tradeShiftToEmployee: currentUser id={}, role={}, targetEmployeeId={}",
+                currentUser != null ? currentUser.getId() : null,
+                currentUser != null ? currentUser.getRole() : null,
+                targetEmployeeId);
+            if (targetEmployeeId == null) {
+                log.warn("tradeShiftToEmployee: Missing targetEmployeeId in payload: {}", payload);
+                return ResponseEntity.badRequest().body(new MessageResponse("Missing targetEmployeeId"));
+            }
+            shiftService.offerShiftToEmployee(id, currentUser, targetEmployeeId);
+            log.info("tradeShiftToEmployee: Shift {} offered from user {} to user {}", id, currentUser.getId(), targetEmployeeId);
+            return ResponseEntity.ok(new MessageResponse("Shift offer sent to employee."));
+        } catch (Exception e) {
+            log.error("tradeShiftToEmployee: Error offering shift {} from user {}: {}", id, currentUser != null ? currentUser.getId() : null, e.getMessage());
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/post-to-everyone")
+    public ResponseEntity<?> postShiftToEveryone(@PathVariable Long id,
+                                                 @AuthenticationPrincipal Employee currentUser) {
+        try {
+            shiftService.postShiftToEveryone(id, currentUser);
+            return ResponseEntity.ok(new MessageResponse("Shift posted to everyone."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
 }

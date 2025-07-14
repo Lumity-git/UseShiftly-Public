@@ -9,6 +9,7 @@ import com.hotel.scheduler.repository.ShiftRepository;
 import com.hotel.scheduler.repository.EmployeeRepository;
 import com.hotel.scheduler.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,46 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ShiftService {
+    /**
+     * Cancel a posted shift (withdraw post, make unavailable for pickup).
+     * Only the employee who posted the shift can cancel.
+     */
+    public void cancelPostedShift(Long shiftId, Employee currentUser) {
+        log.info("User {} is attempting to cancel post for shift {}", currentUser.getId(), shiftId);
+        Shift shift = shiftRepository.findById(shiftId)
+            .orElseThrow(() -> new RuntimeException("Shift not found"));
+        // Only allow if current user is the one who posted the shift and it's still posted
+        if (shift.getStatus() != Shift.ShiftStatus.AVAILABLE_FOR_PICKUP) {
+            throw new RuntimeException("Only posted shifts can be cancelled");
+        }
+        if (!shift.getCreatedBy().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only cancel your own posted shifts");
+        }
+        // Mark as scheduled again, make unavailable for pickup
+        shift.setStatus(Shift.ShiftStatus.SCHEDULED);
+        shift.setAvailableForPickup(false);
+        shiftRepository.save(shift);
+        // Fallback: find all trades for this shift and cancel POSTED_TO_EVERYONE
+        List<com.hotel.scheduler.model.ShiftTrade> trades;
+        try {
+            trades = shiftTradeRepository.findByShiftId(shiftId);
+        } catch (Exception e) {
+            log.warn("findByShiftId not available, falling back to findAll");
+            trades = shiftTradeRepository.findAll();
+        }
+        for (com.hotel.scheduler.model.ShiftTrade trade : trades) {
+            if (trade.getShift() != null && trade.getShift().getId().equals(shiftId)
+                && trade.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE) {
+                trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
+                shiftTradeRepository.save(trade);
+            }
+        }
+        // Log notification fallback
+        log.info("Shift post cancelled notification would be sent to user {} for shift {}", currentUser.getId(), shiftId);
+        log.info("Shift {} post cancelled by user {}", shiftId, currentUser.getId());
+    }
     /**
      * Aggregates department statistics for reporting endpoints.
      * @param startDate ISO date string (optional)
@@ -281,24 +321,22 @@ public class ShiftService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final NotificationService notificationService;
+    private final com.hotel.scheduler.repository.ShiftTradeRepository shiftTradeRepository;
     
-    public Shift createShift(CreateShiftRequest request, Employee createdBy) {
+    public ShiftResponse createShift(CreateShiftRequest request, Employee createdBy) {
         // Validate department exists
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found"));
-        
         // Validate employee exists if assigned
         Employee assignedEmployee = null;
         if (request.getEmployeeId() != null) {
             assignedEmployee = employeeRepository.findById(request.getEmployeeId())
                     .orElseThrow(() -> new RuntimeException("Employee not found"));
-            
             // Check for scheduling conflicts
             if (hasSchedulingConflict(request.getEmployeeId(), request.getStartTime(), request.getEndTime())) {
                 throw new RuntimeException("Employee already has a shift scheduled during this time");
             }
         }
-        
         Shift shift = new Shift();
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
@@ -306,15 +344,12 @@ public class ShiftService {
         shift.setDepartment(department);
         shift.setNotes(request.getNotes());
         shift.setCreatedBy(createdBy);
-        
         Shift savedShift = shiftRepository.save(shift);
-        
         // Send notification to assigned employee
         if (assignedEmployee != null) {
             notificationService.sendShiftAssignmentNotification(assignedEmployee, savedShift);
         }
-        
-        return savedShift;
+        return convertToResponse(savedShift);
     }
     
     public List<ShiftResponse> getShiftsForEmployee(Long employeeId, LocalDateTime startDate, LocalDateTime endDate) {
@@ -347,11 +382,11 @@ public class ShiftService {
         return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public Optional<Shift> getShiftById(Long id) {
-        return shiftRepository.findById(id);
+    public Optional<ShiftResponse> getShiftById(Long id) {
+        return shiftRepository.findById(id).map(this::convertToResponse);
     }
     
-    public Shift updateShift(Long id, CreateShiftRequest request, Employee updatedBy) {
+    public ShiftResponse updateShift(Long id, CreateShiftRequest request, Employee updatedBy) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
         
@@ -386,7 +421,7 @@ public class ShiftService {
             notificationService.sendShiftUpdateNotification(assignedEmployee, updatedShift);
         }
         
-        return updatedShift;
+        return convertToResponse(updatedShift);
     }
     
     public void deleteShift(Long id) {
@@ -445,6 +480,65 @@ public class ShiftService {
     public List<ShiftResponse> getAvailableShifts() {
         List<Shift> shifts = shiftRepository.findAvailableForPickup();
         return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+    
+    /**
+     * Offer a shift to a specific employee (trade request).
+     */
+    public void offerShiftToEmployee(Long shiftId, Employee requestingEmployee, Long targetEmployeeId) {
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new RuntimeException("Shift not found"));
+        if (shift.getEmployee() == null || !shift.getEmployee().getId().equals(requestingEmployee.getId())) {
+            throw new RuntimeException("You can only offer your own shifts");
+        }
+        if (shift.getStatus() != Shift.ShiftStatus.SCHEDULED) {
+            throw new RuntimeException("Only scheduled shifts can be traded");
+        }
+        Employee targetEmployee = employeeRepository.findById(targetEmployeeId)
+                .orElseThrow(() -> new RuntimeException("Target employee not found"));
+        // Create and save ShiftTrade entity for this offer
+        com.hotel.scheduler.model.ShiftTrade trade = new com.hotel.scheduler.model.ShiftTrade();
+        trade.setShift(shift);
+        trade.setRequestingEmployee(requestingEmployee);
+        trade.setPickupEmployee(targetEmployee);
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING);
+        trade.setRequestedAt(java.time.LocalDateTime.now());
+        shiftTradeRepository.save(trade);
+        notificationService.sendShiftTradeOfferNotification(targetEmployee, shift, requestingEmployee);
+        // Notify the requesting employee that they are still responsible until accepted
+        notificationService.sendShiftTradeResponsibilityNotification(requestingEmployee, targetEmployee, shift);
+        shift.setStatus(Shift.ShiftStatus.PENDING);
+        shiftRepository.save(shift);
+    }
+
+    /**
+     * Post a shift to all employees (make available for pickup).
+     */
+    public void postShiftToEveryone(Long shiftId, Employee requestingEmployee) {
+        Shift shift = shiftRepository.findById(shiftId)
+                .orElseThrow(() -> new RuntimeException("Shift not found"));
+        if (shift.getEmployee() == null || !shift.getEmployee().getId().equals(requestingEmployee.getId())) {
+            throw new RuntimeException("You can only post your own shifts");
+        }
+        if (shift.getStatus() != Shift.ShiftStatus.SCHEDULED) {
+            throw new RuntimeException("Only scheduled shifts can be posted");
+        }
+        shift.setAvailableForPickup(true);
+        shift.setStatus(Shift.ShiftStatus.AVAILABLE_FOR_PICKUP);
+        shiftRepository.save(shift);
+        // Persist a ShiftTrade record for 'post to everyone' action
+        com.hotel.scheduler.model.ShiftTrade trade = new com.hotel.scheduler.model.ShiftTrade();
+        trade.setShift(shift);
+        trade.setRequestingEmployee(requestingEmployee);
+        trade.setPickupEmployee(null); // No specific pickup employee
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE);
+        trade.setRequestedAt(java.time.LocalDateTime.now());
+        shiftTradeRepository.save(trade);
+        // Notify all employees except the requester
+        List<Employee> allEmployees = employeeRepository.findAll();
+        notificationService.sendShiftPostedToEveryoneNotification(shift, requestingEmployee, allEmployees);
+        // Notify the requesting employee that they are still responsible until someone picks up
+        notificationService.sendShiftPostedResponsibilityNotification(requestingEmployee, shift);
     }
     
     private boolean hasSchedulingConflict(Long employeeId, LocalDateTime startTime, LocalDateTime endTime) {

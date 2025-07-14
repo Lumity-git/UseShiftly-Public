@@ -40,27 +40,35 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         }
         try {
             String jwt = parseJwt(request);
+            log.debug("AuthTokenFilter: Parsed JWT for path {}: {}", path, jwt);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                log.debug("AuthTokenFilter: JWT valid, username: {}", username);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username, userDetails.getAuthorities());
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null,
                                 userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("AuthTokenFilter: Authentication set for {}", username);
                 filterChain.doFilter(request, response);
             } else {
-                // Invalid or missing JWT
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Invalid or missing JWT token\"}");
+                log.warn("AuthTokenFilter: Invalid or missing JWT for path {}: {}", path, jwt);
+                if (!response.isCommitted()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Invalid or missing JWT token\"}");
+                }
                 return;
             }
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Authentication error\"}");
+            log.error("AuthTokenFilter: Cannot set user authentication for path {}: {}", path, e.getMessage());
+            if (!response.isCommitted()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Authentication error\"}");
+            }
             return;
         }
     }

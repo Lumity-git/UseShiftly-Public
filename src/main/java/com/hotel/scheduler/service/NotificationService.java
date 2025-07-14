@@ -11,11 +11,83 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationService {
+    /**
+     * Notify the requesting employee that they are still responsible for the shift until accepted by the target employee.
+     */
+    @Async
+    public void sendShiftTradeResponsibilityNotification(Employee requestingEmployee, Employee targetEmployee, Shift shift) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(requestingEmployee.getEmail());
+            message.setSubject("Shift Trade Offer - Responsibility Reminder");
+            message.setText(String.format(
+                "Hello %s,\n\n" +
+                "You have offered your shift to %s %s. However, you are still responsible for this shift until it is accepted and confirmed.\n\n" +
+                "Date & Time: %s - %s\n" +
+                "Department: %s\n" +
+                "Notes: %s\n\n" +
+                "If the offer is not accepted in time, you are expected to show up for your scheduled shift.\n\n" +
+                "Best regards,\nHotel Management",
+                requestingEmployee.getFirstName(),
+                targetEmployee.getFirstName(),
+                targetEmployee.getLastName(),
+                shift.getStartTime().format(formatter),
+                shift.getEndTime().format(formatter),
+                shift.getDepartment().getName(),
+                shift.getNotes() != null ? shift.getNotes() : "None"
+            ));
+            mailSender.send(message);
+            log.info("Shift trade responsibility notification sent to {}", requestingEmployee.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send shift trade responsibility notification to {}: {}", requestingEmployee.getEmail(), e.getMessage());
+        }
+    }
+
+    /**
+     * Notify the requesting employee that they are still responsible for the shift until someone picks it up.
+     */
+    @Async
+    public void sendShiftPostedResponsibilityNotification(Employee requestingEmployee, Shift shift) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(requestingEmployee.getEmail());
+            message.setSubject("Shift Posted - Responsibility Reminder");
+            message.setText(String.format(
+                "Hello %s,\n\n" +
+                "You have posted your shift for pickup by other employees. However, you are still responsible for this shift until someone picks it up and it is confirmed.\n\n" +
+                "Date & Time: %s - %s\n" +
+                "Department: %s\n" +
+                "Notes: %s\n\n" +
+                "If no one picks up the shift in time, you are expected to show up for your scheduled shift.\n\n" +
+                "Best regards,\nHotel Management",
+                requestingEmployee.getFirstName(),
+                shift.getStartTime().format(formatter),
+                shift.getEndTime().format(formatter),
+                shift.getDepartment().getName(),
+                shift.getNotes() != null ? shift.getNotes() : "None"
+            ));
+            mailSender.send(message);
+            log.info("Shift posted responsibility notification sent to {}", requestingEmployee.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send shift posted responsibility notification to {}: {}", requestingEmployee.getEmail(), e.getMessage());
+        }
+    }
     
     private final JavaMailSender mailSender;
     
@@ -191,6 +263,79 @@ public class NotificationService {
             log.info("Shift pickup confirmation sent to pickup employee {}", pickupEmployee.getEmail());
         } catch (Exception e) {
             log.error("Failed to send shift pickup confirmation to pickup employee {}: {}", pickupEmployee.getEmail(), e.getMessage());
+        }
+    }
+    
+    @Async
+    public void sendShiftTradeOfferNotification(Employee targetEmployee, Shift shift, Employee requestingEmployee) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(targetEmployee.getEmail());
+            message.setSubject("Shift Trade Offer");
+            message.setText(String.format(
+                "Hello %s,\n\n" +
+                "%s %s has offered you a shift:\n\n" +
+                "Date & Time: %s - %s\n" +
+                "Department: %s\n" +
+                "Notes: %s\n\n" +
+                "Please log into the scheduling system to accept or decline this offer.\n\n" +
+                "Best regards,\n" +
+                "Hotel Management",
+                targetEmployee.getFirstName(),
+                requestingEmployee.getFirstName(),
+                requestingEmployee.getLastName(),
+                shift.getStartTime().format(formatter),
+                shift.getEndTime().format(formatter),
+                shift.getDepartment().getName(),
+                shift.getNotes() != null ? shift.getNotes() : "None"
+            ));
+            mailSender.send(message);
+            log.info("Shift trade offer notification sent to {}", targetEmployee.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send shift trade offer notification to {}: {}", targetEmployee.getEmail(), e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendShiftPostedToEveryoneNotification(Shift shift, Employee requestingEmployee, List<Employee> allEmployees) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        for (Employee employee : allEmployees) {
+            if (employee.getId().equals(requestingEmployee.getId())) continue; // Don't notify self
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(employee.getEmail());
+                message.setSubject("Shift Available for Pickup");
+                message.setText(String.format(
+                    "Hello %s,\n\n" +
+                    "%s %s has posted a shift available for pickup:\n\n" +
+                    "Date & Time: %s - %s\n" +
+                    "Department: %s\n" +
+                    "Notes: %s\n\n" +
+                    "Log into the scheduling system to pick up this shift if interested.\n\n" +
+                    "Best regards,\n" +
+                    "Hotel Management",
+                    employee.getFirstName(),
+                    requestingEmployee.getFirstName(),
+                    requestingEmployee.getLastName(),
+                    shift.getStartTime().format(formatter),
+                    shift.getEndTime().format(formatter),
+                    shift.getDepartment().getName(),
+                    shift.getNotes() != null ? shift.getNotes() : "None"
+                ));
+                mailSender.send(message);
+                log.info("Shift posted notification sent to {}", employee.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send shift posted notification to {}: {}", employee.getEmail(), e.getMessage());
+            }
         }
     }
 }

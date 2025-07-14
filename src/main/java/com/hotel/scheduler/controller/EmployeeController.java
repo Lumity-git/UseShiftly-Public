@@ -18,6 +18,19 @@ import java.util.Map;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
     /**
+     * Get eligible employees for shift trade (excluding self). Accessible by EMPLOYEE role.
+     */
+    @GetMapping("/eligible-for-trade")
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<List<EmployeeDTO>> getEligibleEmployeesForTrade(@AuthenticationPrincipal Employee currentUser) {
+        List<Employee> employees = employeeService.getAllActiveEmployees();
+        List<EmployeeDTO> eligible = employees.stream()
+            .filter(e -> !e.getId().equals(currentUser.getId()))
+            .map(EmployeeDTO::fromEntity)
+            .toList();
+        return ResponseEntity.ok(eligible);
+    }
+    /**
      * Get employee details by ID (Manager/Admin only)
      */
     @GetMapping("/{id}")

@@ -299,30 +299,11 @@
             <p>Manage your shifts, view your schedule, and stay updated with your work</p>
         </div>
 
-        <div class="quick-stats">
-            <div class="stat-card">
-                <div class="stat-icon" style="color: #3498db;">📅</div>
-                <div class="stat-number" style="color: #3498db;">5</div>
-                <div class="stat-label">This Week's Shifts</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="color: #27ae60;">⏰</div>
-                <div class="stat-number" style="color: #27ae60;">32</div>
-                <div class="stat-label">Hours This Week</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="color: #f39c12;">🔄</div>
-                <div class="stat-number" style="color: #f39c12;">2</div>
-                <div class="stat-label">Pending Trades</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="color: #e74c3c;">🔔</div>
-                <div class="stat-number" style="color: #e74c3c;">3</div>
-                <div class="stat-label">New Notifications</div>
-            </div>
+        <div class="quick-stats" id="quickStats">
+            <!-- Stats will be dynamically loaded here -->
         </div>
 
-        <div class="employee-actions">
+        <div class="employee-actions"> 
             <div class="action-card">
                 <h3>📅 View My Shifts</h3>
                 <p>Check your upcoming shifts, view your schedule, and see shift details.</p>
@@ -351,27 +332,7 @@
         <div class="upcoming-shifts">
             <h2>📅 Upcoming Shifts</h2>
             <div id="upcomingShiftsList">
-                <div class="shift-item">
-                    <div>
-                        <div class="shift-date">Today - July 12, 2025</div>
-                        <div class="shift-time">2:00 PM - 10:00 PM</div>
-                    </div>
-                    <div class="shift-status status-confirmed">Confirmed</div>
-                </div>
-                <div class="shift-item">
-                    <div>
-                        <div class="shift-date">Tomorrow - July 13, 2025</div>
-                        <div class="shift-time">8:00 AM - 4:00 PM</div>
-                    </div>
-                    <div class="shift-status status-confirmed">Confirmed</div>
-                </div>
-                <div class="shift-item">
-                    <div>
-                        <div class="shift-date">July 15, 2025</div>
-                        <div class="shift-time">10:00 AM - 6:00 PM</div>
-                    </div>
-                    <div class="shift-status status-pending">Pending</div>
-                </div>
+                <!-- Real shift data will be rendered here by displayUpcomingShifts() -->
             </div>
         </div>
     </div>
@@ -385,10 +346,65 @@
         document.addEventListener('DOMContentLoaded', async function() {
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) return;
-            
+
             loadUserInfo();
+            await loadQuickStats();
             loadUpcomingShifts();
         });
+        async function loadQuickStats() {
+            const token = localStorage.getItem('authToken');
+            const statsContainer = document.getElementById('quickStats');
+            statsContainer.innerHTML = '<div style="text-align:center;color:#888;">Loading stats...</div>';
+            try {
+                // Fetch stats from backend
+                const [shiftsRes, hoursRes, tradesRes, notificationsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/shifts/my-shifts`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/shifts/employee-hours?startDate=&endDate=`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/shifts/trades`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/notifications`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                let shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+                let hours = 0;
+                if (hoursRes.ok) {
+                    const hoursData = await hoursRes.json();
+                    // Find current user hours
+                    if (Array.isArray(hoursData)) {
+                        const userInfo = localStorage.getItem('userInfo');
+                        const userId = userInfo ? JSON.parse(userInfo).id : null;
+                        const userHours = hoursData.find(e => e.employeeId === userId);
+                        hours = userHours ? userHours.hours : 0;
+                    }
+                }
+                let trades = tradesRes.ok ? await tradesRes.json() : [];
+                let notifications = notificationsRes.ok ? await notificationsRes.json() : [];
+
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #3498db;">📅</div>
+                        <div class="stat-number" style="color: #3498db;">${shifts.length}</div>
+                        <div class="stat-label">This Week's Shifts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #27ae60;">⏰</div>
+                        <div class="stat-number" style="color: #27ae60;">${hours}</div>
+                        <div class="stat-label">Hours This Week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #f39c12;">🔄</div>
+                        <div class="stat-number" style="color: #f39c12;">${trades.filter(t => t.status === 'PENDING').length}</div>
+                        <div class="stat-label">Pending Trades</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #e74c3c;">🔔</div>
+                        <div class="stat-number" style="color: #e74c3c;">${notifications.length}</div>
+                        <div class="stat-label">New Notifications</div>
+                    </div>
+                `;
+            } catch (error) {
+                statsContainer.innerHTML = '<div style="text-align:center;color:#e74c3c;">Error loading stats.</div>';
+            }
+        }
 
         async function checkAuth() {
             const token = localStorage.getItem('authToken');
@@ -451,8 +467,27 @@
         }
 
         function displayUpcomingShifts(shifts) {
-            // For now, keep the mock data since the API might not be fully implemented
-            // In a real implementation, you would render the actual shifts data here
+            const list = document.getElementById('upcomingShiftsList');
+            list.innerHTML = '';
+            if (!shifts || shifts.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
+                return;
+            }
+            shifts.forEach(shift => {
+                const item = document.createElement('div');
+                item.className = 'shift-item';
+                const dateStr = new Date(shift.startTime).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const startTime = new Date(shift.startTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                const endTime = new Date(shift.endTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                item.innerHTML = `
+                    <div>
+                        <div class="shift-date">${dateStr}</div>
+                        <div class="shift-time">${startTime} - ${endTime}</div>
+                    </div>
+                    <div class="shift-status ${shift.status === 'CONFIRMED' ? 'status-confirmed' : 'status-pending'}">${shift.status}</div>
+                `;
+                list.appendChild(item);
+            });
         }
 
         function viewMyShifts() {
@@ -472,9 +507,11 @@
         }
 
         function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userInfo');
-            window.location.href = 'login.html';
+            try {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+            } catch (e) {}
+            window.location.replace('login.html');
         }
     </script>
 </body>

@@ -10,6 +10,8 @@ import java.util.List;
 
 @Repository
 public interface ShiftTradeRepository extends JpaRepository<ShiftTrade, Long> {
+    @Query("SELECT st FROM ShiftTrade st WHERE st.shift.id = :shiftId")
+    List<ShiftTrade> findByShiftId(@Param("shiftId") Long shiftId);
     
     List<ShiftTrade> findByRequestingEmployeeId(Long employeeId);
     
