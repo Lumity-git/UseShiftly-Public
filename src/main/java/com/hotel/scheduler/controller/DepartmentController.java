@@ -18,9 +18,31 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class DepartmentController {
+    /**
+     * DepartmentController manages hotel departments (CRUD operations).
+     * 
+     * Key Endpoints:
+     * - GET /api/departments: List all departments (manager/admin only)
+     * - GET /api/departments/{id}: Get department by ID (manager/admin only)
+     * - POST /api/departments: Create new department (manager/admin only)
+     * - PUT /api/departments/{id}: Update department (manager/admin only)
+     * - DELETE /api/departments/{id}: Delete department (manager/admin only)
+     * 
+     * Security:
+     * - All endpoints require authentication and manager/admin role
+     * - Uses @PreAuthorize for role-based access (same as AuthController)
+     * 
+     * Dependencies:
+     * - DepartmentRepository: JPA repository for Department entity
+     * - Employee: Used for auditing (created/updated by)
+     */
     
     private final DepartmentRepository departmentRepository;
     
+    /**
+     * Returns a list of all hotel departments.
+     * Only accessible by managers and admins.
+     */
     @GetMapping
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<List<DepartmentDTO>> getAllDepartments() {
@@ -31,6 +53,10 @@ public class DepartmentController {
         return ResponseEntity.ok(departmentDTOs);
     }
     
+    /**
+     * Returns details for a specific department by ID.
+     * Only accessible by managers and admins.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<DepartmentDTO> getDepartment(@PathVariable Long id) {
@@ -39,6 +65,12 @@ public class DepartmentController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    /**
+     * Creates a new department.
+     * Only accessible by managers and admins.
+     * @param request Map with 'name' and 'description' keys
+     * @param currentUser Authenticated user (for auditing, if needed)
+     */
     @PostMapping
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> createDepartment(@RequestBody Map<String, Object> request, 
@@ -47,7 +79,7 @@ public class DepartmentController {
             Department department = new Department();
             department.setName((String) request.get("name"));
             department.setDescription((String) request.get("description"));
-            
+            // Optionally, set createdBy/currentUser if Department entity supports auditing
             Department saved = departmentRepository.save(department);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {
@@ -55,6 +87,13 @@ public class DepartmentController {
         }
     }
     
+    /**
+     * Updates an existing department by ID.
+     * Only accessible by managers and admins.
+     * @param id Department ID
+     * @param request Map with 'name' and/or 'description' keys
+     * @param currentUser Authenticated user (for auditing, if needed)
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> updateDepartment(@PathVariable Long id, 
@@ -63,14 +102,13 @@ public class DepartmentController {
         try {
             Department existing = departmentRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Department not found"));
-            
             if (request.containsKey("name")) {
                 existing.setName((String) request.get("name"));
             }
             if (request.containsKey("description")) {
                 existing.setDescription((String) request.get("description"));
             }
-            
+            // Optionally, set updatedBy/currentUser if Department entity supports auditing
             Department saved = departmentRepository.save(existing);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {
@@ -78,6 +116,11 @@ public class DepartmentController {
         }
     }
     
+    /**
+     * Deletes a department by ID.
+     * Only accessible by managers and admins.
+     * @param id Department ID
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
@@ -89,18 +132,17 @@ public class DepartmentController {
         }
     }
     
-    // Helper class for response messages
+    /**
+     * Helper class for response messages (used for error/success responses).
+     */
     public static class MessageResponse {
         private String message;
-        
         public MessageResponse(String message) {
             this.message = message;
         }
-        
         public String getMessage() {
             return message;
         }
-        
         public void setMessage(String message) {
             this.message = message;
         }

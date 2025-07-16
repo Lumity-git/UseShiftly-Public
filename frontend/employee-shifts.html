@@ -570,11 +570,12 @@
 
         async function checkAuth() {
             const token = localStorage.getItem('authToken');
+            console.debug('[checkAuth] token:', token);
             if (!token) {
+                console.debug('[checkAuth] No token, redirecting to login');
                 window.location.href = 'login.html';
                 return false;
             }
-            
             try {
                 const response = await fetch(`${API_BASE_URL}/auth/validate`, {
                     method: 'GET',
@@ -583,17 +584,17 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
+                console.debug('[checkAuth] validate response:', response.status);
                 if (!response.ok) {
+                    console.debug('[checkAuth] Token invalid, removing and redirecting');
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('userInfo');
                     window.location.href = 'login.html';
                     return false;
                 }
-                
                 return true;
             } catch (error) {
-                console.error('Auth validation failed:', error);
+                console.error('[checkAuth] Auth validation failed:', error);
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('userInfo');
                 window.location.href = 'login.html';
@@ -695,22 +696,53 @@
                 list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
                 return;
             }
-            shifts.forEach(shift => {
+            // Only show actionable shifts/trades:
+            // - If tradeStatus exists, only show if tradeStatus is PENDING or POSTED
+            // - Hide if tradeStatus is PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED
+            const visibleShifts = shifts.filter(shift => {
+                if (shift.tradeStatus) {
+                    // Only show if tradeStatus is PENDING or POSTED
+                    // Hide PENDING_APPROVAL, APPROVED, REJECTED, CANCELLED
+                    return ["PENDING", "POSTED"].includes(shift.tradeStatus);
+                }
+                return true;
+            });
+            visibleShifts.forEach(shift => {
                 const item = document.createElement('div');
                 item.className = 'shift-item';
                 let actions = `<span class="status-badge ${getStatusClass(shift.status)}">${shift.status}</span>`;
-                // Show Trade/Post button only for scheduled shifts
-                if (shift.status === 'SCHEDULED') {
+                // Show Trade/Post button for scheduled or available shifts and not part of a trade
+                if ((shift.status === 'SCHEDULED' || shift.status === 'AVAILABLE_FOR_PICKUP') && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
                     actions += `<button class="btn btn-warning btn-small" onclick="openTradePostModal(${shift.id})">Trade / Post Shift</button>`;
                 }
-                // Show Cancel Post button for posted shifts by current user, not yet picked up/confirmed
-                if (shift.status === 'POSTED' && shift.postedBy === currentUser.id) {
+                // Show Cancel Post button for posted shifts by current user, not yet picked up/confirmed, and tradeStatus is POSTED
+                if (shift.status === 'POSTED' && shift.postedBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
                     actions += `<button class="btn btn-danger btn-small" onclick="cancelPost(${shift.id})">Cancel Post</button>`;
                 }
+                // Show Cancel Trade button for posted trades to everyone or specific employee, if current user is the posting employee and tradeStatus is PENDING
+                if (shift.tradeStatus === 'PENDING' && shift.postedBy === currentUser.id) {
+                    actions += `<button class="btn btn-danger btn-small" onclick="cancelTrade(${shift.tradeId})">Cancel Trade</button>`;
+                }
                 // Show Cancel Pickup button for picked up but not confirmed shifts
-                if (shift.status === 'PICKED_UP' && shift.pickedUpBy === currentUser.id) {
+                if (shift.status === 'PICKED_UP' && shift.pickedUpBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'PENDING')) {
                     actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
                 }
+                // Show Pick Up button for available shifts not assigned to current user and not posted by current user, and tradeStatus is POSTED
+                if (shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser.id && shift.postedBy !== currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
+                    actions += `<button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">Pick Up</button>`;
+                }
+                item.innerHTML = `
+                    <div class="shift-details">
+                        <div class="shift-date">${formatDate(shift.startTime)}</div>
+                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
+                        <div class="shift-department">${shift.departmentName || ''}</div>
+                    </div>
+                    <div class="shift-actions">${actions}</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
         function cancelPost(shiftId) {
             if (!confirm('Are you sure you want to cancel your post for this shift?')) return;
             fetch(`${API_BASE_URL}/shifts/${shiftId}/cancel-post`, {
@@ -723,23 +755,14 @@
             .then(res => {
                 if (res.ok) {
                     alert('Your shift post has been cancelled.');
-                    loadMyShifts();
+                    autoRefreshShifts();
                 } else {
                     res.json().then(data => alert(data.message || 'Failed to cancel post.'));
                 }
             })
             .catch(() => alert('Network error. Please try again.'));
         }
-                item.innerHTML = `
-                    <div class="shift-details">
-                        <div class="shift-date">${formatDate(shift.startTime)}</div>
-                        <div class="shift-time">${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}</div>
-                        <div class="shift-department">${shift.departmentName || ''}</div>
-                    </div>
-                    <div class="shift-actions">${actions}</div>
-                `;
-                list.appendChild(item);
-            });
+
         function cancelPickup(shiftId) {
             if (!confirm('Are you sure you want to cancel your pickup for this shift?')) return;
             fetch(`${API_BASE_URL}/shifts/${shiftId}/cancel-pickup`, {
@@ -759,6 +782,40 @@
             })
             .catch(() => alert('Network error. Please try again.'));
         }
+
+        function pickupShift(shiftId) {
+            // Backend expects POST /api/shifts/{id}/pick-up
+            if (!confirm('Are you sure you want to pick up this shift?')) return;
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            fetch(`${API_BASE_URL}/shifts/${shiftId}/pick-up`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Shift picked up successfully!');
+                    autoRefreshShifts();
+                } else if (res.status === 401) {
+                    alert('Session expired or unauthorized. Please log in again.');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                } else {
+                    res.json().then(data => {
+                        alert(data.message || 'Failed to pick up shift.');
+                    });
+                }
+            })
+            .catch(() => {
+                alert('Network error. Please try again.');
+            });
         }
 
         function openTradePostModal(shiftId) {
@@ -840,6 +897,7 @@
                 if (res.ok) {
                     alert('Shift posted to everyone! You are still responsible for this shift until someone picks it up and it is confirmed. If no one picks up the shift in time, you are expected to show up for your scheduled shift.');
                     closeTradePostModal();
+                    autoRefreshShifts();
                 } else {
                     res.json().then(data => alert(data.message || 'Failed to post shift.'));
                 }
@@ -866,6 +924,7 @@
                 if (res.ok) {
                     alert('Shift offer sent! The employee must accept before a manager can approve or deny the shift change. You are still responsible for this shift until it is accepted and confirmed. If the offer is not accepted in time, you are expected to show up for your scheduled shift.');
                     closeTradePostModal();
+                    autoRefreshShifts();
                 } else if (res.status === 401) {
                     // Unauthorized: token expired or invalid
                     alert('Session expired or unauthorized. Please log in again.');
@@ -905,6 +964,7 @@
             if (status === 'CONFIRMED') return 'status-confirmed';
             if (status === 'PENDING') return 'status-pending';
             if (status === 'CANCELLED') return 'status-cancelled';
+            if (status === 'AVAILABLE_FOR_PICKUP') return 'status-pending'; // Use pending style for available
             return '';
         }
         function getShiftType(shift) {
@@ -1122,6 +1182,13 @@
             localStorage.removeItem('authToken');
             localStorage.removeItem('userInfo');
             window.location.href = 'login.html';
+        }
+
+        // Add auto-refresh for shifts after trade/post/cancel actions
+        function autoRefreshShifts(delay = 2000) {
+            setTimeout(() => {
+                loadMyShifts();
+            }, delay);
         }
     </script>
 </body>

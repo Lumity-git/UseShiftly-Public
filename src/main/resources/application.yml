@@ -4,19 +4,16 @@ server:
 spring:
   application:
     name: hotel-scheduler
-  
   datasource:
     url: jdbc:postgresql://localhost:5432/hotel_scheduler
     username: ${DB_USERNAME:scheduler_user}
     password: ${DB_PASSWORD:testPassword123!}
     driver-class-name: org.postgresql.Driver
-  
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -28,15 +25,19 @@ spring:
           auth: true
           starttls:
             enable: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    out-of-order: true
+    validate-on-migrate: false
 
 app:
   jwt:
     secret: ${JWT_SECRET:MySecretKey123456789012345678901234567890}
     expiration: 86400000 # 24 hours
-  
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:4200}
-  
   notification:
     email:
       from: ${EMAIL_FROM:noreply@hotelscheduler.com}

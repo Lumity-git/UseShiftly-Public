@@ -17,7 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,13 +29,55 @@ import java.util.Optional;
 @Slf4j
 public class ShiftController {
     /**
+     * ShiftController: Handles all shift and shift trade related REST API endpoints for the hotel scheduler system.
+     *
+     * Usage:
+     * - Use this controller for shift CRUD, trade, pickup, analytics, and reporting operations.
+     * - Endpoints are protected by role-based access control using @PreAuthorize.
+     * - Authenticated user is injected via @AuthenticationPrincipal.
+     * - All responses use DTOs for safe serialization.
+     *
+     * Key Endpoints:
+     * - GET /api/shifts: List shifts (role-based filtering)
+     * - GET /api/shifts/my-shifts: Get current user's shifts
+     * - GET /api/shifts/available: List available shifts for pickup
+     * - GET /api/shifts/{id}: Get shift details (role-based access)
+     * - POST /api/shifts: Create new shift (manager/admin only)
+     * - PUT /api/shifts/{id}: Update shift (manager/admin only)
+     * - DELETE /api/shifts/{id}: Delete shift (manager/admin only)
+     * - POST /api/shifts/{id}/give-away: Make shift available for pickup
+     * - POST /api/shifts/{id}/pick-up: Pick up a shift
+     * - POST /api/shifts/{id}/trade: Offer shift to another employee
+     * - POST /api/shifts/{id}/post-to-everyone: Post shift for public pickup
+     * - POST /api/shifts/{id}/cancel-post: Cancel posted shift
+     * - GET /api/shifts/trades: List shift trades (role-based)
+     * - POST /api/shifts/trades/{id}/accept: Accept a trade (employee)
+     * - POST /api/shifts/trades/{id}/decline: Decline a trade (employee)
+     * - POST /api/shifts/trades/{id}/approve: Approve trade (manager/admin)
+     * - POST /api/shifts/trades/{id}/reject: Reject trade (manager/admin)
+     * - DELETE /api/shifts/trades/{id}: Cancel/delete trade
+     * - GET /api/shifts/statistics: Shift statistics (manager/admin)
+     * - GET /api/shifts/analytics: Shift analytics (manager/admin)
+     * - GET /api/shifts/employee-hours: Employee hours (role-based)
+     * - GET /api/shifts/department-stats: Department stats (manager/admin)
+     *
+     * Dependencies:
+     * - ShiftService: Business logic for shifts and trades
+     * - ShiftTradeRepository: Data access for trades
+     * - UserActionLogService: Audit logging
+     * - EmployeeService: Employee business logic
+     * - MessageResponse: Helper class for response messages
+     */
+    /**
      * Cancel a posted shift (withdraw post, make unavailable for pickup).
      * Only the employee who posted the shift can cancel.
+     * POST /api/shifts/{id}/cancel-post
      */
     @PostMapping("/{id}/cancel-post")
     public ResponseEntity<?> cancelPostedShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.cancelPostedShift(id, currentUser);
+            userActionLogService.logAction("CANCELLED_POSTED_SHIFT", currentUser);
             return ResponseEntity.ok(new MessageResponse("Shift post cancelled successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
@@ -44,6 +86,55 @@ public class ShiftController {
     
     private final ShiftService shiftService;
     private final ShiftTradeRepository shiftTradeRepository;
+    private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
+    private final com.hotel.scheduler.service.EmployeeService employeeService;
+    /**
+     * Get incoming shift trades for the logged-in employee (pickup recipient).
+     * GET /api/shifts/trades/incoming
+     */
+    @GetMapping("/trades/incoming")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<List<com.hotel.scheduler.dto.shift.ShiftTradeResponse>> getIncomingTrades(@AuthenticationPrincipal Employee employee) {
+        if (employee == null) {
+            return ResponseEntity.status(401).build();
+        }
+        var trades = employeeService.getIncomingShiftTrades(employee.getId());
+        return ResponseEntity.ok(trades);
+    }
+
+    /**
+     * Employee accepts a shift trade sent to them (or picked up from public).
+     * Sets trade status to PENDING_APPROVAL for manager/admin review.
+     * POST /api/shifts/trades/{id}/accept
+     */
+    @PostMapping("/trades/{id}/accept")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<?> acceptTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+        try {
+            shiftService.acceptTrade(id, currentUser); // Implement this in service
+            userActionLogService.logAction("ACCEPTED_TRADE", currentUser);
+            return ResponseEntity.ok(new MessageResponse("Trade accepted and pending manager approval"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Employee declines a shift trade sent to them (or picked up from public).
+     * Sets trade status to CANCELLED.
+     * POST /api/shifts/trades/{id}/decline
+     */
+    @PostMapping("/trades/{id}/decline")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public ResponseEntity<?> declineTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+        try {
+            shiftService.declineTrade(id, currentUser); // Implement this in service
+            userActionLogService.logAction("DECLINED_TRADE", currentUser);
+            return ResponseEntity.ok(new MessageResponse("Trade declined"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
     
     @GetMapping
     public ResponseEntity<List<ShiftResponse>> getShifts(
@@ -52,8 +143,8 @@ public class ShiftController {
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @AuthenticationPrincipal Employee currentUser) {
-        LocalDateTime start = parseDateOrDateTime(startDate);
-        LocalDateTime end = parseDateOrDateTime(endDate);
+        OffsetDateTime start = parseOffsetDateTime(startDate);
+        OffsetDateTime end = parseOffsetDateTime(endDate);
 
         List<ShiftResponse> shifts;
 
@@ -72,46 +163,53 @@ public class ShiftController {
     }
 
     /**
-     * Parse ISO date or datetime string to LocalDateTime. Accepts yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss[.SSS][Z]
+     * Parse ISO date or datetime string to OffsetDateTime. Accepts yyyy-MM-dd or yyyy-MM-dd'T'HH:mm:ss[.SSS][Z]
      */
-    private LocalDateTime parseDateOrDateTime(String value) {
+    private OffsetDateTime parseOffsetDateTime(String value) {
         if (value == null || value.isEmpty()) return null;
         try {
-            if (value.length() == 10) { // yyyy-MM-dd
-                return java.time.LocalDate.parse(value).atStartOfDay();
-            } else {
-                return java.time.LocalDateTime.parse(value);
-            }
+            return OffsetDateTime.parse(value);
         } catch (Exception e) {
-            // Try parsing with offset
+            // Fallback: try parsing as LocalDate
             try {
-                return java.time.OffsetDateTime.parse(value).toLocalDateTime();
+                return java.time.LocalDate.parse(value).atStartOfDay().atOffset(OffsetDateTime.now().getOffset());
             } catch (Exception ignored) {}
         }
         return null;
     }
     
+    /**
+     * Returns shifts for the current authenticated user.
+     * GET /api/shifts/my-shifts
+     */
     @GetMapping("/my-shifts")
     public ResponseEntity<List<ShiftResponse>> getMyShifts(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate,
             @AuthenticationPrincipal Employee currentUser) {
-        
         List<ShiftResponse> shifts = shiftService.getShiftsForEmployee(currentUser.getId(), startDate, endDate);
         return ResponseEntity.ok(shifts);
     }
     
+    /**
+     * Returns shifts available for pickup (excluding user's own).
+     * GET /api/shifts/available
+     */
     @GetMapping("/available")
     public ResponseEntity<List<ShiftResponse>> getAvailableShifts(@AuthenticationPrincipal Employee currentUser) {
         try {
-            // Get shifts that are available for pickup (AVAILABLE status)
-            List<ShiftResponse> availableShifts = shiftService.getAvailableShifts();
+            List<ShiftResponse> availableShifts = shiftService.getAvailableShifts(currentUser);
             return ResponseEntity.ok(availableShifts);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
     
+    /**
+     * Returns details for a specific shift by ID.
+     * GET /api/shifts/{id}
+     * Employees can only view their own shifts.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> getShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         Optional<ShiftResponse> shiftOpt = shiftService.getShiftById(id);
@@ -128,18 +226,27 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Creates a new shift.
+     * POST /api/shifts (manager/admin only)
+     */
     @PostMapping
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> createShift(@Valid @RequestBody CreateShiftRequest request, 
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
             ShiftResponse shift = shiftService.createShift(request, currentUser);
+            userActionLogService.logAction("CREATED_SHIFT", currentUser);
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Updates an existing shift by ID.
+     * PUT /api/shifts/{id} (manager/admin only)
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> updateShift(@PathVariable Long id, 
@@ -147,12 +254,17 @@ public class ShiftController {
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
             ShiftResponse shift = shiftService.updateShift(id, request, currentUser);
+            userActionLogService.logAction("UPDATED_SHIFT", currentUser);
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Deletes a shift by ID.
+     * DELETE /api/shifts/{id} (manager/admin only)
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> deleteShift(@PathVariable Long id) {
@@ -164,29 +276,52 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Makes a shift available for pickup (give away).
+     * POST /api/shifts/{id}/give-away
+     */
     @PostMapping("/{id}/give-away")
     public ResponseEntity<?> giveAwayShift(@PathVariable Long id, 
                                           @RequestBody ShiftTradeRequest request,
                                           @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.makeShiftAvailableForPickup(id, currentUser, request.getReason());
+            userActionLogService.logAction("GAVE_AWAY_SHIFT", currentUser);
             return ResponseEntity.ok(new MessageResponse("Shift is now available for pickup"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Picks up a shift by ID.
+     * POST /api/shifts/{id}/pick-up
+     * Employees can only pick up shifts in their own department.
+     */
     @PostMapping("/{id}/pick-up")
     public ResponseEntity<?> pickupShift(@PathVariable Long id, 
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
+            Shift shift = shiftService.getShiftEntityById(id);
+            if (currentUser.getRole() == Employee.Role.EMPLOYEE) {
+                if (shift.getDepartment() == null || currentUser.getDepartment() == null ||
+                    !shift.getDepartment().getId().equals(currentUser.getDepartment().getId())) {
+                    return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Employees can only pick up shifts in their own department."));
+                }
+            }
             shiftService.pickupShift(id, currentUser);
+            userActionLogService.logAction("PICKED_UP_SHIFT", currentUser);
             return ResponseEntity.ok(new MessageResponse("Shift picked up successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Returns all shift trades visible to the current user.
+     * GET /api/shifts/trades
+     * Employees see only their own trades; managers/admins see all.
+     */
     @GetMapping("/trades")
     public ResponseEntity<List<com.hotel.scheduler.dto.shift.ShiftTradeResponse>> getShiftTrades(@AuthenticationPrincipal Employee currentUser) {
         try {
@@ -218,6 +353,10 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Picks up a shift trade by ID.
+     * POST /api/shifts/trades/{id}/pickup
+     */
     @PostMapping("/trades/{id}/pickup")
     public ResponseEntity<?> pickupTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
@@ -228,28 +367,42 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Approves a shift trade by ID (manager/admin only).
+     * POST /api/shifts/trades/{id}/approve
+     */
     @PostMapping("/trades/{id}/approve")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> approveTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             // This would delegate to the trade service
+            userActionLogService.logAction("APPROVED_TRADE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Trade approved successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Rejects a shift trade by ID (manager/admin only).
+     * POST /api/shifts/trades/{id}/reject
+     */
     @PostMapping("/trades/{id}/reject")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> rejectTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             // This would delegate to the trade service
+            userActionLogService.logAction("REJECTED_TRADE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Trade rejected"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Cancels or deletes a shift trade by ID.
+     * DELETE /api/shifts/trades/{id}
+     */
     @DeleteMapping("/trades/{id}")
     public ResponseEntity<?> deleteTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
@@ -260,36 +413,17 @@ public class ShiftController {
         }
     }
     
-    @PostMapping("/trades")
-    public ResponseEntity<?> createTrade(@RequestBody ShiftTradeRequest request, @AuthenticationPrincipal Employee currentUser) {
-        try {
-            // This would delegate to the trade service to create a new trade request
-            return ResponseEntity.ok(new MessageResponse("Trade request created"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
-        }
-    }
-    
-    @GetMapping("/my")
-    public ResponseEntity<List<ShiftResponse>> getMyShifts(@AuthenticationPrincipal Employee currentUser,
-                                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-                                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        try {
-            List<ShiftResponse> shifts = shiftService.getShiftsForEmployee(currentUser.getId(), startDate, endDate);
-            return ResponseEntity.ok(shifts);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-    
-    // Analytics endpoints for reports
+    // ...existing code...
+    /**
+     * Returns shift statistics for reporting (manager/admin only).
+     * GET /api/shifts/statistics
+     */
     @GetMapping("/statistics")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getShiftStatistics(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String startDate,
                                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String endDate,
                                                @RequestParam(required = false) Long departmentId) {
         try {
-            // Delegate to service for real statistics
             Map<String, Object> statistics = shiftService.getShiftStatistics(startDate, endDate, departmentId);
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
@@ -297,13 +431,16 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Returns shift analytics for reporting (manager/admin only).
+     * GET /api/shifts/analytics
+     */
     @GetMapping("/analytics")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getShiftAnalytics(@RequestParam(required = false) String startDate,
                                               @RequestParam(required = false) String endDate,
                                               @RequestParam(required = false) Long departmentId) {
         try {
-            // Delegate to service for analytics
             Map<String, Object> analytics = shiftService.getShiftAnalytics(startDate, endDate, departmentId);
             return ResponseEntity.ok(analytics);
         } catch (Exception e) {
@@ -311,6 +448,11 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Returns employee hours for reporting.
+     * GET /api/shifts/employee-hours
+     * Employees see only their own hours; managers/admins see all.
+     */
     @GetMapping("/employee-hours")
     public ResponseEntity<?> getEmployeeHours(@RequestParam(required = false) String startDate,
                                              @RequestParam(required = false) String endDate,
@@ -319,7 +461,6 @@ public class ShiftController {
         try {
             List<Map<String, Object>> employeeHours;
             if (currentUser.getRole() == com.hotel.scheduler.model.Employee.Role.EMPLOYEE) {
-                // Only return hours for the current employee
                 employeeHours = shiftService.getEmployeeHours(startDate, endDate, departmentId)
                     .stream()
                     .filter(e -> e.get("employeeId") != null && e.get("employeeId").equals(currentUser.getId()))
@@ -333,12 +474,15 @@ public class ShiftController {
         }
     }
     
+    /**
+     * Returns department statistics for reporting (manager/admin only).
+     * GET /api/shifts/department-stats
+     */
     @GetMapping("/department-stats")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> getDepartmentStats(@RequestParam(required = false) String startDate,
                                                @RequestParam(required = false) String endDate) {
         try {
-            // Delegate to service for department stats
             List<Map<String, Object>> departmentStats = shiftService.getDepartmentStats(startDate, endDate);
             return ResponseEntity.ok(departmentStats);
         } catch (Exception e) {
@@ -346,18 +490,17 @@ public class ShiftController {
         }
     }
     
-    // Helper class for response messages
+    /**
+     * Helper class for response messages (used for error/success responses).
+     */
     public static class MessageResponse {
         private String message;
-        
         public MessageResponse(String message) {
             this.message = message;
         }
-        
         public String getMessage() {
             return message;
         }
-        
         public void setMessage(String message) {
             this.message = message;
         }
@@ -386,6 +529,7 @@ public class ShiftController {
                 return ResponseEntity.badRequest().body(new MessageResponse("Missing targetEmployeeId"));
             }
             shiftService.offerShiftToEmployee(id, currentUser, targetEmployeeId);
+            userActionLogService.logAction("OFFERED_SHIFT_TO_EMPLOYEE", currentUser);
             log.info("tradeShiftToEmployee: Shift {} offered from user {} to user {}", id, currentUser.getId(), targetEmployeeId);
             return ResponseEntity.ok(new MessageResponse("Shift offer sent to employee."));
         } catch (Exception e) {
@@ -399,6 +543,7 @@ public class ShiftController {
                                                  @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.postShiftToEveryone(id, currentUser);
+            userActionLogService.logAction("POSTED_SHIFT_TO_EVERYONE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Shift posted to everyone."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));

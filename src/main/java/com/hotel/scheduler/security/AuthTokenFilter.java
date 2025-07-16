@@ -17,14 +17,47 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * JWT authentication filter for processing and validating JWT tokens in incoming HTTP requests.
+ * <p>
+ * This filter intercepts all requests except static resources and public authentication endpoints.
+ * It extracts the JWT from the Authorization header, validates it, and sets the authentication context for the user.
+ * If the token is invalid or missing, it returns a 401 Unauthorized response with a JSON error message.
+ * <p>
+ * <b>Usage:</b> Registered as a Spring bean and automatically applied by Spring Security.
+ * <p>
+ * <b>Related:</b> Works with {@link JwtUtils} for token operations and AuthEntryPointJwt for handling unauthorized errors.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AuthTokenFilter extends OncePerRequestFilter {
-    
+
+    /**
+     * Utility for JWT operations (validation, parsing, etc.).
+     */
     private final JwtUtils jwtUtils;
+
+    /**
+     * Loads user details for authentication context.
+     */
     private final UserDetailsService userDetailsService;
-    
+
+    /**
+     * Filters incoming requests to authenticate users based on JWT tokens.
+     * <ul>
+     *   <li>Skips static resources and public auth endpoints.</li>
+     *   <li>Extracts and validates JWT from Authorization header.</li>
+     *   <li>Sets authentication in SecurityContext if valid.</li>
+     *   <li>Returns 401 JSON error if token is invalid or missing.</li>
+     * </ul>
+     *
+     * @param request      the HTTP request
+     * @param response     the HTTP response
+     * @param filterChain  the filter chain
+     * @throws ServletException if a servlet error occurs
+     * @throws IOException      if an I/O error occurs
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -72,14 +105,20 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
     }
-    
+
+    /**
+     * Extracts the JWT token from the Authorization header of the request.
+     *
+     * @param request the HTTP request
+     * @return the JWT token if present and well-formed, otherwise null
+     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        
+
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
-        
+
         return null;
     }
 }

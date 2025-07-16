@@ -23,6 +23,9 @@ public class Employee implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private String uuid = java.util.UUID.randomUUID().toString();
     
     @Column(unique = true, nullable = false)
     private String email;
@@ -47,6 +50,11 @@ public class Employee implements UserDetails {
     @JoinColumn(name = "department_id")
     @JsonIgnore // Prevent circular reference during JSON serialization
     private Department department;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id")
+    @JsonIgnore
+    private Building building;
     
     @Column(nullable = false)
     private Boolean active = true;

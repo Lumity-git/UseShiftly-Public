@@ -329,6 +329,12 @@
                 <p>Promote employees, assign manager roles, and control access permissions.</p>
                 <button class="card-btn" onclick="manageEmployeeRoles()">Manage Roles</button>
             </div>
+
+            <div class="card admin-logs-only" id="adminLogsCard" style="display: none;">
+                <h3>📜 Review Logs</h3>
+                <p>View and audit all user actions for your building. Only visible to Admins.</p>
+                <button class="card-btn" onclick="openAdminLogs()">Review Logs</button>
+            </div>
         </div>
 
         <div class="api-info">
@@ -448,6 +454,14 @@
                     card.style.display = 'block';
                 });
             }
+            if (userInfo && userInfo.role === 'ADMIN') {
+                const adminLogsCard = document.getElementById('adminLogsCard');
+                if (adminLogsCard) adminLogsCard.style.display = 'block';
+            }
+        }
+        // Navigation for admin logs
+        function openAdminLogs() {
+            window.location.href = 'admin-logs.html';
         }
 
         // Check authentication and load user info

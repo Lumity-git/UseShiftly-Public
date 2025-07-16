@@ -13,12 +13,109 @@ import org.springframework.stereotype.Service;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Service for sending notifications to employees and managers about shift assignments, trades, and updates.
+ * <p>
+ * Handles both email notifications (via {@link org.springframework.mail.javamail.JavaMailSender}) and in-app notifications (future implementation).
+ * <ul>
+ *   <li>Sends notifications for shift trades, assignments, updates, cancellations, and pickups.</li>
+ *   <li>Notifies managers/admins for trade approvals.</li>
+ *   <li>Supports async email sending and logs notification events.</li>
+ * </ul>
+ * <b>Usage:</b> Injected into controllers and services to trigger notifications for scheduling events.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationService {
     /**
+     * Notify manager/admin that a trade was accepted by the employee (for approval).
+     */
+    private final com.hotel.scheduler.repository.EmployeeRepository employeeRepository;
+
+    /**
+     * Notifies all managers/admins that a shift trade was accepted and is pending approval.
+     *
+     * @param trade the shift trade that was accepted
+     */
+    public void sendTradeAcceptedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
+        // Instead of email, create notification objects for managers/admins
+        List<com.hotel.scheduler.model.Employee> managers = employeeRepository.findAll().stream()
+            .filter(e -> e.getRole() == com.hotel.scheduler.model.Employee.Role.MANAGER || e.getRole() == com.hotel.scheduler.model.Employee.Role.ADMIN)
+            .toList();
+        for (com.hotel.scheduler.model.Employee manager : managers) {
+            createNotification(
+                manager,
+                "Shift Trade Accepted - Pending Manager Approval",
+                String.format("A shift trade has been accepted by %s %s and is now pending your approval. Shift: %s Date & Time: %s - %s Department: %s",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
+                    trade.getShift() != null ? trade.getShift().getId() : "",
+                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
+                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
+                    trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
+                ),
+                "TRADE_ACCEPTED"
+            );
+        }
+    }
+
+    /**
+     * Notify requester that a trade was declined by the employee.
+     */
+    /**
+     * Notifies the requesting employee that their shift trade offer was declined.
+     *
+     * @param trade the shift trade that was declined
+     */
+    public void sendTradeDeclinedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
+        // Instead of email, create notification object for requesting employee
+        if (trade.getRequestingEmployee() != null) {
+            createNotification(
+                trade.getRequestingEmployee(),
+                "Shift Trade Declined",
+                String.format("Your shift trade offer was declined by %s %s. Shift: %s Date & Time: %s - %s Department: %s",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
+                    trade.getShift() != null ? trade.getShift().getId() : "",
+                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
+                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
+                    trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
+                ),
+                "TRADE_DECLINED"
+            );
+        }
+    }
+    // Helper to create and save notification objects for the frontend tab
+    /**
+     * Helper to create and save notification objects for the frontend notification tab.
+     *
+     * @param recipient the employee to notify
+     * @param title     the notification title
+     * @param message   the notification message
+     * @param type      the notification type (e.g., TRADE_ACCEPTED)
+     */
+    private void createNotification(com.hotel.scheduler.model.Employee recipient, String title, String message, String type) {
+        // TODO: Implement Notification entity and repository
+        // Notification notification = new Notification();
+        // notification.setRecipient(recipient);
+        // notification.setTitle(title);
+        // notification.setMessage(message);
+        // notification.setType(type);
+        // notification.setTimestamp(java.time.OffsetDateTime.now());
+        // notification.setRead(false);
+        // notificationRepository.save(notification);
+        log.info("[NOTIFY] Would create notification for {}: {} - {}", recipient.getEmail(), title, message);
+    }
+    /**
      * Notify the requesting employee that they are still responsible for the shift until accepted by the target employee.
+     */
+    /**
+     * Notifies the requesting employee that they are still responsible for the shift until accepted by the target employee.
+     *
+     * @param requestingEmployee the employee offering the shift
+     * @param targetEmployee     the employee being offered the shift
+     * @param shift              the shift being traded
      */
     @Async
     public void sendShiftTradeResponsibilityNotification(Employee requestingEmployee, Employee targetEmployee, Shift shift) {
@@ -56,6 +153,12 @@ public class NotificationService {
 
     /**
      * Notify the requesting employee that they are still responsible for the shift until someone picks it up.
+     */
+    /**
+     * Notifies the requesting employee that they are still responsible for the shift until someone picks it up.
+     *
+     * @param requestingEmployee the employee who posted the shift
+     * @param shift              the shift being posted
      */
     @Async
     public void sendShiftPostedResponsibilityNotification(Employee requestingEmployee, Shift shift) {
@@ -99,6 +202,12 @@ public class NotificationService {
     
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm");
     
+    /**
+     * Notifies an employee that they have been assigned a new shift.
+     *
+     * @param employee the employee assigned to the shift
+     * @param shift    the new shift
+     */
     @Async
     public void sendShiftAssignmentNotification(Employee employee, Shift shift) {
         if (!emailEnabled) {
@@ -134,6 +243,12 @@ public class NotificationService {
         }
     }
     
+    /**
+     * Notifies an employee that their shift has been updated.
+     *
+     * @param employee the employee whose shift was updated
+     * @param shift    the updated shift
+     */
     @Async
     public void sendShiftUpdateNotification(Employee employee, Shift shift) {
         if (!emailEnabled) {
@@ -169,6 +284,12 @@ public class NotificationService {
         }
     }
     
+    /**
+     * Notifies an employee that their shift has been cancelled.
+     *
+     * @param employee the employee whose shift was cancelled
+     * @param shift    the cancelled shift
+     */
     @Async
     public void sendShiftCancellationNotification(Employee employee, Shift shift) {
         if (!emailEnabled) {
@@ -202,6 +323,13 @@ public class NotificationService {
         }
     }
     
+    /**
+     * Notifies both the original and pickup employees about a successful shift pickup.
+     *
+     * @param originalEmployee the employee who originally owned the shift
+     * @param pickupEmployee   the employee who picked up the shift
+     * @param shift            the shift that was picked up
+     */
     @Async
     public void sendShiftPickupNotification(Employee originalEmployee, Employee pickupEmployee, Shift shift) {
         if (!emailEnabled) {
@@ -266,6 +394,13 @@ public class NotificationService {
         }
     }
     
+    /**
+     * Notifies a target employee that they have received a shift trade offer.
+     *
+     * @param targetEmployee     the employee being offered the shift
+     * @param shift              the shift being offered
+     * @param requestingEmployee the employee offering the shift
+     */
     @Async
     public void sendShiftTradeOfferNotification(Employee targetEmployee, Shift shift, Employee requestingEmployee) {
         if (!emailEnabled) {
@@ -301,6 +436,13 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Notifies all employees (except the requester) that a shift has been posted and is available for pickup.
+     *
+     * @param shift              the shift being posted
+     * @param requestingEmployee the employee posting the shift
+     * @param allEmployees       list of all employees to notify
+     */
     @Async
     public void sendShiftPostedToEveryoneNotification(Shift shift, Employee requestingEmployee, List<Employee> allEmployees) {
         if (!emailEnabled) {

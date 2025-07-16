@@ -984,25 +984,63 @@
 
         async function deleteShift(shiftId) {
             if (!confirm('Are you sure you want to delete this shift?')) return;
-            
             try {
-                await apiRequest(`/shifts/${shiftId}`, { method: 'DELETE' });
-                showAlert('Shift deleted successfully!', 'success');
-                loadShifts();
+                // Use the correct API endpoint and method from ShiftController
+                const response = await fetch(`${API_BASE_URL}/shifts/${shiftId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+                if (response.ok) {
+                    showAlert('Shift deleted successfully!', 'success');
+                    loadShifts();
+                } else {
+                    let errorMsg = 'Failed to delete shift';
+                    try {
+                        const error = await response.json();
+                        if (error && error.message) errorMsg = error.message;
+                    } catch (e) {}
+                    showAlert(errorMsg, 'error');
+                }
             } catch (error) {
-                showAlert('Failed to delete shift', 'error');
+                showAlert('Failed to delete shift. Please try again.', 'error');
             }
         }
 
         async function pickupShift(shiftId) {
             if (!confirm('Are you sure you want to pick up this shift?')) return;
-            
             try {
-                await apiRequest(`/shifts/${shiftId}/pick-up`, { method: 'POST' });
-                showAlert('Shift picked up successfully!', 'success');
-                loadShifts();
+                // Use the correct API endpoint and method from ShiftController
+                const response = await fetch(`${API_BASE_URL}/shifts/${shiftId}/pick-up`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+                if (response.ok) {
+                    showAlert('Shift picked up successfully!', 'success');
+                    loadShifts();
+                } else {
+                    let errorMsg = 'Failed to pick up shift';
+                    try {
+                        const error = await response.json();
+                        if (error && error.message) errorMsg = error.message;
+                    } catch (e) {}
+                    showAlert(errorMsg, 'error');
+                }
             } catch (error) {
-                showAlert('Failed to pick up shift', 'error');
+                showAlert('Failed to pick up shift. Please try again.', 'error');
             }
         }
 

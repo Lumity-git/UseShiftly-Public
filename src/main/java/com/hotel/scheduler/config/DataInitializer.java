@@ -4,7 +4,6 @@ import com.hotel.scheduler.model.Department;
 import com.hotel.scheduler.model.Employee;
 import com.hotel.scheduler.repository.DepartmentRepository;
 import com.hotel.scheduler.service.EmployeeService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -26,10 +25,6 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         initializeDepartments();
         ensureAdminUser();
-    }
-
-    private void initializeData() {
-        // ...existing code...
     }
 
     private void initializeDepartments() {

@@ -595,6 +595,10 @@
                 window.location.href = 'employee-trades.html';
                 return false;
             }
+            // For MANAGER and ADMIN, show pending approval tab and load all trades
+            if (userObj.role === 'MANAGER' || userObj.role === 'ADMIN') {
+                document.getElementById('pendingTab').style.display = 'block';
+            }
 
             try {
                 // Validate token by making a test API call
@@ -661,12 +665,13 @@
             ]);
         }
 
-        // Configuration
+        // Update API endpoints to match ShiftController
         const API_BASE_URL = 'http://localhost:8080/api';
 
         async function loadTrades() {
             try {
                 const token = localStorage.getItem('authToken');
+                // Use /api/shifts/trades for all trades
                 const response = await fetch(`${API_BASE_URL}/shifts/trades`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -675,20 +680,31 @@
                 });
 
                 if (response.ok) {
-                    allTrades = await response.json();
+                    const data = await response.json();
+                    if (!Array.isArray(data)) {
+                        showError('Invalid trades data received');
+                        allTrades = [];
+                    } else {
+                        allTrades = data;
+                    }
                     filterTrades();
                 } else {
                     showError('Failed to load trades');
+                    allTrades = [];
+                    filterTrades();
                 }
             } catch (error) {
                 console.error('Error loading trades:', error);
                 showError('Error loading trades');
+                allTrades = [];
+                filterTrades();
             }
         }
 
         async function loadDepartments() {
             try {
                 const token = localStorage.getItem('authToken');
+                // Use /api/departments for departments
                 const response = await fetch(`${API_BASE_URL}/departments`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -708,7 +724,8 @@
         async function loadMyShifts() {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/shifts/my`, {
+                // Use /api/shifts/my-shifts for user's shifts
+                const response = await fetch(`${API_BASE_URL}/shifts/my-shifts`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -725,23 +742,19 @@
         }
 
         function filterTrades() {
-            myTrades = allTrades.filter(trade => 
-                trade.originalEmployee.id === currentUser.id || 
-                (trade.pickupEmployee && trade.pickupEmployee.id === currentUser.id)
-            );
-
-            availableTrades = allTrades.filter(trade => 
-                trade.status === 'PENDING' && 
-                trade.originalEmployee.id !== currentUser.id &&
-                !trade.pickupEmployee
-            );
-
+            // Defensive: skip undefined trades and nested objects
+            // Backend now returns ShiftTradeResponse DTOs, so adapt accordingly
+            const safeTrades = Array.isArray(allTrades) ? allTrades.filter(trade => trade && trade.shiftId) : [];
             if (currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN') {
-                pendingApprovals = allTrades.filter(trade => 
-                    trade.status === 'PENDING' && trade.pickupEmployee
-                );
+                myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
+                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && !trade.pickupEmployeeId);
+                // Pending approval: show all trades with status PENDING_APPROVAL and a pickupEmployeeId
+                pendingApprovals = safeTrades.filter(trade => trade.status === 'PENDING_APPROVAL' && trade.pickupEmployeeId);
+            } else {
+                myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
+                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && trade.requestingEmployeeId !== currentUser.id && !trade.pickupEmployeeId);
+                pendingApprovals = [];
             }
-
             displayTrades();
         }
 
@@ -787,7 +800,6 @@
 
         function displayPendingApprovals() {
             const container = document.getElementById('pendingApprovalList');
-            
             if (pendingApprovals.length === 0) {
                 container.innerHTML = `
                     <div class="no-data">
@@ -797,43 +809,39 @@
                 `;
                 return;
             }
-
+            // Only show trades that are truly pending manager/admin approval
             container.innerHTML = pendingApprovals.map(trade => createTradeCard(trade, 'approval')).join('');
         }
 
         function createTradeCard(trade, context) {
-            const isOwner = trade.originalEmployee.id === currentUser.id;
-            const isPickup = trade.pickupEmployee && trade.pickupEmployee.id === currentUser.id;
-            
+            // Adapt to ShiftTradeResponse DTO
+            const isOwner = trade.requestingEmployeeId === currentUser.id;
+            const isPickup = trade.pickupEmployeeId === currentUser.id;
             return `
                 <div class="trade-card">
                     <div class="trade-header">
-                        <h3>${trade.shift.department.name} - ${formatDate(trade.shift.date)}</h3>
-                        <span class="status-badge status-${trade.status.toLowerCase()}">${trade.status}</span>
+                        <h3>Shift #${trade.shiftId} ${trade.requestedAt ? '- ' + formatDate(trade.requestedAt) : ''}</h3>
+                        <span class="status-badge status-${trade.status ? trade.status.toLowerCase() : 'pending'}">${trade.status || 'PENDING'}</span>
                     </div>
                     <div class="trade-info">
                         <div class="info-item">
                             <i class="fas fa-user"></i>
-                            <span>Original: ${trade.originalEmployee.firstName} ${trade.originalEmployee.lastName}</span>
+                            <span>Requested by: ${trade.requestingEmployeeName || 'Unknown'}</span>
                         </div>
-                        <div class="info-item">
-                            <i class="fas fa-clock"></i>
-                            <span>${formatTime(trade.shift.startTime)} - ${formatTime(trade.shift.endTime)}</span>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-building"></i>
-                            <span>${trade.shift.department.name}</span>
-                        </div>
-                        ${trade.pickupEmployee ? `
+                        ${trade.pickupEmployeeName ? `
                             <div class="info-item">
                                 <i class="fas fa-user-plus"></i>
-                                <span>Pickup: ${trade.pickupEmployee.firstName} ${trade.pickupEmployee.lastName}</span>
+                                <span>Pickup: ${trade.pickupEmployeeName}</span>
                             </div>
                         ` : ''}
-                        ${trade.reason ? `
+                        <div class="info-item">
+                            <i class="fas fa-comment"></i>
+                            <span>Status: ${trade.status || 'PENDING'}</span>
+                        </div>
+                        ${trade.requestedAt ? `
                             <div class="info-item">
-                                <i class="fas fa-comment"></i>
-                                <span>${trade.reason}</span>
+                                <i class="fas fa-clock"></i>
+                                <span>Requested: ${formatDate(trade.requestedAt)}</span>
                             </div>
                         ` : ''}
                     </div>
@@ -846,60 +854,98 @@
 
         function getTradeActions(trade, context, isOwner, isPickup) {
             let actions = [];
-
+            // Use trade.id for all actions (matches backend contract)
             if (context === 'my') {
                 if (isOwner && trade.status === 'PENDING') {
                     actions.push(`<button class="btn btn-danger" onclick="cancelTrade(${trade.id})">
                         <i class="fas fa-times"></i> Cancel
                     </button>`);
                 }
+                if (isPickup && trade.status === 'PENDING') {
+                    actions.push(`<button class="btn btn-success" onclick="acceptTrade(${trade.id})">
+                        <i class="fas fa-check"></i> Accept
+                    </button>`);
+                    actions.push(`<button class="btn btn-danger" onclick="declineTrade(${trade.id})">
+                        <i class="fas fa-times"></i> Decline
+                    </button>`);
+                }
+                if (isPickup && trade.status === 'PENDING_APPROVAL') {
+                    actions.push(`<span class="status-badge status-pending">Awaiting Manager Approval</span>`);
+                }
             } else if (context === 'available') {
-                actions.push(`<button class="btn btn-primary" onclick="pickupTrade(${trade.id})">
+                actions.push(`<button class="btn btn-primary" onclick="acceptTrade(${trade.id})">
                     <i class="fas fa-hand-paper"></i> Pick Up Shift
                 </button>`);
             } else if (context === 'approval') {
-                actions.push(`<button class="btn btn-success" onclick="approveTrade(${trade.id})">
-                    <i class="fas fa-check"></i> Approve
-                </button>`);
-                actions.push(`<button class="btn btn-danger" onclick="rejectTrade(${trade.id})">
-                    <i class="fas fa-times"></i> Reject
-                </button>`);
+                // Only show approve/reject for trades with status PENDING_APPROVAL and a pickupEmployeeId
+                if (trade.status === 'PENDING_APPROVAL' && trade.pickupEmployeeId) {
+                    actions.push(`<button class="btn btn-success" onclick="approveTrade(${trade.id})">
+                        <i class="fas fa-check"></i> Approve
+                    </button>`);
+                    actions.push(`<button class="btn btn-danger" onclick="rejectTrade(${trade.id})">
+                        <i class="fas fa-times"></i> Reject
+                    </button>`);
+                }
             }
-
             return actions.join('');
         }
 
-        async function pickupTrade(tradeId) {
-            if (!confirm('Are you sure you want to pick up this shift?')) return;
-
+        // Accept trade (pickup)
+        async function acceptTrade(tradeId) {
+            if (!confirm('Are you sure you want to accept this shift trade?')) return;
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/pickup`, {
+                // Use /api/shifts/trades/{id}/accept
+                const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/accept`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
-
                 if (response.ok) {
-                    showSuccess('Trade pickup request submitted successfully');
+                    showSuccess('Trade accepted!');
                     loadTrades();
                 } else {
                     const error = await response.text();
-                    showError(error || 'Failed to pick up trade');
+                    showError(error || 'Failed to accept trade');
                 }
             } catch (error) {
-                console.error('Error picking up trade:', error);
-                showError('Error picking up trade');
+                showError('Error accepting trade');
             }
         }
 
-        async function approveTrade(tradeId) {
-            if (!confirm('Are you sure you want to approve this trade?')) return;
-
+        // Decline trade
+        async function declineTrade(tradeId) {
+            if (!confirm('Are you sure you want to decline this shift trade?')) return;
             try {
                 const token = localStorage.getItem('authToken');
+                // Use /api/shifts/trades/{id}/decline
+                const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/decline`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    showSuccess('Trade declined');
+                    loadTrades();
+                } else {
+                    const error = await response.text();
+                    showError(error || 'Failed to decline trade');
+                }
+            } catch (error) {
+                showError('Error declining trade');
+            }
+        }
+
+        // Approve trade (manager/admin)
+        async function approveTrade(tradeId) {
+            if (!confirm('Are you sure you want to approve this trade?')) return;
+            try {
+                const token = localStorage.getItem('authToken');
+                // Use /api/shifts/trades/{id}/approve
                 const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/approve`, {
                     method: 'POST',
                     headers: {
@@ -907,7 +953,6 @@
                         'Content-Type': 'application/json'
                     }
                 });
-
                 if (response.ok) {
                     showSuccess('Trade approved successfully');
                     loadTrades();
@@ -916,17 +961,17 @@
                     showError(error || 'Failed to approve trade');
                 }
             } catch (error) {
-                console.error('Error approving trade:', error);
                 showError('Error approving trade');
             }
         }
 
+        // Reject trade (manager/admin)
         async function rejectTrade(tradeId) {
             const reason = prompt('Please provide a reason for rejecting this trade:');
             if (!reason) return;
-
             try {
                 const token = localStorage.getItem('authToken');
+                // Use /api/shifts/trades/{id}/reject
                 const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/reject`, {
                     method: 'POST',
                     headers: {
@@ -935,7 +980,6 @@
                     },
                     body: JSON.stringify({ reason })
                 });
-
                 if (response.ok) {
                     showSuccess('Trade rejected');
                     loadTrades();
@@ -944,16 +988,16 @@
                     showError(error || 'Failed to reject trade');
                 }
             } catch (error) {
-                console.error('Error rejecting trade:', error);
                 showError('Error rejecting trade');
             }
         }
 
+        // Cancel trade
         async function cancelTrade(tradeId) {
             if (!confirm('Are you sure you want to cancel this trade request?')) return;
-
             try {
                 const token = localStorage.getItem('authToken');
+                // Use DELETE /api/shifts/trades/{id}
                 const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}`, {
                     method: 'DELETE',
                     headers: {
@@ -961,7 +1005,6 @@
                         'Content-Type': 'application/json'
                     }
                 });
-
                 if (response.ok) {
                     showSuccess('Trade request cancelled');
                     loadTrades();
@@ -970,7 +1013,6 @@
                     showError(error || 'Failed to cancel trade');
                 }
             } catch (error) {
-                console.error('Error cancelling trade:', error);
                 showError('Error cancelling trade');
             }
         }

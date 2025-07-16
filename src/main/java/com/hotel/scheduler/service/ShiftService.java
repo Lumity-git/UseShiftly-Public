@@ -13,19 +13,106 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer for managing shifts, shift trades, and reporting analytics.
+ * <p>
+ * Handles shift CRUD operations, trade offers, pickups, cancellations, and aggregates statistics for reporting endpoints.
+ * Integrates with notification service for employee and manager notifications.
+ * <b>Usage:</b> Injected into controllers and other services for shift-related business logic.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
 public class ShiftService {
     /**
+     * Employee accepts a shift trade sent to them (or picked up from public).
+     * Sets trade status to PENDING_APPROVAL for manager/admin review.
+     */
+    /**
+     * Employee accepts a shift trade sent to them (or picked up from public).
+     * Sets trade status to PENDING_APPROVAL for manager/admin review.
+     *
+     * @param tradeId     the ID of the shift trade
+     * @param currentUser the employee accepting the trade
+     */
+    @Transactional
+    public void acceptTrade(Long tradeId, Employee currentUser) {
+        com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
+            .orElseThrow(() -> new RuntimeException("Trade not found"));
+        if (trade.getPickupEmployee() == null || !trade.getPickupEmployee().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only accept trades sent to you");
+        }
+        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING) {
+            throw new RuntimeException("Trade is not pending");
+        }
+        // Set status to PENDING_APPROVAL so manager/admin can review
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL);
+        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        shiftTradeRepository.save(trade);
+        // Notify manager/admin for approval
+        notificationService.sendTradeAcceptedNotification(trade);
+    }
+
+    /**
+     * Employee declines a shift trade sent to them (or picked up from public).
+     * Sets trade status to CANCELLED.
+     */
+    /**
+     * Employee declines a shift trade sent to them (or picked up from public).
+     * Sets trade status to CANCELLED.
+     *
+     * @param tradeId     the ID of the shift trade
+     * @param currentUser the employee declining the trade
+     */
+    @Transactional
+    public void declineTrade(Long tradeId, Employee currentUser) {
+        com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
+            .orElseThrow(() -> new RuntimeException("Trade not found"));
+        if (trade.getPickupEmployee() == null || !trade.getPickupEmployee().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only decline trades sent to you");
+        }
+        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING) {
+            throw new RuntimeException("Trade is not pending");
+        }
+        // Set trade status to CANCELLED
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
+        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        shiftTradeRepository.save(trade);
+        // Set associated shift status back to AVAILABLE_FOR_PICKUP
+        Shift shift = trade.getShift();
+        if (shift != null) {
+            shift.setStatus(Shift.ShiftStatus.AVAILABLE_FOR_PICKUP);
+            shift.setAvailableForPickup(true);
+            shiftRepository.save(shift);
+        }
+        // Optionally notify requester
+        notificationService.sendTradeDeclinedNotification(trade);
+    }
+    /**
+     * Retrieves a shift entity by its ID.
+     *
+     * @param id the shift ID
+     * @return the Shift entity
+     */
+    public Shift getShiftEntityById(Long id) {
+        return shiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Shift not found"));
+    }
+    /**
      * Cancel a posted shift (withdraw post, make unavailable for pickup).
      * Only the employee who posted the shift can cancel.
+     */
+    /**
+     * Cancel a posted shift (withdraw post, make unavailable for pickup).
+     * Only the employee who posted the shift can cancel.
+     *
+     * @param shiftId     the ID of the shift
+     * @param currentUser the employee requesting cancellation
      */
     public void cancelPostedShift(Long shiftId, Employee currentUser) {
         log.info("User {} is attempting to cancel post for shift {}", currentUser.getId(), shiftId);
@@ -67,16 +154,23 @@ public class ShiftService {
      * @param endDate ISO date string (optional)
      * @return List of department stats maps (production ready)
      */
+    /**
+     * Aggregates department statistics for reporting endpoints.
+     *
+     * @param startDate ISO date string (optional)
+     * @param endDate   ISO date string (optional)
+     * @return List of department stats maps (production ready)
+     */
     public java.util.List<java.util.Map<String, Object>> getDepartmentStats(String startDate, String endDate) {
         java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
-        java.time.LocalDateTime start = null;
-        java.time.LocalDateTime end = null;
+        java.time.OffsetDateTime start = null;
+        java.time.OffsetDateTime end = null;
         try {
             if (startDate != null && !startDate.isBlank()) {
-                start = java.time.LocalDateTime.parse(startDate);
+                start = java.time.OffsetDateTime.parse(startDate);
             }
             if (endDate != null && !endDate.isBlank()) {
-                end = java.time.LocalDateTime.parse(endDate);
+                end = java.time.OffsetDateTime.parse(endDate);
             }
         } catch (Exception e) {
             // Invalid date format, return empty result
@@ -118,16 +212,24 @@ public class ShiftService {
      * @param departmentId Department filter (optional)
      * @return List of employee hour maps (to be implemented with real aggregation)
      */
+    /**
+     * Aggregates employee hours for reporting endpoints.
+     *
+     * @param startDate    ISO date string (optional)
+     * @param endDate      ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return List of employee hour maps (to be implemented with real aggregation)
+     */
     public java.util.List<java.util.Map<String, Object>> getEmployeeHours(String startDate, String endDate, Long departmentId) {
         java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
-        java.time.LocalDateTime start = null;
-        java.time.LocalDateTime end = null;
+        java.time.OffsetDateTime start = null;
+        java.time.OffsetDateTime end = null;
         try {
             if (startDate != null && !startDate.isBlank()) {
-                start = java.time.LocalDateTime.parse(startDate);
+                start = java.time.OffsetDateTime.parse(startDate);
             }
             if (endDate != null && !endDate.isBlank()) {
-                end = java.time.LocalDateTime.parse(endDate);
+                end = java.time.OffsetDateTime.parse(endDate);
             }
         } catch (Exception e) {
             // Invalid date format, return empty result or handle as needed
@@ -168,16 +270,24 @@ public class ShiftService {
      * @param departmentId Department filter (optional)
      * @return Map of analytics (to be implemented with real aggregation)
      */
+    /**
+     * Aggregates shift analytics for reporting endpoints.
+     *
+     * @param startDate    ISO date string (optional)
+     * @param endDate      ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return Map of analytics (to be implemented with real aggregation)
+     */
     public java.util.Map<String, Object> getShiftAnalytics(String startDate, String endDate, Long departmentId) {
         java.util.Map<String, Object> analytics = new java.util.HashMap<>();
-        java.time.LocalDateTime start = null;
-        java.time.LocalDateTime end = null;
+        java.time.OffsetDateTime start = null;
+        java.time.OffsetDateTime end = null;
         try {
             if (startDate != null && !startDate.isBlank()) {
-                start = java.time.LocalDateTime.parse(startDate);
+                start = java.time.OffsetDateTime.parse(startDate);
             }
             if (endDate != null && !endDate.isBlank()) {
-                end = java.time.LocalDateTime.parse(endDate);
+                end = java.time.OffsetDateTime.parse(endDate);
             }
         } catch (Exception e) {
             // Invalid date format, return empty analytics
@@ -242,16 +352,24 @@ public class ShiftService {
      * @param departmentId Department filter (optional)
      * @return Map of statistics (to be implemented with real aggregation)
      */
+    /**
+     * Aggregates shift statistics for reporting endpoints.
+     *
+     * @param startDate    ISO date string (optional)
+     * @param endDate      ISO date string (optional)
+     * @param departmentId Department filter (optional)
+     * @return Map of statistics (to be implemented with real aggregation)
+     */
     public java.util.Map<String, Object> getShiftStatistics(String startDate, String endDate, Long departmentId) {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        java.time.LocalDateTime start = null;
-        java.time.LocalDateTime end = null;
+        java.time.OffsetDateTime start = null;
+        java.time.OffsetDateTime end = null;
         try {
             if (startDate != null && !startDate.isBlank()) {
-                start = java.time.LocalDateTime.parse(startDate);
+                start = java.time.OffsetDateTime.parse(startDate);
             }
             if (endDate != null && !endDate.isBlank()) {
-                end = java.time.LocalDateTime.parse(endDate);
+                end = java.time.OffsetDateTime.parse(endDate);
             }
         } catch (Exception e) {
             // Invalid date format, return empty stats
@@ -323,6 +441,14 @@ public class ShiftService {
     private final NotificationService notificationService;
     private final com.hotel.scheduler.repository.ShiftTradeRepository shiftTradeRepository;
     
+    /**
+     * Creates a new shift and assigns it to an employee if provided.
+     * Sends notification to the assigned employee.
+     *
+     * @param request   the shift creation request DTO
+     * @param createdBy the employee creating the shift
+     * @return the created ShiftResponse DTO
+     */
     public ShiftResponse createShift(CreateShiftRequest request, Employee createdBy) {
         // Validate department exists
         Department department = departmentRepository.findById(request.getDepartmentId())
@@ -352,7 +478,15 @@ public class ShiftService {
         return convertToResponse(savedShift);
     }
     
-    public List<ShiftResponse> getShiftsForEmployee(Long employeeId, LocalDateTime startDate, LocalDateTime endDate) {
+    /**
+     * Retrieves all shifts for a specific employee within an optional date range.
+     *
+     * @param employeeId the employee ID
+     * @param startDate  start date (optional)
+     * @param endDate    end date (optional)
+     * @return list of ShiftResponse DTOs
+     */
+    public List<ShiftResponse> getShiftsForEmployee(Long employeeId, OffsetDateTime startDate, OffsetDateTime endDate) {
         List<Shift> shifts;
         if (startDate != null && endDate != null) {
             shifts = shiftRepository.findByEmployeeAndDateRange(employeeId, startDate, endDate);
@@ -362,7 +496,15 @@ public class ShiftService {
         return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public List<ShiftResponse> getShiftsForDepartment(Long departmentId, LocalDateTime startDate, LocalDateTime endDate) {
+    /**
+     * Retrieves all shifts for a specific department within an optional date range.
+     *
+     * @param departmentId the department ID
+     * @param startDate    start date (optional)
+     * @param endDate      end date (optional)
+     * @return list of ShiftResponse DTOs
+     */
+    public List<ShiftResponse> getShiftsForDepartment(Long departmentId, OffsetDateTime startDate, OffsetDateTime endDate) {
         List<Shift> shifts;
         if (startDate != null && endDate != null) {
             shifts = shiftRepository.findByDepartmentAndDateRange(departmentId, startDate, endDate);
@@ -372,7 +514,14 @@ public class ShiftService {
         return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
-    public List<ShiftResponse> getAllShifts(LocalDateTime startDate, LocalDateTime endDate) {
+    /**
+     * Retrieves all shifts within an optional date range.
+     *
+     * @param startDate start date (optional)
+     * @param endDate   end date (optional)
+     * @return list of ShiftResponse DTOs
+     */
+    public List<ShiftResponse> getAllShifts(OffsetDateTime startDate, OffsetDateTime endDate) {
         List<Shift> shifts;
         if (startDate != null && endDate != null) {
             shifts = shiftRepository.findByDateRange(startDate, endDate);
@@ -382,10 +531,24 @@ public class ShiftService {
         return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
     
+    /**
+     * Retrieves a shift by its ID as a response DTO.
+     *
+     * @param id the shift ID
+     * @return optional containing the ShiftResponse if found
+     */
     public Optional<ShiftResponse> getShiftById(Long id) {
         return shiftRepository.findById(id).map(this::convertToResponse);
     }
     
+    /**
+     * Updates an existing shift and sends notification to the assigned employee.
+     *
+     * @param id        the shift ID
+     * @param request   the shift update request DTO
+     * @param updatedBy the employee updating the shift
+     * @return the updated ShiftResponse DTO
+     */
     public ShiftResponse updateShift(Long id, CreateShiftRequest request, Employee updatedBy) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
@@ -424,18 +587,39 @@ public class ShiftService {
         return convertToResponse(updatedShift);
     }
     
+    /**
+     * Deletes a shift and notifies the assigned employee about cancellation.
+     *
+     * @param id the shift ID
+     */
     public void deleteShift(Long id) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
-        
+
+        // Delete all related shift trades first (cascade)
+        List<com.hotel.scheduler.model.ShiftTrade> trades = shiftTradeRepository.findByShiftId(id);
+        for (com.hotel.scheduler.model.ShiftTrade trade : trades) {
+            shiftTradeRepository.delete(trade);
+        }
+        shiftTradeRepository.flush();
+
         // Notify assigned employee about cancellation
         if (shift.getEmployee() != null) {
             notificationService.sendShiftCancellationNotification(shift.getEmployee(), shift);
         }
-        
+
         shiftRepository.delete(shift);
+        shiftRepository.flush();
     }
     
+    /**
+     * Makes a shift available for pickup by other employees.
+     *
+     * @param shiftId           the shift ID
+     * @param requestingEmployee the employee making the shift available
+     * @param reason            the reason for making the shift available
+     * @return the updated Shift entity
+     */
     public Shift makeShiftAvailableForPickup(Long shiftId, Employee requestingEmployee, String reason) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
@@ -451,6 +635,13 @@ public class ShiftService {
         return shiftRepository.save(shift);
     }
     
+    /**
+     * Allows an employee to pick up an available shift, checking for conflicts and sending notifications.
+     *
+     * @param shiftId       the shift ID
+     * @param pickupEmployee the employee picking up the shift
+     * @return the updated Shift entity
+     */
     public Shift pickupShift(Long shiftId, Employee pickupEmployee) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new RuntimeException("Shift not found"));
@@ -477,13 +668,41 @@ public class ShiftService {
         return updatedShift;
     }
     
+    /**
+     * Throws an exception to enforce use of getAvailableShifts(Employee currentUser) instead.
+     *
+     * @return never returns normally
+     */
     public List<ShiftResponse> getAvailableShifts() {
+        throw new UnsupportedOperationException("Use getAvailableShifts(Employee currentUser) instead");
+
+    }
+
+    /**
+     * Retrieves all available shifts for pickup, excluding those posted by the current user.
+     *
+     * @param currentUser the current employee
+     * @return list of available ShiftResponse DTOs
+     */
+    public List<ShiftResponse> getAvailableShifts(Employee currentUser) {
         List<Shift> shifts = shiftRepository.findAvailableForPickup();
-        return shifts.stream().map(this::convertToResponse).collect(Collectors.toList());
+        // Exclude shifts posted by the current user
+        List<ShiftResponse> available = shifts.stream()
+            .filter(s -> s.getEmployee() != null && !s.getEmployee().getId().equals(currentUser.getId()))
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+        return available;
     }
     
     /**
      * Offer a shift to a specific employee (trade request).
+     */
+    /**
+     * Offer a shift to a specific employee (trade request).
+     *
+     * @param shiftId           the shift ID
+     * @param requestingEmployee the employee offering the shift
+     * @param targetEmployeeId   the employee to whom the shift is offered
      */
     public void offerShiftToEmployee(Long shiftId, Employee requestingEmployee, Long targetEmployeeId) {
         Shift shift = shiftRepository.findById(shiftId)
@@ -502,7 +721,7 @@ public class ShiftService {
         trade.setRequestingEmployee(requestingEmployee);
         trade.setPickupEmployee(targetEmployee);
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING);
-        trade.setRequestedAt(java.time.LocalDateTime.now());
+        trade.setRequestedAt(java.time.OffsetDateTime.now());
         shiftTradeRepository.save(trade);
         notificationService.sendShiftTradeOfferNotification(targetEmployee, shift, requestingEmployee);
         // Notify the requesting employee that they are still responsible until accepted
@@ -513,6 +732,12 @@ public class ShiftService {
 
     /**
      * Post a shift to all employees (make available for pickup).
+     */
+    /**
+     * Post a shift to all employees (make available for pickup).
+     *
+     * @param shiftId           the shift ID
+     * @param requestingEmployee the employee posting the shift
      */
     public void postShiftToEveryone(Long shiftId, Employee requestingEmployee) {
         Shift shift = shiftRepository.findById(shiftId)
@@ -532,7 +757,7 @@ public class ShiftService {
         trade.setRequestingEmployee(requestingEmployee);
         trade.setPickupEmployee(null); // No specific pickup employee
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE);
-        trade.setRequestedAt(java.time.LocalDateTime.now());
+        trade.setRequestedAt(java.time.OffsetDateTime.now());
         shiftTradeRepository.save(trade);
         // Notify all employees except the requester
         List<Employee> allEmployees = employeeRepository.findAll();
@@ -541,10 +766,24 @@ public class ShiftService {
         notificationService.sendShiftPostedResponsibilityNotification(requestingEmployee, shift);
     }
     
-    private boolean hasSchedulingConflict(Long employeeId, LocalDateTime startTime, LocalDateTime endTime) {
+    /**
+     * Checks if an employee has a scheduling conflict with the given time range.
+     *
+     * @param employeeId the employee ID
+     * @param startTime  the proposed shift start time
+     * @param endTime    the proposed shift end time
+     * @return true if there is a conflict, false otherwise
+     */
+    private boolean hasSchedulingConflict(Long employeeId, OffsetDateTime startTime, OffsetDateTime endTime) {
         return shiftRepository.countConflictingShifts(employeeId, startTime, endTime) > 0;
     }
     
+    /**
+     * Converts a Shift entity to a ShiftResponse DTO.
+     *
+     * @param shift the Shift entity
+     * @return the ShiftResponse DTO
+     */
     private ShiftResponse convertToResponse(Shift shift) {
         ShiftResponse response = new ShiftResponse();
         response.setId(shift.getId());

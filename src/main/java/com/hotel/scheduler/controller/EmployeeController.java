@@ -18,6 +18,37 @@ import java.util.Map;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
     /**
+     * EmployeeController: Handles all employee-related REST API endpoints for the hotel scheduler system.
+     * 
+     * Usage:
+     * - Use this controller for employee CRUD, profile, and role management operations.
+     * - For self-service profile updates, use /me and /profile endpoints.
+     * - For admin/manager operations, use endpoints requiring MANAGER or ADMIN roles.
+     * - All responses use EmployeeDTO for safe serialization.
+     * 
+     * Security:
+     * - Most endpoints require MANAGER or ADMIN role, some allow EMPLOYEE.
+     * - Role-based access is enforced via @PreAuthorize annotations.
+     * - Authenticated user is injected via @AuthenticationPrincipal.
+     * 
+     * Key Endpoints:
+     * - GET /api/employees: List all active employees (manager/admin only)
+     * - GET /api/employees/me: Get current authenticated employee profile
+     * - GET /api/employees/profile: Get current employee profile (alias)
+     * - GET /api/employees/{id}: Get employee details by ID (manager/admin only)
+     * - GET /api/employees/eligible-for-trade: List employees eligible for shift trade (excluding self)
+     * - PUT /api/employees/me: Update current employee's profile (self-service)
+     * - GET /api/employees/department/{departmentId}: List employees by department (manager/admin only)
+     * - DELETE /api/employees/{id}: Deactivate employee (admin only)
+     * - PUT /api/employees/{id}/role: Update employee role (admin only)
+     * - POST /api/employees: Create new employee (manager/admin only)
+     * - POST /api/employees/departments/{departmentId}/assign: Assign employees to department (manager/admin only)
+     * 
+     * Dependencies:
+     * - EmployeeService: Business logic for employee management
+     * - EmployeeDTO: Data transfer object for employee responses
+     */
+    /**
      * Get eligible employees for shift trade (excluding self). Accessible by EMPLOYEE role.
      */
     @GetMapping("/eligible-for-trade")

@@ -14,7 +14,31 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class NotificationController {
+    /**
+     * NotificationController: Handles notification-related REST API endpoints for hotel employees.
+     *
+     * Usage:
+     * - Use this controller to fetch, mark as read, delete, and manage notification settings for employees.
+     * - All endpoints require authentication; current user is injected via @AuthenticationPrincipal.
+     * - Most methods are currently mock implementations; replace with real notification logic as needed.
+     *
+     * Key Endpoints:
+     * - GET /api/notifications: Get all notifications for current user
+     * - POST /api/notifications/{id}/read: Mark a notification as read
+     * - POST /api/notifications/read-all: Mark all notifications as read
+     * - DELETE /api/notifications/{id}: Delete a notification
+     * - GET /api/notifications/settings: Get notification settings for current user
+     * - POST /api/notifications/settings: Update notification settings for current user
+     *
+     * Dependencies:
+     * - Employee: Used for user context
+     * - MessageResponse: Helper class for response messages
+     */
     
+    /**
+     * Returns all notifications for the current user.
+     * GET /api/notifications
+     */
     @GetMapping
     public ResponseEntity<?> getNotifications(@AuthenticationPrincipal Employee currentUser) {
         try {
@@ -51,6 +75,10 @@ public class NotificationController {
         }
     }
     
+    /**
+     * Marks a specific notification as read for the current user.
+     * POST /api/notifications/{id}/read
+     */
     @PostMapping("/{id}/read")
     public ResponseEntity<?> markAsRead(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
@@ -61,6 +89,10 @@ public class NotificationController {
         }
     }
     
+    /**
+     * Marks all notifications as read for the current user.
+     * POST /api/notifications/read-all
+     */
     @PostMapping("/read-all")
     public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal Employee currentUser) {
         try {
@@ -71,6 +103,10 @@ public class NotificationController {
         }
     }
     
+    /**
+     * Deletes a specific notification for the current user.
+     * DELETE /api/notifications/{id}
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteNotification(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
@@ -81,6 +117,10 @@ public class NotificationController {
         }
     }
     
+    /**
+     * Returns notification settings for the current user.
+     * GET /api/notifications/settings
+     */
     @GetMapping("/settings")
     public ResponseEntity<?> getNotificationSettings(@AuthenticationPrincipal Employee currentUser) {
         try {
@@ -97,6 +137,10 @@ public class NotificationController {
         }
     }
     
+    /**
+     * Updates notification settings for the current user.
+     * POST /api/notifications/settings
+     */
     @PostMapping("/settings")
     public ResponseEntity<?> updateNotificationSettings(@RequestBody Map<String, Object> settings,
                                                         @AuthenticationPrincipal Employee currentUser) {
@@ -108,18 +152,17 @@ public class NotificationController {
         }
     }
     
-    // Helper class for response messages
+    /**
+     * Helper class for response messages (used for error/success responses).
+     */
     public static class MessageResponse {
         private String message;
-        
         public MessageResponse(String message) {
             this.message = message;
         }
-        
         public String getMessage() {
             return message;
         }
-        
         public void setMessage(String message) {
             this.message = message;
         }
