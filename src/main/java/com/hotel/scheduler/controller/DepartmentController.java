@@ -79,7 +79,15 @@ public class DepartmentController {
             Department department = new Department();
             department.setName((String) request.get("name"));
             department.setDescription((String) request.get("description"));
-            // Optionally, set createdBy/currentUser if Department entity supports auditing
+            if (request.containsKey("minStaffing")) {
+                department.setMinStaffing((Integer) request.get("minStaffing"));
+            }
+            if (request.containsKey("maxStaffing")) {
+                department.setMaxStaffing((Integer) request.get("maxStaffing"));
+            }
+            if (request.containsKey("totalShifts")) {
+                department.setTotalShifts((Integer) request.get("totalShifts"));
+            }
             Department saved = departmentRepository.save(department);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {
@@ -108,7 +116,15 @@ public class DepartmentController {
             if (request.containsKey("description")) {
                 existing.setDescription((String) request.get("description"));
             }
-            // Optionally, set updatedBy/currentUser if Department entity supports auditing
+            if (request.containsKey("minStaffing")) {
+                existing.setMinStaffing((Integer) request.get("minStaffing"));
+            }
+            if (request.containsKey("maxStaffing")) {
+                existing.setMaxStaffing((Integer) request.get("maxStaffing"));
+            }
+            if (request.containsKey("totalShifts")) {
+                existing.setTotalShifts((Integer) request.get("totalShifts"));
+            }
             Department saved = departmentRepository.save(existing);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {

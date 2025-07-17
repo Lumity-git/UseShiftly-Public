@@ -18,6 +18,69 @@ import java.util.Map;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
     /**
+     * Update employee info by ID (Manager/Admin only)
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id,
+                                            @RequestBody Map<String, Object> employeeUpdate,
+                                            @AuthenticationPrincipal Employee currentUser) {
+        try {
+            Employee employee = employeeService.getEmployeeById(id)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+            if (employeeUpdate.containsKey("firstName")) {
+                employee.setFirstName((String) employeeUpdate.get("firstName"));
+            }
+            if (employeeUpdate.containsKey("lastName")) {
+                employee.setLastName((String) employeeUpdate.get("lastName"));
+            }
+            if (employeeUpdate.containsKey("email")) {
+                employee.setEmail((String) employeeUpdate.get("email"));
+            }
+            if (employeeUpdate.containsKey("phoneNumber")) {
+                employee.setPhoneNumber((String) employeeUpdate.get("phoneNumber"));
+            }
+            if (employeeUpdate.containsKey("role")) {
+                employee.setRole(Employee.Role.valueOf((String) employeeUpdate.get("role")));
+            }
+            if (employeeUpdate.containsKey("departmentId")) {
+                Long deptId = Long.valueOf(employeeUpdate.get("departmentId").toString());
+                employeeService.assignEmployeeToDepartment(employee, deptId);
+            }
+            if (employeeUpdate.containsKey("active")) {
+                employee.setActive(Boolean.valueOf(employeeUpdate.get("active").toString()));
+            }
+            Employee updated = employeeService.updateEmployee(employee);
+            return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Export employees as CSV (Manager/Admin only)
+     */
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<String> exportEmployeesCsv() {
+        List<Employee> employees = employeeService.getAllActiveEmployees();
+        StringBuilder csv = new StringBuilder();
+        csv.append("ID,First Name,Last Name,Email,Phone,Role,Department,Active\n");
+        for (Employee e : employees) {
+            csv.append(e.getId()).append(",")
+                .append(e.getFirstName()).append(",")
+                .append(e.getLastName()).append(",")
+                .append(e.getEmail()).append(",")
+                .append(e.getPhoneNumber() != null ? e.getPhoneNumber() : "").append(",")
+                .append(e.getRole().name()).append(",")
+                .append(e.getDepartment() != null ? e.getDepartment().getName() : "Unassigned").append(",")
+                .append(e.getActive() ? "Active" : "Inactive").append("\n");
+        }
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/csv")
+                .body(csv.toString());
+    }
+    /**
      * EmployeeController: Handles all employee-related REST API endpoints for the hotel scheduler system.
      * 
      * Usage:
@@ -204,7 +267,7 @@ public class EmployeeController {
             if (employeeIds == null || employeeIds.isEmpty()) {
                 return ResponseEntity.badRequest().body(new MessageResponse("No employee IDs provided"));
             }
-            // Mock implementation - in real app this would assign employees to department
+            employeeService.assignEmployeesToDepartment(employeeIds, departmentId);
             return ResponseEntity.ok(new MessageResponse("Employees assigned to department successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));

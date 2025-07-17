@@ -16,9 +16,12 @@ public class DepartmentDTO {
     private String description;
     private Boolean active;
     private int employeeCount;
+    private Integer minStaffing;
+    private Integer maxStaffing;
+    private Integer totalShifts;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     public static DepartmentDTO fromEntity(Department department) {
         return new DepartmentDTO(
             department.getId(),
@@ -26,6 +29,9 @@ public class DepartmentDTO {
             department.getDescription(),
             department.getActive(),
             department.getEmployees() != null ? department.getEmployees().size() : 0,
+            department.getMinStaffing(),
+            department.getMaxStaffing(),
+            department.getTotalShifts(),
             department.getCreatedAt(),
             department.getUpdatedAt()
         );

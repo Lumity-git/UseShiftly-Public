@@ -1,4 +1,3 @@
-
 package com.hotel.scheduler.repository;
 
 import com.hotel.scheduler.model.Shift;
@@ -8,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ShiftRepository: Spring Data JPA repository for Shift entities.
@@ -66,10 +66,10 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
                                           @Param("endDate") OffsetDateTime endDate);
 
     /**
-     * Returns all shifts available for pickup/trade.
+     * Returns all shifts available for pickup/trade, eagerly fetching department and employee to avoid lazy loading issues.
      * @return List of available shifts
      */
-    @Query("SELECT s FROM Shift s WHERE s.availableForPickup = true AND s.status = 'AVAILABLE_FOR_PICKUP'")
+    @Query("SELECT s FROM Shift s LEFT JOIN FETCH s.department LEFT JOIN FETCH s.employee WHERE s.availableForPickup = true AND s.status = 'AVAILABLE_FOR_PICKUP'")
     List<Shift> findAvailableForPickup();
 
     /**
@@ -98,4 +98,12 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     long countConflictingShifts(@Param("employeeId") Long employeeId,
                                @Param("startTime") OffsetDateTime startTime,
                                @Param("endTime") OffsetDateTime endTime);
+
+    /**
+     * Returns a shift by its ID, eagerly fetching the associated department and employee.
+     * @param id Shift ID
+     * @return Optional containing the shift if found, empty otherwise
+     */
+    @Query("SELECT s FROM Shift s LEFT JOIN FETCH s.department LEFT JOIN FETCH s.employee WHERE s.id = :id")
+    Optional<Shift> findByIdWithDepartmentAndEmployee(@Param("id") Long id);
 }

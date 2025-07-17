@@ -74,33 +74,45 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             log.debug("AuthTokenFilter: Parsed JWT for path {}: {}", path, jwt);
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                log.debug("AuthTokenFilter: JWT valid, username: {}", username);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username, userDetails.getAuthorities());
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null,
-                                userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("AuthTokenFilter: Authentication set for {}", username);
-                filterChain.doFilter(request, response);
+            if (jwt != null) {
+                boolean valid = jwtUtils.validateJwtToken(jwt);
+                log.debug("AuthTokenFilter: JWT validation result for {}: {}", jwt, valid);
+                if (valid) {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    log.debug("AuthTokenFilter: JWT valid, username: {}", username);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null,
+                                    userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("AuthTokenFilter: Authentication set for {}", username);
+                    filterChain.doFilter(request, response);
+                } else {
+                    log.warn("AuthTokenFilter: Invalid JWT for path {}: {}", path, jwt);
+                    if (!response.isCommitted()) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Invalid or missing JWT token\"}");
+                    }
+                    return;
+                }
             } else {
-                log.warn("AuthTokenFilter: Invalid or missing JWT for path {}: {}", path, jwt);
+                log.warn("AuthTokenFilter: Missing JWT for path {}", path);
                 if (!response.isCommitted()) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Invalid or missing JWT token\"}");
+                    response.getWriter().write("{\"error\":\"Missing JWT token\"}");
                 }
                 return;
             }
         } catch (Exception e) {
-            log.error("AuthTokenFilter: Cannot set user authentication for path {}: {}", path, e.getMessage());
+            log.error("AuthTokenFilter: Cannot set user authentication for path {}: {}", path, e.getMessage(), e);
             if (!response.isCommitted()) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Authentication error\"}");
+                response.getWriter().write("{\"error\":\"Authentication error: " + e.getMessage() + "\"}");
             }
             return;
         }

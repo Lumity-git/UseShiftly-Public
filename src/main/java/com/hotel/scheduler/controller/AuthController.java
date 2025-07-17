@@ -26,6 +26,31 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "*", maxAge = 3600)
 @Slf4j
 public class AuthController {
+    /**
+     * Returns the current authenticated user's info, including department.
+     * Endpoint: GET /api/auth/me
+     * Response: { email, firstName, lastName, role, departmentId, departmentName }
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal Employee employee) {
+        if (employee == null) {
+            return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
+        }
+        Long departmentId = null;
+        String departmentName = null;
+        if (employee.getDepartment() != null) {
+            departmentId = employee.getDepartment().getId();
+            departmentName = employee.getDepartment().getName();
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+            "email", employee.getEmail(),
+            "firstName", employee.getFirstName(),
+            "lastName", employee.getLastName(),
+            "role", employee.getRole().name(),
+            "departmentId", departmentId,
+            "departmentName", departmentName
+        ));
+    }
     
     private final AuthenticationManager authenticationManager;
     private final EmployeeService employeeService;

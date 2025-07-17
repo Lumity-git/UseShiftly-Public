@@ -51,12 +51,13 @@ public class Shift {
     private OffsetDateTime endTime;
 
     /** Assigned employee (nullable if not assigned). */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
     /** Department for the shift (required). */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.JOIN)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 

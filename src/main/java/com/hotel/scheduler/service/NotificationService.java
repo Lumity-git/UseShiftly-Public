@@ -33,32 +33,7 @@ public class NotificationService {
      */
     private final com.hotel.scheduler.repository.EmployeeRepository employeeRepository;
 
-    /**
-     * Notifies all managers/admins that a shift trade was accepted and is pending approval.
-     *
-     * @param trade the shift trade that was accepted
-     */
-    public void sendTradeAcceptedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
-        // Instead of email, create notification objects for managers/admins
-        List<com.hotel.scheduler.model.Employee> managers = employeeRepository.findAll().stream()
-            .filter(e -> e.getRole() == com.hotel.scheduler.model.Employee.Role.MANAGER || e.getRole() == com.hotel.scheduler.model.Employee.Role.ADMIN)
-            .toList();
-        for (com.hotel.scheduler.model.Employee manager : managers) {
-            createNotification(
-                manager,
-                "Shift Trade Accepted - Pending Manager Approval",
-                String.format("A shift trade has been accepted by %s %s and is now pending your approval. Shift: %s Date & Time: %s - %s Department: %s",
-                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
-                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
-                    trade.getShift() != null ? trade.getShift().getId() : "",
-                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
-                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
-                    trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
-                ),
-                "TRADE_ACCEPTED"
-            );
-        }
-    }
+    // ...existing code...
 
     /**
      * Notify requester that a trade was declined by the employee.
@@ -478,6 +453,76 @@ public class NotificationService {
             } catch (Exception e) {
                 log.error("Failed to send shift posted notification to {}: {}", employee.getEmail(), e.getMessage());
             }
+        }
+    }
+    
+    /**
+     * Sends a notification to both employees and managers when a trade is accepted and pending approval.
+     * @param trade the ShiftTrade entity
+     */
+    public void sendTradeAcceptedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
+        // Notify all managers/admins
+        List<com.hotel.scheduler.model.Employee> managers = employeeRepository.findAll().stream()
+            .filter(e -> e.getRole() == com.hotel.scheduler.model.Employee.Role.MANAGER || e.getRole() == com.hotel.scheduler.model.Employee.Role.ADMIN)
+            .toList();
+        for (com.hotel.scheduler.model.Employee manager : managers) {
+            createNotification(
+                manager,
+                "Shift Trade Accepted - Pending Manager Approval",
+                String.format("A shift trade has been accepted by %s %s and is now pending your approval. Shift: %s Date & Time: %s - %s Department: %s",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
+                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
+                    trade.getShift() != null ? trade.getShift().getId() : "",
+                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
+                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
+                    trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
+                ),
+                "TRADE_ACCEPTED"
+            );
+        }
+        // Notify pickup employee
+        if (trade.getPickupEmployee() != null) {
+            createNotification(
+                trade.getPickupEmployee(),
+                "Shift Trade Accepted",
+                "You have accepted a shift trade. Awaiting manager approval.",
+                "TRADE_ACCEPTED"
+            );
+        }
+        // Notify requesting employee
+        if (trade.getRequestingEmployee() != null) {
+            createNotification(
+                trade.getRequestingEmployee(),
+                "Shift Trade Accepted",
+                "Your shift trade has been accepted and is pending manager approval.",
+                "TRADE_ACCEPTED"
+            );
+        }
+    }
+
+    /**
+     * Sends a notification to both employees when a trade is rejected by a manager/admin.
+     * @param trade the ShiftTrade entity
+     */
+    public void sendTradeRejectedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
+        String reasonMsg = trade.getReason() != null ? " Reason: " + trade.getReason() : "";
+        // Notify pickup employee
+        if (trade.getPickupEmployee() != null) {
+            createNotification(
+                trade.getPickupEmployee(),
+                "Shift Trade Rejected",
+                "Your shift trade was rejected by a manager." + reasonMsg,
+                "TRADE_REJECTED"
+            );
+        }
+        // Notify requesting employee
+        if (trade.getRequestingEmployee() != null) {
+            createNotification(
+                trade.getRequestingEmployee(),
+                "Shift Trade Rejected",
+                "Your shift trade was rejected by a manager." + reasonMsg,
+                "TRADE_REJECTED"
+            );
         }
     }
 }

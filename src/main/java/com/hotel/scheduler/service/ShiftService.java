@@ -45,12 +45,7 @@ public class ShiftService {
     public void acceptTrade(Long tradeId, Employee currentUser) {
         com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
             .orElseThrow(() -> new RuntimeException("Trade not found"));
-        if (trade.getPickupEmployee() == null || !trade.getPickupEmployee().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You can only accept trades sent to you");
-        }
-        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING) {
-            throw new RuntimeException("Trade is not pending");
-        }
+        validateTradeAcceptance(trade, currentUser);
         // Set status to PENDING_APPROVAL so manager/admin can review
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL);
         trade.setCompletedAt(java.time.OffsetDateTime.now());
@@ -84,13 +79,15 @@ public class ShiftService {
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
         trade.setCompletedAt(java.time.OffsetDateTime.now());
         shiftTradeRepository.save(trade);
-        // Set associated shift status back to AVAILABLE_FOR_PICKUP
+        // Set associated shift status back to SCHEDULED so it can be reposted
         Shift shift = trade.getShift();
         if (shift != null) {
-            shift.setStatus(Shift.ShiftStatus.AVAILABLE_FOR_PICKUP);
-            shift.setAvailableForPickup(true);
+            shift.setStatus(Shift.ShiftStatus.SCHEDULED);
+            shift.setAvailableForPickup(false);
             shiftRepository.save(shift);
         }
+        // Optionally notify requester
+        notificationService.sendTradeDeclinedNotification(trade);
         // Optionally notify requester
         notificationService.sendTradeDeclinedNotification(trade);
     }
@@ -101,7 +98,7 @@ public class ShiftService {
      * @return the Shift entity
      */
     public Shift getShiftEntityById(Long id) {
-        return shiftRepository.findById(id).orElseThrow(() -> new RuntimeException("Shift not found"));
+        return shiftRepository.findByIdWithDepartmentAndEmployee(id).orElseThrow(() -> new RuntimeException("Shift not found"));
     }
     /**
      * Cancel a posted shift (withdraw post, make unavailable for pickup).
@@ -643,30 +640,104 @@ public class ShiftService {
      * @return the updated Shift entity
      */
     public Shift pickupShift(Long shiftId, Employee pickupEmployee) {
-        Shift shift = shiftRepository.findById(shiftId)
-                .orElseThrow(() -> new RuntimeException("Shift not found"));
-        
-        if (!shift.getAvailableForPickup()) {
+        // Find the open POSTED_TO_EVERYONE trade for this shift (get ID only)
+        Long tradeId = shiftTradeRepository.findByShiftId(shiftId).stream()
+            .filter(t -> t.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE)
+            .map(com.hotel.scheduler.model.ShiftTrade::getId)
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No open public trade found for this shift"));
+
+        // Only fetch the trade entity (do not access shift.getDepartment() at all)
+        com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
+            .orElseThrow(() -> new RuntimeException("Trade not found"));
+        Shift shift = trade.getShift();
+        if (shift == null) {
+            throw new RuntimeException("Trade does not have an associated shift");
+        }
+        if (!Boolean.TRUE.equals(shift.getAvailableForPickup())) {
             throw new RuntimeException("This shift is not available for pickup");
         }
-        
         // Check for scheduling conflicts
         if (hasSchedulingConflict(pickupEmployee.getId(), shift.getStartTime(), shift.getEndTime())) {
             throw new RuntimeException("You already have a shift scheduled during this time");
         }
-        
-        Employee originalEmployee = shift.getEmployee();
-        shift.setEmployee(pickupEmployee);
+        // Fetch department name as scalar to avoid proxy issues
+        String shiftDeptName = shiftTradeRepository.findDepartmentNameByTradeId(tradeId)
+            .orElse(null);
+        validateTradeAcceptanceForPickupWithDeptName(pickupEmployee, shiftDeptName);
+
+        // Assign the pickup employee and set trade status to PENDING_APPROVAL
+        trade.setPickupEmployee(pickupEmployee);
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL);
+        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        shiftTradeRepository.save(trade);
+
+        // Mark shift as pending approval, not scheduled yet
         shift.setAvailableForPickup(false);
-        shift.setStatus(Shift.ShiftStatus.SCHEDULED);
-        
+        shift.setStatus(Shift.ShiftStatus.PENDING);
         Shift updatedShift = shiftRepository.save(shift);
-        
-        // Send notifications
-        notificationService.sendShiftPickupNotification(originalEmployee, pickupEmployee, updatedShift);
-        
+
+        // Notify manager/admin for approval
+        notificationService.sendTradeAcceptedNotification(trade);
+
         return updatedShift;
     }
+
+    /**
+     * Validates that the pickup employee is allowed to pick up the posted-to-everyone shift, using department name as scalar.
+     */
+    /**
+     * Validates that the pickup employee is allowed to pick up the posted-to-everyone shift, using department name as scalar.
+     */
+    private void validateTradeAcceptanceForPickupWithDeptName(Employee pickupEmployee, String shiftDeptName) {
+        // Only use the scalar shiftDeptName and pickupEmployee's department info (never access shift.getDepartment() unless initialized)
+        Department empDept = pickupEmployee != null ? pickupEmployee.getDepartment() : null;
+        String empDeptName = null;
+        if (empDept != null) {
+            try {
+                empDeptName = empDept.getName();
+            } catch (org.hibernate.HibernateException e) {
+                // Reload employee with department eagerly if not initialized
+                pickupEmployee = employeeRepository.findByIdWithDepartment(pickupEmployee.getId())
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+                empDept = pickupEmployee.getDepartment();
+                empDeptName = (empDept != null) ? empDept.getName() : null;
+            }
+        }
+        log.info("[DEBUG] Shift pickup department check (scalar): shiftDeptName={}, empDeptName={}, pickupEmployeeId={}, pickupEmployeeName={}",
+            shiftDeptName, empDeptName,
+            pickupEmployee != null ? pickupEmployee.getId() : null,
+            pickupEmployee != null ? pickupEmployee.getFirstName() + " " + pickupEmployee.getLastName() : "null");
+        if (shiftDeptName == null || empDeptName == null) {
+            throw new RuntimeException("Forbidden: Department not set for shift or employee");
+        }
+        // Compare department name (scalar from DB) to employee's department name
+        if (!shiftDeptName.equals(empDeptName)) {
+            throw new RuntimeException("Forbidden: Employees can only pick up shifts in their own department");
+        }
+    }
+    /**
+     * Validates that the current user is allowed to accept the trade (direct trade).
+     * Checks recipient, status, department, and building if needed.
+     */
+    private void validateTradeAcceptance(com.hotel.scheduler.model.ShiftTrade trade, Employee currentUser) {
+        if (trade.getPickupEmployee() == null || !trade.getPickupEmployee().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You can only accept trades sent to you");
+        }
+        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING) {
+            throw new RuntimeException("Trade is not pending");
+        }
+        // Department/building check (if both employees and shift have department/building)
+        Shift shift = trade.getShift();
+        if (shift != null && shift.getDepartment() != null && currentUser.getDepartment() != null) {
+            if (!shift.getDepartment().getId().equals(currentUser.getDepartment().getId())) {
+                throw new RuntimeException("Forbidden: Employees can only accept trades in their own department");
+            }
+        }
+        // Optionally add building check if your model supports it
+    }
+
+    // Removed unused validateTradeAcceptanceForPickup method (proxy-unsafe)
     
     /**
      * Throws an exception to enforce use of getAvailableShifts(Employee currentUser) instead.
@@ -685,10 +756,14 @@ public class ShiftService {
      * @return list of available ShiftResponse DTOs
      */
     public List<ShiftResponse> getAvailableShifts(Employee currentUser) {
+        // NOTE: findAvailableForPickup uses JOIN FETCH to eagerly load department and employee to avoid LazyInitializationException.
+        // Do not replace with findAll() or other methods that do not fetch department eagerly.
         List<Shift> shifts = shiftRepository.findAvailableForPickup();
-        // Exclude shifts posted by the current user
+        // Exclude shifts posted by the current user and not in the same department
         List<ShiftResponse> available = shifts.stream()
             .filter(s -> s.getEmployee() != null && !s.getEmployee().getId().equals(currentUser.getId()))
+            .filter(s -> s.getDepartment() != null && currentUser.getDepartment() != null &&
+                s.getDepartment().getId().equals(currentUser.getDepartment().getId()))
             .map(this::convertToResponse)
             .collect(Collectors.toList());
         return available;
@@ -810,5 +885,64 @@ public class ShiftService {
         }
         
         return response;
+    }
+
+    /**
+     * Manager/admin approves a shift trade. Sets status to APPROVED and updates shift assignment.
+     * @param tradeId the trade ID
+     * @param currentUser the manager/admin approving
+     */
+    @Transactional
+    public void approveTrade(Long tradeId, Employee currentUser) {
+        com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
+            .orElseThrow(() -> new RuntimeException("Trade not found"));
+        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL) {
+            throw new RuntimeException("Trade is not pending approval");
+        }
+        // Set status to APPROVED, record manager, update shift assignment
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.APPROVED);
+        trade.setApprovedByManagerId(currentUser.getId());
+        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        shiftTradeRepository.save(trade);
+        // Assign shift to pickup employee
+        Shift shift = trade.getShift();
+        if (shift != null && trade.getPickupEmployee() != null) {
+            shift.setEmployee(trade.getPickupEmployee());
+            shift.setStatus(Shift.ShiftStatus.SCHEDULED);
+            shift.setAvailableForPickup(false);
+            shiftRepository.save(shift);
+        }
+        // Notify both employees
+        notificationService.sendTradeAcceptedNotification(trade);
+        notificationService.sendTradeRejectedNotification(trade);
+    }
+
+    /**
+     * Manager/admin rejects a shift trade. Sets status to REJECTED and notifies employees.
+     * @param tradeId the trade ID
+     * @param currentUser the manager/admin rejecting
+     * @param reason optional reason for rejection
+     */
+    @Transactional
+    public void rejectTrade(Long tradeId, Employee currentUser, String reason) {
+        com.hotel.scheduler.model.ShiftTrade trade = shiftTradeRepository.findById(tradeId)
+            .orElseThrow(() -> new RuntimeException("Trade not found"));
+        if (trade.getStatus() != com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL) {
+            throw new RuntimeException("Trade is not pending approval");
+        }
+        trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.REJECTED);
+        trade.setApprovedByManagerId(currentUser.getId());
+        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        if (reason != null) trade.setReason(reason);
+        shiftTradeRepository.save(trade);
+        // Optionally, set shift back to SCHEDULED and available for reposting
+        Shift shift = trade.getShift();
+        if (shift != null) {
+            shift.setStatus(Shift.ShiftStatus.SCHEDULED);
+            shift.setAvailableForPickup(false);
+            shiftRepository.save(shift);
+        }
+        // Notify both employees
+        notificationService.sendTradeRejectedNotification(trade);
     }
 }

@@ -22,6 +22,52 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * ShiftController: Handles all shift and shift trade related REST API endpoints for the hotel scheduler system.
+ *
+ * <p>Usage:
+ * <ul>
+ *   <li>Use this controller for shift CRUD, trade, pickup, analytics, and reporting operations.</li>
+ *   <li>Endpoints are protected by role-based access control using @PreAuthorize.</li>
+ *   <li>Authenticated user is injected via @AuthenticationPrincipal.</li>
+ *   <li>All responses use DTOs for safe serialization.</li>
+ * </ul>
+ *
+ * <p>Key Endpoints:
+ * <ul>
+ *   <li>GET /api/shifts: List shifts (role-based filtering)</li>
+ *   <li>GET /api/shifts/my-shifts: Get current user's shifts</li>
+ *   <li>GET /api/shifts/available: List available shifts for pickup</li>
+ *   <li>GET /api/shifts/{id}: Get shift details (role-based access)</li>
+ *   <li>POST /api/shifts: Create new shift (manager/admin only)</li>
+ *   <li>PUT /api/shifts/{id}: Update shift (manager/admin only)</li>
+ *   <li>DELETE /api/shifts/{id}: Delete shift (manager/admin only)</li>
+ *   <li>POST /api/shifts/{id}/give-away: Make shift available for pickup</li>
+ *   <li>POST /api/shifts/{id}/pick-up: Pick up a shift</li>
+ *   <li>POST /api/shifts/{id}/trade: Offer shift to another employee</li>
+ *   <li>POST /api/shifts/{id}/post-to-everyone: Post shift for public pickup</li>
+ *   <li>POST /api/shifts/{id}/cancel-post: Cancel posted shift</li>
+ *   <li>GET /api/shifts/trades: List shift trades (role-based)</li>
+ *   <li>POST /api/shifts/trades/{id}/accept: Accept a trade (employee)</li>
+ *   <li>POST /api/shifts/trades/{id}/decline: Decline a trade (employee)</li>
+ *   <li>POST /api/shifts/trades/{id}/approve: Approve trade (manager/admin)</li>
+ *   <li>POST /api/shifts/trades/{id}/reject: Reject trade (manager/admin)</li>
+ *   <li>DELETE /api/shifts/trades/{id}: Cancel/delete trade</li>
+ *   <li>GET /api/shifts/statistics: Shift statistics (manager/admin)</li>
+ *   <li>GET /api/shifts/analytics: Shift analytics (manager/admin)</li>
+ *   <li>GET /api/shifts/employee-hours: Employee hours (role-based)</li>
+ *   <li>GET /api/shifts/department-stats: Department stats (manager/admin)</li>
+ * </ul>
+ *
+ * <p>Dependencies:
+ * <ul>
+ *   <li>ShiftService: Business logic for shifts and trades</li>
+ *   <li>ShiftTradeRepository: Data access for trades</li>
+ *   <li>UserActionLogService: Audit logging</li>
+ *   <li>EmployeeService: Employee business logic</li>
+ *   <li>MessageResponse: Helper class for response messages</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/shifts")
 @RequiredArgsConstructor
@@ -301,18 +347,31 @@ public class ShiftController {
     @PostMapping("/{id}/pick-up")
     public ResponseEntity<?> pickupShift(@PathVariable Long id, 
                                         @AuthenticationPrincipal Employee currentUser) {
+        log.debug("pickupShift called: id={}, userId={}, userRole={}", id, currentUser != null ? currentUser.getId() : null, currentUser != null ? currentUser.getRole() : null);
         try {
             Shift shift = shiftService.getShiftEntityById(id);
+            log.debug("pickupShift: loaded shift id={}, departmentId={}, status={}, availableForPickup={}",
+                shift.getId(),
+                shift.getDepartment() != null ? shift.getDepartment().getId() : null,
+                shift.getStatus(),
+                shift.getAvailableForPickup()
+            );
             if (currentUser.getRole() == Employee.Role.EMPLOYEE) {
                 if (shift.getDepartment() == null || currentUser.getDepartment() == null ||
                     !shift.getDepartment().getId().equals(currentUser.getDepartment().getId())) {
+                    log.warn("pickupShift: Forbidden department. shiftDept={}, userDept={}",
+                        shift.getDepartment() != null ? shift.getDepartment().getId() : null,
+                        currentUser.getDepartment() != null ? currentUser.getDepartment().getId() : null);
                     return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Employees can only pick up shifts in their own department."));
                 }
             }
+            log.debug("pickupShift: calling shiftService.pickupShift");
             shiftService.pickupShift(id, currentUser);
             userActionLogService.logAction("PICKED_UP_SHIFT", currentUser);
+            log.info("pickupShift: Shift {} picked up by user {}", id, currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Shift picked up successfully"));
         } catch (Exception e) {
+            log.error("pickupShift: Exception for shiftId={}, userId={}: {}", id, currentUser != null ? currentUser.getId() : null, e.getMessage(), e);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -369,13 +428,23 @@ public class ShiftController {
     
     /**
      * Approves a shift trade by ID (manager/admin only).
+     * Only trades in PENDING_APPROVAL status can be approved.
      * POST /api/shifts/trades/{id}/approve
      */
     @PostMapping("/trades/{id}/approve")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
     public ResponseEntity<?> approveTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
-            // This would delegate to the trade service
+            Optional<ShiftTrade> tradeOpt = shiftTradeRepository.findById(id);
+            if (tradeOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Trade not found"));
+            }
+            ShiftTrade trade = tradeOpt.get();
+            if (trade.getStatus() != ShiftTrade.TradeStatus.PENDING_APPROVAL) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Trade is not pending approval or has already been processed."));
+            }
+            // Delegate to service to approve
+            shiftService.approveTrade(id, currentUser);
             userActionLogService.logAction("APPROVED_TRADE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Trade approved successfully"));
         } catch (Exception e) {
@@ -385,13 +454,28 @@ public class ShiftController {
     
     /**
      * Rejects a shift trade by ID (manager/admin only).
+     * Only trades in PENDING_APPROVAL status can be rejected.
      * POST /api/shifts/trades/{id}/reject
      */
     @PostMapping("/trades/{id}/reject")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> rejectTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+    public ResponseEntity<?> rejectTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser, @RequestBody(required = false) Map<String, Object> payload) {
         try {
-            // This would delegate to the trade service
+            Optional<ShiftTrade> tradeOpt = shiftTradeRepository.findById(id);
+            if (tradeOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Trade not found"));
+            }
+            ShiftTrade trade = tradeOpt.get();
+            if (trade.getStatus() != ShiftTrade.TradeStatus.PENDING_APPROVAL) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Trade is not pending approval or has already been processed."));
+            }
+            String reason = null;
+            if (payload != null && payload.containsKey("reason")) {
+                Object val = payload.get("reason");
+                if (val != null) reason = val.toString();
+            }
+            // Delegate to service to reject
+            shiftService.rejectTrade(id, currentUser, reason);
             userActionLogService.logAction("REJECTED_TRADE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Trade rejected"));
         } catch (Exception e) {

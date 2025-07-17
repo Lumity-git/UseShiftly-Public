@@ -13,17 +13,17 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Roboto', 'Poppins', Arial, sans-serif;
+            background: linear-gradient(135deg, #e3f0ff 0%, #f6f8fa 100%);
             min-height: 100vh;
-            color: #333;
+            color: #222;
         }
 
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
+            background: #fff;
             backdrop-filter: blur(10px);
             padding: 1rem 0;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 24px rgba(102,126,234,0.10);
         }
 
         .nav-container {
@@ -69,18 +69,21 @@
         }
 
         .logout-btn {
-            background: #e74c3c;
-            color: white;
+            background: #667eea;
+            color: #fff;
             border: none;
             padding: 0.5rem 1rem;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 500;
-            transition: background 0.3s;
+            transition: background 0.3s, color 0.3s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.08);
         }
 
         .logout-btn:hover {
-            background: #c0392b;
+            background: #5a6fd8;
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.15);
         }
 
         .container {
@@ -90,11 +93,11 @@
         }
 
         .page-header {
-            background: rgba(255, 255, 255, 0.95);
+            background: #fff;
             backdrop-filter: blur(10px);
             padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.10);
             margin-bottom: 2rem;
             text-align: center;
         }
@@ -106,7 +109,7 @@
         }
 
         .page-header p {
-            color: #666;
+            color: #667eea;
             font-size: 1.1rem;
         }
 
@@ -145,7 +148,7 @@
         .btn {
             padding: 0.8rem 1.5rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s;
@@ -214,16 +217,18 @@
         }
 
         .department-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            background: linear-gradient(135deg, #e3f0ff 0%, #fff 100%);
+            border-radius: 18px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10);
+            transition: box-shadow 0.2s, transform 0.2s;
+            border: none;
+            position: relative;
         }
 
         .department-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 16px 48px rgba(102,126,234,0.18);
         }
 
         .department-header {
@@ -257,9 +262,10 @@
 
         .stat-item {
             text-align: center;
-            padding: 0.8rem;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 8px;
+            padding: 1rem;
+            background: rgba(102,126,234,0.07);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.04);
         }
 
         .stat-number {
@@ -269,9 +275,10 @@
         }
 
         .stat-label {
-            font-size: 0.8rem;
-            color: #666;
+            font-size: 0.9rem;
+            color: #888;
             margin-top: 0.2rem;
+            font-weight: 500;
         }
 
         .department-employees {
@@ -286,8 +293,8 @@
         }
 
         .employee-tag {
-            background: rgba(40, 167, 69, 0.1);
-            color: #28a745;
+            background: #e3ffe7;
+            color: #27ae60;
             padding: 0.3rem 0.6rem;
             border-radius: 15px;
             font-size: 0.8rem;
@@ -311,13 +318,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: #fff;
             padding: 2rem;
-            border-radius: 15px;
+            border-radius: 18px;
             width: 90%;
             max-width: 500px;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10);
         }
 
         .modal-header {
@@ -356,7 +364,7 @@
             width: 100%;
             padding: 0.8rem;
             border: 1px solid #ddd;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 1rem;
         }
 
@@ -403,7 +411,7 @@
 
         .alert {
             padding: 1rem;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 1rem;
         }
 
@@ -639,17 +647,14 @@
             try {
                 const departmentsData = await window.authManager.apiRequest('/departments');
                 departments = departmentsData || [];
-                
                 // Enhance departments with employee data
                 await enhanceDepartmentsWithEmployees();
                 filteredDepartments = [...departments];
                 renderDepartments();
             } catch (error) {
                 console.error('Error loading departments:', error);
-                // Generate mock data for demo if API fails
-                departments = generateMockDepartments();
-                await enhanceDepartmentsWithEmployees();
-                filteredDepartments = [...departments];
+                departments = [];
+                filteredDepartments = [];
                 renderDepartments();
             }
         }
@@ -661,67 +666,18 @@
                 populateManagerSelect();
             } catch (error) {
                 console.error('Error loading employees:', error);
-                employees = generateMockEmployees();
+                employees = [];
                 populateManagerSelect();
             }
         }
 
-        function generateMockDepartments() {
-            return [
-                {
-                    id: 1,
-                    name: 'Front Desk',
-                    description: 'Guest check-in, check-out, and customer service',
-                    managerId: 1,
-                    minStaffing: 2,
-                    maxStaffing: 4
-                },
-                {
-                    id: 2,
-                    name: 'Housekeeping',
-                    description: 'Room cleaning and maintenance',
-                    managerId: 2,
-                    minStaffing: 3,
-                    maxStaffing: 6
-                },
-                {
-                    id: 3,
-                    name: 'Kitchen',
-                    description: 'Food preparation and restaurant service',
-                    managerId: null,
-                    minStaffing: 2,
-                    maxStaffing: 5
-                },
-                {
-                    id: 4,
-                    name: 'Maintenance',
-                    description: 'Facility maintenance and repairs',
-                    managerId: null,
-                    minStaffing: 1,
-                    maxStaffing: 3
-                }
-            ];
-        }
-
-        function generateMockEmployees() {
-            return [
-                { id: 1, firstName: 'John', lastName: 'Smith', role: 'MANAGER', departmentId: 1 },
-                { id: 2, firstName: 'Sarah', lastName: 'Johnson', role: 'MANAGER', departmentId: 2 },
-                { id: 3, firstName: 'Mike', lastName: 'Wilson', role: 'EMPLOYEE', departmentId: 1 },
-                { id: 4, firstName: 'Emily', lastName: 'Davis', role: 'EMPLOYEE', departmentId: 1 },
-                { id: 5, firstName: 'David', lastName: 'Brown', role: 'EMPLOYEE', departmentId: 2 },
-                { id: 6, firstName: 'Lisa', lastName: 'Garcia', role: 'EMPLOYEE', departmentId: 2 },
-                { id: 7, firstName: 'Tom', lastName: 'Martinez', role: 'EMPLOYEE', departmentId: 3 },
-                { id: 8, firstName: 'Anna', lastName: 'Rodriguez', role: 'EMPLOYEE', departmentId: 3 }
-            ];
-        }
 
         async function enhanceDepartmentsWithEmployees() {
             departments.forEach(dept => {
-                dept.employees = employees.filter(emp => emp.departmentId === dept.id);
-                dept.manager = employees.find(emp => emp.id === dept.managerId);
-                dept.totalShifts = Math.floor(Math.random() * 50) + 20; // Mock data
-                dept.avgHours = Math.floor(Math.random() * 10) + 35; // Mock data
+                // Ensure type match for departmentId and managerId
+                dept.employees = employees.filter(emp => String(emp.departmentId) === String(dept.id));
+                dept.manager = employees.find(emp => String(emp.id) === String(dept.managerId));
+                // totalShifts, minStaffing, maxStaffing should come from backend only
             });
         }
 
@@ -780,25 +736,25 @@
                     
                     <div class="department-stats">
                         <div class="stat-item">
-                            <div class="stat-number">${dept.employees.length}</div>
+                            <div class="stat-number">${dept.employees.length ?? 0}</div>
                             <div class="stat-label">Employees</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number">${dept.totalShifts}</div>
+                            <div class="stat-number">${dept.totalShifts ?? 0}</div>
                             <div class="stat-label">Total Shifts</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number">${dept.minStaffing || 0}</div>
+                            <div class="stat-number">${dept.minStaffing ?? 0}</div>
                             <div class="stat-label">Min Staff</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number">${dept.maxStaffing || 0}</div>
+                            <div class="stat-number">${dept.maxStaffing ?? 0}</div>
                             <div class="stat-label">Max Staff</div>
                         </div>
                     </div>
 
                     <div class="department-employees">
-                        <strong>Employees (${dept.employees.length}):</strong>
+                        <strong>Employees (${dept.employees.length ?? 0}):</strong>
                         <div class="employee-list">
                             ${dept.employees.length > 0 ? 
                                 dept.employees.map(emp => 
@@ -907,19 +863,9 @@
 
                 showAlert('Employee assignments updated successfully', 'success');
                 closeAssignEmployeesModal();
-                
-                // Update local data
-                employees.forEach(emp => {
-                    if (selectedEmployees.includes(emp.id)) {
-                        emp.departmentId = currentDepartmentId;
-                    } else if (emp.departmentId === currentDepartmentId) {
-                        emp.departmentId = null;
-                    }
-                });
-                
-                await enhanceDepartmentsWithEmployees();
-                filteredDepartments = [...departments];
-                renderDepartments();
+                // Always reload departments and employees from backend to get latest stats
+                await loadDepartments();
+                await loadEmployees();
             } catch (error) {
                 console.error('Error saving assignments:', error);
                 showAlert('Error updating employee assignments', 'error');
@@ -960,19 +906,16 @@
 
         document.getElementById('departmentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const id = document.getElementById('departmentId').value;
             const name = document.getElementById('departmentName').value;
             const description = document.getElementById('departmentDescription').value;
             const managerId = document.getElementById('departmentManager').value;
             const minStaffing = document.getElementById('minStaffing').value;
             const maxStaffing = document.getElementById('maxStaffing').value;
-
             if (!name.trim()) {
                 showAlert('Department name is required', 'error');
                 return;
             }
-
             const departmentData = {
                 name: name.trim(),
                 description: description.trim(),
@@ -980,29 +923,14 @@
                 minStaffing: minStaffing ? parseInt(minStaffing) : null,
                 maxStaffing: maxStaffing ? parseInt(maxStaffing) : null
             };
-
             try {
                 const endpoint = id ? `/departments/${id}` : '/departments';
                 const method = id ? 'PUT' : 'POST';
-                
-                const savedDepartment = await window.authManager.apiRequest(endpoint, method, departmentData);
-                
+                await window.authManager.apiRequest(endpoint, method, departmentData);
                 showAlert(`Department ${id ? 'updated' : 'created'} successfully`, 'success');
                 closeDepartmentModal();
-                
-                if (id) {
-                    // Update existing department
-                    const index = departments.findIndex(d => d.id === parseInt(id));
-                    if (index !== -1) {
-                        departments[index] = { ...departments[index], ...savedDepartment };
-                    }
-                } else {
-                    // Add new department
-                    departments.push({ ...savedDepartment, employees: [], totalShifts: 0, avgHours: 0 });
-                }
-                
-                filteredDepartments = [...departments];
-                renderDepartments();
+                // Always reload departments from backend to get latest stats
+                await loadDepartments();
             } catch (error) {
                 console.error('Error saving department:', error);
                 showAlert(`Error ${id ? 'updating' : 'creating'} department`, 'error');

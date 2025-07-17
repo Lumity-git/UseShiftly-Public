@@ -42,7 +42,7 @@ public class ShiftTrade {
     private Long id;
 
     /** The shift being traded. */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shift_id", nullable = false)
     private Shift shift;
 

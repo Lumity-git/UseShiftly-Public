@@ -1,1200 +1,846 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Directory - Hotel Scheduler</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            color: #2c3e50;
-        }
-
-        .header {
-            background: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-        }
-
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-
-        .nav-link {
-            color: #7f8c8d;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        .page-header {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .page-title {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
-
-        .filters {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .filter-group label {
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .filter-group input, .filter-group select {
-            padding: 12px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .filter-group input:focus, .filter-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 0.8rem;
-        }
-
-        .employees-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .employee-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            border-left: 4px solid #667eea;
-        }
-
-        .employee-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .employee-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-        }
-
-        .employee-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .employee-role {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .role-admin { background: #e74c3c; color: white; }
-        .role-manager { background: #f39c12; color: white; }
-        .role-employee { background: #27ae60; color: white; }
-
-        .employee-info {
-            margin-bottom: 20px;
-        }
-
-        .employee-detail {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .employee-detail strong {
-            color: #2c3e50;
-        }
-
-        .employee-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 3% auto;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #e1e8ed;
-        }
-
-        .modal-title {
-            font-size: 1.5rem;
-            color: #2c3e50;
-        }
-
-        .close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #7f8c8d;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .invitation-section {
-            background: #f8f9fa;
-            border: 2px solid #667eea;
-            border-radius: 12px;
-            padding: 25px;
-            margin-top: 30px;
-        }
-
-        .invitation-title {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
-
-        .pending-invitations {
-            margin-top: 20px;
-        }
-
-        .invitation-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #f39c12;
-        }
-
-        .invitation-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .nav-links {
-                order: 3;
-                width: 100%;
-                justify-content: center;
-            }
-
-            .filter-row {
-                grid-template-columns: 1fr;
-            }
-
-            .employees-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
     <div class="header">
-        <div class="header-content">
-            <div class="logo">🏨 Hotel Scheduler</div>
-            <nav class="nav-links" id="navigation">
-                <!-- Navigation will be populated based on user role -->
-            </nav>
-            <div class="user-info">
-                <span id="userName">Loading...</span>
-                <button class="btn btn-danger btn-small" onclick="logout()">Logout</button>
-            </div>
+      <div class="header-content">
+        <div class="logo">🏨 Hotel Scheduler</div>
+        <nav class="nav-links" id="navigation">
+          <!-- Navigation will be populated based on user role -->
+        </nav>
+        <div class="user-info">
+          <span id="userName">Loading...</span>
+          <button class="btn btn-danger btn-small" onclick="logout()">
+            Logout
+          </button>
         </div>
+      </div>
     </div>
 
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">👥 Employee Directory</h1>
-            <p class="page-subtitle">Access employee information, view schedules, and manage team assignments across departments.</p>
-        </div>
 
-        <div class="filters">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="searchTerm">Search Employee</label>
-                    <input type="text" id="searchTerm" placeholder="Search by name, email, or phone">
-                </div>
-                <div class="filter-group">
-                    <label for="departmentFilter">Department</label>
-                    <select id="departmentFilter">
-                        <option value="">All Departments</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="roleFilter">Role</label>
-                    <select id="roleFilter">
-                        <option value="">All Roles</option>
-                        <option value="ADMIN">Admin</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="EMPLOYEE">Employee</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="statusFilter">Status</label>
-                    <select id="statusFilter">
-                        <option value="">All Statuses</option>
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
-                </div>
-            </div>
-            <div class="action-buttons" id="actionButtons">
-                <!-- Buttons will be populated based on user role -->
-            </div>
+      <div class="filters">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="searchTerm">Search Employee</label>
+            <input
+              type="text"
+              id="searchTerm"
+              placeholder="Search by name, email, or phone"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="departmentFilter">Department</label>
+            <select id="departmentFilter">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="roleFilter">Role</label>
+            <select id="roleFilter">
+              <option value="">All Roles</option>
+              <option value="ADMIN">Admin</option>
+              <option value="MANAGER">Manager</option>
+              <option value="EMPLOYEE">Employee</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
         </div>
-
-        <div id="alertContainer"></div>
-        
-        <div id="employeesContainer">
-            <div class="loading">
-                <div class="spinner"></div>
-                <p>Loading employees...</p>
-            </div>
+        <div class="action-buttons" id="actionButtons">
+          <!-- Buttons will be populated based on user role -->
         </div>
+      </div>
 
-        <!-- Employee Registration Invitation Section (Admin/Manager only) -->
-        <div id="invitationSection" class="invitation-section" style="display: none;">
-            <h3 class="invitation-title">📧 Employee Registration Invitations</h3>
-            <p>Create secure invitation links for new employees to register with proper documentation.</p>
-            
-            <button class="btn btn-primary" onclick="openInvitationModal()">
-                ➕ Create Invitation Link
-            </button>
+      <div id="alertContainer"></div>
 
-            <div id="pendingInvitations" class="pending-invitations">
-                <!-- Pending invitations will be loaded here -->
-            </div>
+      <div id="employeesContainer">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading employees...</p>
         </div>
+      </div>
+
+      <!-- Employee Registration Invitation Section (Admin/Manager only) -->
+      <div
+        id="invitationSection"
+        class="invitation-section"
+        style="display: none"
+      >
+        <h3 class="invitation-title">📧 Employee Registration Invitations</h3>
+        <p>
+          Create secure invitation links for new employees to register with
+          proper documentation.
+        </p>
+
+        <button class="btn btn-primary" onclick="openInvitationModal()">
+          ➕ Create Invitation Link
+        </button>
+
+        <div id="pendingInvitations" class="pending-invitations">
+          <!-- Pending invitations will be loaded here -->
+        </div>
+      </div>
     </div>
 
     <!-- Employee Modal -->
     <div id="employeeModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="employeeModalTitle">Employee Details</h3>
-                <button class="close" onclick="closeEmployeeModal()">&times;</button>
-            </div>
-            <form id="employeeForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" name="firstName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="phoneNumber">Phone Number</label>
-                        <input type="tel" id="phoneNumber" name="phoneNumber">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="role">Role</label>
-                        <select id="role" name="role" required>
-                            <option value="EMPLOYEE">Employee</option>
-                            <option value="MANAGER">Manager</option>
-                            <option value="ADMIN">Admin</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="department">Department</label>
-                        <select id="department" name="departmentId">
-                            <option value="">Select Department</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="active">Status</label>
-                    <select id="active" name="active">
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
-                </div>
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-primary">
-                        💾 Save Employee
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </form>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="employeeModalTitle">Employee Details</h3>
+          <button class="close" onclick="closeEmployeeModal()">&times;</button>
         </div>
+        <form id="employeeForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" name="firstName" required />
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" name="lastName" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="phoneNumber">Phone Number</label>
+              <input type="tel" id="phoneNumber" name="phoneNumber" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="role">Role</label>
+              <select id="role" name="role" required>
+                <option value="EMPLOYEE">Employee</option>
+                <option value="MANAGER">Manager</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="department">Department</label>
+              <select id="department" name="departmentId">
+                <option value="">Select Department</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="active">Status</label>
+            <select id="active" name="active">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+              💾 Save Employee
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEmployeeModal()"
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Invitation Modal -->
     <div id="invitationModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Create Employee Invitation</h3>
-                <button class="close" onclick="closeInvitationModal()">&times;</button>
-            </div>
-            <form id="invitationForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="inviteFirstName">First Name</label>
-                        <input type="text" id="inviteFirstName" name="firstName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="inviteLastName">Last Name</label>
-                        <input type="text" id="inviteLastName" name="lastName" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="inviteEmail">Email Address</label>
-                        <input type="email" id="inviteEmail" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="invitePhone">Phone Number</label>
-                        <input type="tel" id="invitePhone" name="phoneNumber" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="inviteRole">Default Role</label>
-                        <select id="inviteRole" name="role" required>
-                            <option value="EMPLOYEE">Employee</option>
-                            <option value="MANAGER">Manager</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="inviteDepartment">Department</label>
-                        <select id="inviteDepartment" name="departmentId" required>
-                            <option value="">Select Department</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="inviteNotes">Notes for HR/Legal</label>
-                    <textarea id="inviteNotes" name="notes" rows="3" placeholder="Documentation requirements, position details, etc."></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="expiryDays">Invitation Expires In (Days)</label>
-                    <select id="expiryDays" name="expiryDays">
-                        <option value="7">7 Days</option>
-                        <option value="14" selected>14 Days</option>
-                        <option value="30">30 Days</option>
-                    </select>
-                </div>
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-primary">
-                        📧 Generate Invitation Link
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeInvitationModal()">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </form>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Create Employee Invitation</h3>
+          <button class="close" onclick="closeInvitationModal()">
+            &times;
+          </button>
         </div>
+        <form id="invitationForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inviteFirstName">First Name</label>
+              <input
+                type="text"
+                id="inviteFirstName"
+                name="firstName"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="inviteLastName">Last Name</label>
+              <input type="text" id="inviteLastName" name="lastName" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inviteEmail">Email Address</label>
+              <input type="email" id="inviteEmail" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="invitePhone">Phone Number</label>
+              <input type="tel" id="invitePhone" name="phoneNumber" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inviteRole">Default Role</label>
+              <select id="inviteRole" name="role" required>
+                <option value="EMPLOYEE">Employee</option>
+                <option value="MANAGER">Manager</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inviteDepartment">Department</label>
+              <select id="inviteDepartment" name="departmentId" required>
+                <option value="">Select Department</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="inviteNotes">Notes for HR/Legal</label>
+            <textarea
+              id="inviteNotes"
+              name="notes"
+              rows="3"
+              placeholder="Documentation requirements, position details, etc."
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="expiryDays">Invitation Expires In (Days)</label>
+            <select id="expiryDays" name="expiryDays">
+              <option value="7">7 Days</option>
+              <option value="14" selected>14 Days</option>
+              <option value="30">30 Days</option>
+            </select>
+          </div>
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">
+              📧 Generate Invitation Link
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeInvitationModal()"
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script>
-        const API_BASE_URL = 'http://localhost:8080/api';
-        let currentUser = null;
-        let employees = [];
-        let departments = [];
-        let editingEmployeeId = null;
+      let currentUser = null;
+      const API_BASE_URL = "http://localhost:8080/api";
 
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!authManager.checkAuth(['MANAGER', 'ADMIN'])) return;
-            
-            loadUserInfo();
-            loadDepartments();
-            loadEmployees();
-            setupEventListeners();
-            setupActionButtons();
-            
-            // Load invitations if user is admin/manager
-            if (canManageEmployees()) {
-                loadPendingInvitations();
-                document.getElementById('invitationSection').style.display = 'block';
+      // Initialize page
+      document.addEventListener("DOMContentLoaded", async function () {
+        if (!authManager.checkAuth(["MANAGER", "ADMIN"])) return;
+
+        loadUserInfo();
+        loadDepartments();
+        loadEmployees();
+        setupEventListeners();
+        setupActionButtons();
+
+        // Load invitations if user is admin/manager
+        if (canManageEmployees()) {
+          loadPendingInvitations();
+          document.getElementById("invitationSection").style.display = "block";
+        }
+      });
+
+      function setupEventListeners() {
+        document
+          .getElementById("searchTerm")
+          .addEventListener("input", filterEmployees);
+        document
+          .getElementById("departmentFilter")
+          .addEventListener("change", filterEmployees);
+        document
+          .getElementById("roleFilter")
+          .addEventListener("change", filterEmployees);
+        document
+          .getElementById("statusFilter")
+          .addEventListener("change", filterEmployees);
+        document
+          .getElementById("employeeForm")
+          .addEventListener("submit", handleEmployeeSubmit);
+        document
+          .getElementById("invitationForm")
+          .addEventListener("submit", handleInvitationSubmit);
+      }
+
+      function setupActionButtons() {
+        const actionButtons = document.getElementById("actionButtons");
+
+        if (canManageEmployees()) {
+          actionButtons.innerHTML = `
+                          <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
+                              ➕ Add Employee
+                          </button>
+                          <button class="btn btn-secondary" onclick="loadEmployees()">
+                              🔄 Refresh
+                          </button>
+                          <button class="btn btn-success" onclick="exportEmployees()">
+                              📊 Export
+                          </button>
+                      `;
+        } else {
+          actionButtons.innerHTML = `
+                          <button class="btn btn-secondary" onclick="loadEmployees()">
+                              🔄 Refresh
+                          </button>
+                      `;
+        }
+      }
+
+      // Authentication
+      async function checkAuth() {
+        const token = localStorage.getItem("authToken");
+        const userInfo = localStorage.getItem("userInfo");
+
+        if (!token || !userInfo) {
+          window.location.href = "login.html";
+          return false;
+        }
+
+        const user = JSON.parse(userInfo);
+
+        try {
+          // Validate token by making a test API call
+          const response = await fetch(
+            "http://localhost:8080/api/auth/validate",
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             }
+          );
+
+          if (!response.ok) {
+                localStorage.removeItem("authToken");
+                localStorage.removeItem("userInfo");
+                window.location.href = "login.html";
+            return false;
+          }
+
+          return true;
+        } catch (error) {
+          console.error("Auth validation failed:", error);
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userInfo");
+            window.location.href = "login.html";
+          return false;
+        }
+      }
+
+      function loadUserInfo() {
+        const userInfo = localStorage.getItem("userInfo");
+        if (userInfo) {
+          currentUser = JSON.parse(userInfo);
+          document.getElementById(
+            "userName"
+          ).textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+          setupNavigation(currentUser.role);
+        }
+      }
+
+      function setupNavigation(userRole) {
+        const navigation = document.getElementById("navigation");
+        let navLinks = "";
+
+        // Common links for all users
+        navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
+        navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
+        navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
+        navLinks +=
+          '<a href="notifications.html" class="nav-link">Notifications</a>';
+
+        // Manager and Admin only links
+        if (userRole === "MANAGER" || userRole === "ADMIN") {
+          navLinks +=
+            '<a href="employees.html" class="nav-link active">Employees</a>';
+          navLinks += '<a href="reports.html" class="nav-link">Reports</a>';
+          navLinks +=
+            '<a href="departments.html" class="nav-link">Departments</a>';
+        }
+
+        navigation.innerHTML = navLinks;
+      }
+
+      function logout() {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("userInfo");
+        window.location.href = "login.html";
+      }
+
+      // API Helpers
+      async function apiRequest(endpoint, options = {}) {
+        const token = localStorage.getItem("authToken");
+        const url = `${API_BASE_URL}${endpoint}`;
+
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            ...options.headers,
+          },
+          ...options,
+        };
+
+        try {
+          const response = await fetch(url, config);
+
+          if (response.status === 401) {
+                logout();
+            return;
+          }
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          console.error("API Request failed:", error);
+          showAlert("Network error. Please check your connection.", "error");
+          throw error;
+        }
+      }
+
+      // Load data
+      async function loadDepartments() {
+        try {
+          departments = await apiRequest("/departments");
+          populateDepartmentSelects();
+        } catch (error) {
+          console.error("Failed to load departments:", error);
+        }
+      }
+
+      async function loadEmployees() {
+        try {
+          employees = await apiRequest("/employees");
+          console.log("Loaded employees:", employees); // Add this line
+          renderEmployees();
+        } catch (error) {
+          console.error("Failed to load employees:", error);
+          document.getElementById("employeesContainer").innerHTML =
+            '<div class="alert alert-error">Failed to load employees. Please try again.</div>';
+        }
+      }
+
+      async function loadPendingInvitations() {
+        try {
+          // Use correct backend API for active invitations
+          const invitations = await apiRequest("/auth/active-invitations");
+          renderPendingInvitations(invitations);
+        } catch (error) {
+          console.error("Failed to load active invitations:", error);
+        }
+      }
+
+      // Populate selects
+      function populateDepartmentSelects() {
+        const selects = ["departmentFilter", "department", "inviteDepartment"];
+        selects.forEach((selectId) => {
+          const select = document.getElementById(selectId);
+          if (!select) return;
+
+          if (selectId === "departmentFilter") {
+            select.innerHTML = '<option value="">All Departments</option>';
+          } else {
+            select.innerHTML = '<option value="">Select Department</option>';
+          }
+
+          departments.forEach((dept) => {
+            const option = document.createElement("option");
+            option.value = dept.id;
+            option.textContent = dept.name;
+            select.appendChild(option);
+          });
+        });
+      }
+
+      // Render employees
+      function renderEmployees(filteredEmployees = employees) {
+        const container = document.getElementById("employeesContainer");
+
+        if (filteredEmployees.length === 0) {
+          container.innerHTML =
+            '<div class="alert alert-info">No employees found for the selected criteria.</div>';
+          return;
+        }
+
+        const employeesHtml = filteredEmployees
+          .map(function (employee) {
+            let html = '<div class="employee-card">';
+            html += '<div class="employee-header">';
+            html += "<div>";
+            html +=
+              '<div class="employee-name">' +
+              employee.firstName +
+              " " +
+              employee.lastName +
+              "</div>";
+            html +=
+              '<div class="employee-role role-' +
+              employee.role.toLowerCase() +
+              '">' +
+              employee.role +
+              "</div>";
+            html += "</div>";
+            html +=
+              '<div class="employee-status">' +
+              (employee.active ? "✅ Active" : "❌ Inactive") +
+              "</div>";
+            html += "</div>";
+            html += '<div class="employee-info">';
+            html +=
+              '<div class="employee-detail"><strong>Email:</strong> <span>' +
+              employee.email +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Phone:</strong> <span>' +
+              (employee.phoneNumber || "Not provided") +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Department:</strong> <span>' +
+              (employee.departmentName || "Unassigned") +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Joined:</strong> <span>' +
+              formatDate(employee.createdAt) +
+              "</span></div>";
+            html += "</div>";
+            html += '<div class="employee-actions">';
+            html +=
+              '<button class="btn btn-primary btn-small" onclick="viewEmployeeSchedule(' +
+              employee.id +
+              ')">📅 Schedule</button>';
+            if (canManageEmployees()) {
+              html +=
+                '<button class="btn btn-secondary btn-small" onclick="editEmployee(' +
+                employee.id +
+                ')">✏️ Edit</button>';
+              html +=
+                '<button class="btn ' +
+                (employee.active ? "btn-warning" : "btn-success") +
+                ' btn-small" onclick="toggleEmployeeStatus(' +
+                employee.id +
+                ", " +
+                !employee.active +
+                ')">' +
+                (employee.active ? "⏸️ Deactivate" : "▶️ Activate") +
+                "</button>";
+            }
+            html += "</div>";
+            html += "</div>";
+            return html;
+          })
+          .join("");
+        container.innerHTML =
+          '<div class="employees-grid">' + employeesHtml + "</div>";
+      }
+
+      function renderPendingInvitations(invitations) {
+        const container = document.getElementById("pendingInvitations");
+
+        if (invitations.length === 0) {
+          container.innerHTML = "<p>No pending invitations.</p>";
+          return;
+        }
+
+        const invitationsHtml = invitations
+          .map(function (invitation) {
+            let html = '<div class="invitation-card">';
+            html +=
+              '<div class="employee-detail"><strong>Name:</strong> <span>' +
+              invitation.firstName +
+              " " +
+              invitation.lastName +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Email:</strong> <span>' +
+              invitation.email +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Role:</strong> <span>' +
+              invitation.role +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Expires:</strong> <span>' +
+              formatDate(invitation.expiresAt) +
+              "</span></div>";
+            html += '<div class="invitation-actions">';
+            html +=
+              '<button class="btn btn-primary btn-small" onclick="copyInvitationLink(\'' +
+              invitation.token +
+              "')\">📋 Copy Link</button>";
+            html +=
+              '<button class="btn btn-secondary btn-small" onclick="resendInvitation(\'' +
+              invitation.id +
+              "')\">📧 Resend</button>";
+            html +=
+              '<button class="btn btn-danger btn-small" onclick="revokeInvitation(\'' +
+              invitation.id +
+              "')\">🗑️ Revoke</button>";
+            html += "</div>";
+            html += "</div>";
+            return html;
+          })
+          .join("");
+        container.innerHTML = invitationsHtml;
+      }
+
+      // Filter employees
+      function filterEmployees() {
+        const searchTerm = document
+          .getElementById("searchTerm")
+          .value.toLowerCase();
+        const departmentFilter =
+          document.getElementById("departmentFilter").value;
+        const roleFilter = document.getElementById("roleFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        const filtered = employees.filter((employee) => {
+          const matchesSearch =
+            employee.firstName.toLowerCase().includes(searchTerm) ||
+            employee.lastName.toLowerCase().includes(searchTerm) ||
+            employee.email.toLowerCase().includes(searchTerm) ||
+            (employee.phoneNumber && employee.phoneNumber.includes(searchTerm));
+
+          const matchesDepartment =
+            !departmentFilter || employee.departmentId == departmentFilter;
+          const matchesRole = !roleFilter || employee.role === roleFilter;
+          const matchesStatus =
+            !statusFilter || employee.active.toString() === statusFilter;
+
+          return (
+            matchesSearch && matchesDepartment && matchesRole && matchesStatus
+          );
         });
 
-        function setupEventListeners() {
-            document.getElementById('searchTerm').addEventListener('input', filterEmployees);
-            document.getElementById('departmentFilter').addEventListener('change', filterEmployees);
-            document.getElementById('roleFilter').addEventListener('change', filterEmployees);
-            document.getElementById('statusFilter').addEventListener('change', filterEmployees);
-            document.getElementById('employeeForm').addEventListener('submit', handleEmployeeSubmit);
-            document.getElementById('invitationForm').addEventListener('submit', handleInvitationSubmit);
+        renderEmployees(filtered);
+      }
+
+      // Modal functions
+      function openCreateEmployeeModal() {
+        editingEmployeeId = null;
+        document.getElementById("employeeModalTitle").textContent =
+          "Add New Employee";
+        document.getElementById("employeeForm").reset();
+        document.getElementById("employeeModal").style.display = "block";
+      }
+
+      function closeEmployeeModal() {
+        document.getElementById("employeeModal").style.display = "none";
+        editingEmployeeId = null;
+      }
+
+      function openInvitationModal() {
+        document.getElementById("invitationForm").reset();
+        document.getElementById("invitationModal").style.display = "block";
+      }
+
+      function closeInvitationModal() {
+        document.getElementById("invitationModal").style.display = "none";
+      }
+
+      async function editEmployee(employeeId) {
+        try {
+          const employee = await apiRequest(`/employees/${employeeId}`);
+          editingEmployeeId = employeeId;
+
+          document.getElementById("employeeModalTitle").textContent =
+            "Edit Employee";
+          document.getElementById("firstName").value = employee.firstName;
+          document.getElementById("lastName").value = employee.lastName;
+          document.getElementById("email").value = employee.email;
+          document.getElementById("phoneNumber").value =
+            employee.phoneNumber || "";
+          document.getElementById("role").value = employee.role;
+          document.getElementById("department").value =
+            employee.departmentId || "";
+          document.getElementById("active").value = employee.active.toString();
+
+          document.getElementById("employeeModal").style.display = "block";
+        } catch (error) {
+          showAlert("Failed to load employee details", "error");
         }
+      }
 
-        function setupActionButtons() {
-            const actionButtons = document.getElementById('actionButtons');
-            
-            if (canManageEmployees()) {
-                actionButtons.innerHTML = `
-                    <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
-                        ➕ Add Employee
-                    </button>
-                    <button class="btn btn-secondary" onclick="loadEmployees()">
-                        🔄 Refresh
-                    </button>
-                    <button class="btn btn-success" onclick="exportEmployees()">
-                        📊 Export
-                    </button>
-                `;
-            } else {
-                actionButtons.innerHTML = `
-                    <button class="btn btn-secondary" onclick="loadEmployees()">
-                        🔄 Refresh
-                    </button>
-                `;
-            }
-        }
+      async function handleEmployeeSubmit(e) {
+        e.preventDefault();
 
-        // Authentication
-        async function checkAuth() {
-            const token = localStorage.getItem('authToken');
-            const userInfo = localStorage.getItem('userInfo');
-            
-            if (!token || !userInfo) {
-                window.location.href = 'login.html';
-                return false;
-            }
-            
-            const user = JSON.parse(userInfo);
-            
-            // Redirect employees to their own dashboard
-            if (user.role === 'EMPLOYEE') {
-                window.location.href = 'employee-dashboard.html';
-                return false;
-            }
-            
-            try {
-                // Validate token by making a test API call
-                const response = await fetch('http://localhost:8080/api/auth/validate', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    localStorage.removeItem('authToken');
-                    localStorage.removeItem('userInfo');
-                    window.location.href = 'login.html';
-                    return false;
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('Auth validation failed:', error);
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('userInfo');
-                window.location.href = 'login.html';
-                return false;
-            }
-        }
+        const formData = new FormData(e.target);
+        const employeeData = {
+          firstName: formData.get("firstName"),
+          lastName: formData.get("lastName"),
+          email: formData.get("email"),
+          phoneNumber: formData.get("phoneNumber") || null,
+          role: formData.get("role"),
+          departmentId: formData.get("departmentId")
+            ? parseInt(formData.get("departmentId"))
+            : null,
+          active: formData.get("active") === "true",
+        };
 
-        function loadUserInfo() {
-            const userInfo = localStorage.getItem('userInfo');
-            if (userInfo) {
-                currentUser = JSON.parse(userInfo);
-                document.getElementById('userName').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-                setupNavigation(currentUser.role);
-            }
-        }
-
-        function setupNavigation(userRole) {
-            const navigation = document.getElementById('navigation');
-            let navLinks = '';
-            
-            // Common links for all users
-            navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
-            navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
-            navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
-            navLinks += '<a href="notifications.html" class="nav-link">Notifications</a>';
-            
-            // Manager and Admin only links
-            if (userRole === 'MANAGER' || userRole === 'ADMIN') {
-                navLinks += '<a href="employees.html" class="nav-link active">Employees</a>';
-                navLinks += '<a href="reports.html" class="nav-link">Reports</a>';
-                navLinks += '<a href="departments.html" class="nav-link">Departments</a>';
-            }
-            
-            navigation.innerHTML = navLinks;
-        }
-
-        function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userInfo');
-            window.location.href = 'login.html';
-        }
-
-        // API Helpers
-        async function apiRequest(endpoint, options = {}) {
-            const token = localStorage.getItem('authToken');
-            const url = `${API_BASE_URL}${endpoint}`;
-            
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                    ...options.headers
-                },
-                ...options
-            };
-
-            try {
-                const response = await fetch(url, config);
-                
-                if (response.status === 401) {
-                    // Only logout if it's actually an authentication issue
-                    // Spring Security can return 401 for both auth and authz issues
-                    console.log('Received 401 - checking if it\'s an auth or authz issue');
-                    
-                    // Try to validate the token first
-                    const tokenValidation = await fetch(`${API_BASE_URL}/auth/validate`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (!tokenValidation.ok) {
-                        // Token is invalid, logout
-                        console.log('Token is invalid, logging out');
-                        logout();
-                        return;
-                    } else {
-                        // Token is valid but user lacks permissions, don't logout
-                        console.log('Token is valid but access denied');
-                        throw new Error('Access denied. You do not have permission to access this resource.');
-                    }
-                }
-
-                if (response.status === 403) {
-                    // Forbidden - user doesn't have permission, but token is valid
-                    throw new Error('Access denied. Insufficient permissions.');
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                return await response.json();
-            } catch (error) {
-                console.error('API Request failed:', error);
-                // Don't show alerts for permission errors, just log them
-                if (!error.message.includes('Access denied')) {
-                    showAlert('Network error. Please check your connection.', 'error');
-                }
-                throw error;
-            }
-        }
-
-        // Load data
-        async function loadDepartments() {
-            try {
-                departments = await apiRequest('/departments');
-                populateDepartmentSelects();
-            } catch (error) {
-                console.error('Failed to load departments:', error);
-            }
-        }
-
-        async function loadEmployees() {
-            try {
-                employees = await apiRequest('/employees');
-                renderEmployees();
-            } catch (error) {
-                console.error('Failed to load employees:', error);
-                document.getElementById('employeesContainer').innerHTML = 
-                    '<div class="alert alert-error">Failed to load employees. Please try again.</div>';
-            }
-        }
-
-        async function loadPendingInvitations() {
-            try {
-                const invitations = await apiRequest('/employee-invitations/pending');
-                renderPendingInvitations(invitations);
-            } catch (error) {
-                console.error('Failed to load pending invitations:', error);
-            }
-        }
-
-        // Populate selects
-        function populateDepartmentSelects() {
-            const selects = ['departmentFilter', 'department', 'inviteDepartment'];
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (!select) return;
-                
-                if (selectId === 'departmentFilter') {
-                    select.innerHTML = '<option value="">All Departments</option>';
-                } else {
-                    select.innerHTML = '<option value="">Select Department</option>';
-                }
-                
-                departments.forEach(dept => {
-                    const option = document.createElement('option');
-                    option.value = dept.id;
-                    option.textContent = dept.name;
-                    select.appendChild(option);
-                });
+        try {
+          if (editingEmployeeId) {
+            await apiRequest(`/employees/${editingEmployeeId}`, {
+              method: "PUT",
+              body: JSON.stringify(employeeData),
             });
-        }
-
-        // Render employees
-        function renderEmployees(filteredEmployees = employees) {
-            const container = document.getElementById('employeesContainer');
-            
-            if (filteredEmployees.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No employees found for the selected criteria.</div>';
-                return;
-            }
-
-            const employeesHtml = filteredEmployees.map(employee => `
-                <div class="employee-card">
-                    <div class="employee-header">
-                        <div>
-                            <div class="employee-name">${employee.firstName} ${employee.lastName}</div>
-                            <div class="employee-role role-${employee.role.toLowerCase()}">
-                                ${employee.role}
-                            </div>
-                        </div>
-                        <div class="employee-status">
-                            ${employee.active ? '✅ Active' : '❌ Inactive'}
-                        </div>
-                    </div>
-                    <div class="employee-info">
-                        <div class="employee-detail">
-                            <strong>Email:</strong>
-                            <span>${employee.email}</span>
-                        </div>
-                        <div class="employee-detail">
-                            <strong>Phone:</strong>
-                            <span>${employee.phoneNumber || 'Not provided'}</span>
-                        </div>
-                        <div class="employee-detail">
-                            <strong>Department:</strong>
-                            <span>${employee.departmentName || 'Unassigned'}</span>
-                        </div>
-                        <div class="employee-detail">
-                            <strong>Joined:</strong>
-                            <span>${formatDate(employee.createdAt)}</span>
-                        </div>
-                    </div>
-                    <div class="employee-actions">
-                        <button class="btn btn-primary btn-small" onclick="viewEmployeeSchedule(${employee.id})">
-                            📅 Schedule
-                        </button>
-                        ${canManageEmployees() ? `
-                            <button class="btn btn-secondary btn-small" onclick="editEmployee(${employee.id})">
-                                ✏️ Edit
-                            </button>
-                            <button class="btn ${employee.active ? 'btn-warning' : 'btn-success'} btn-small" 
-                                    onclick="toggleEmployeeStatus(${employee.id}, ${!employee.active})">
-                                ${employee.active ? '⏸️ Deactivate' : '▶️ Activate'}
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-
-            container.innerHTML = `<div class="employees-grid">${employeesHtml}</div>`;
-        }
-
-        function renderPendingInvitations(invitations) {
-            const container = document.getElementById('pendingInvitations');
-            
-            if (invitations.length === 0) {
-                container.innerHTML = '<p>No pending invitations.</p>';
-                return;
-            }
-
-            const invitationsHtml = invitations.map(invitation => `
-                <div class="invitation-card">
-                    <div class="employee-detail">
-                        <strong>Name:</strong>
-                        <span>${invitation.firstName} ${invitation.lastName}</span>
-                    </div>
-                    <div class="employee-detail">
-                        <strong>Email:</strong>
-                        <span>${invitation.email}</span>
-                    </div>
-                    <div class="employee-detail">
-                        <strong>Role:</strong>
-                        <span>${invitation.role}</span>
-                    </div>
-                    <div class="employee-detail">
-                        <strong>Expires:</strong>
-                        <span>${formatDate(invitation.expiresAt)}</span>
-                    </div>
-                    <div class="invitation-actions">
-                        <button class="btn btn-primary btn-small" onclick="copyInvitationLink('${invitation.token}')">
-                            📋 Copy Link
-                        </button>
-                        <button class="btn btn-secondary btn-small" onclick="resendInvitation('${invitation.id}')">
-                            📧 Resend
-                        </button>
-                        <button class="btn btn-danger btn-small" onclick="revokeInvitation('${invitation.id}')">
-                            🗑️ Revoke
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-
-            container.innerHTML = invitationsHtml;
-        }
-
-        // Filter employees
-        function filterEmployees() {
-            const searchTerm = document.getElementById('searchTerm').value.toLowerCase();
-            const departmentFilter = document.getElementById('departmentFilter').value;
-            const roleFilter = document.getElementById('roleFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-
-            const filtered = employees.filter(employee => {
-                const matchesSearch = 
-                    employee.firstName.toLowerCase().includes(searchTerm) ||
-                    employee.lastName.toLowerCase().includes(searchTerm) ||
-                    employee.email.toLowerCase().includes(searchTerm) ||
-                    (employee.phoneNumber && employee.phoneNumber.includes(searchTerm));
-                
-                const matchesDepartment = !departmentFilter || employee.departmentId == departmentFilter;
-                const matchesRole = !roleFilter || employee.role === roleFilter;
-                const matchesStatus = !statusFilter || employee.active.toString() === statusFilter;
-
-                return matchesSearch && matchesDepartment && matchesRole && matchesStatus;
+            showAlert("Employee updated successfully!", "success");
+          } else {
+            await apiRequest("/employees", {
+              method: "POST",
+              body: JSON.stringify(employeeData),
             });
+            showAlert("Employee created successfully!", "success");
+          }
 
-            renderEmployees(filtered);
+          closeEmployeeModal();
+          loadEmployees();
+        } catch (error) {
+          showAlert("Failed to save employee. Please try again.", "error");
         }
+      }
 
-        // Modal functions
-        function openCreateEmployeeModal() {
-            editingEmployeeId = null;
-            document.getElementById('employeeModalTitle').textContent = 'Add New Employee';
-            document.getElementById('employeeForm').reset();
-            document.getElementById('employeeModal').style.display = 'block';
+      async function handleInvitationSubmit(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const invitationData = {
+          firstName: formData.get("firstName"),
+          lastName: formData.get("lastName"),
+          email: formData.get("email"),
+          phoneNumber: formData.get("phoneNumber"),
+          role: formData.get("role"),
+          departmentId: parseInt(formData.get("departmentId")),
+          notes: formData.get("notes"),
+          expiryDays: parseInt(formData.get("expiryDays")),
+        };
+
+        try {
+          const response = await apiRequest("/auth/generate-invitation", {
+            method: "POST",
+            body: JSON.stringify(invitationData),
+          });
+
+          showAlert("Invitation created successfully!", "success");
+          closeInvitationModal();
+          loadPendingInvitations();
+
+          // Show the invitation link
+          const inviteUrl = `${window.location.origin}/register.html?code=${response.invitationCode}&token=${response.invitationToken}`;
+          prompt(
+            "Invitation link created! Copy this link to send to the employee:",
+            inviteUrl
+          );
+        } catch (error) {
+          showAlert("Failed to create invitation. Please try again.", "error");
         }
+      }
 
-        function closeEmployeeModal() {
-            document.getElementById('employeeModal').style.display = 'none';
-            editingEmployeeId = null;
-        }
-
-        function openInvitationModal() {
-            document.getElementById('invitationForm').reset();
-            document.getElementById('invitationModal').style.display = 'block';
-        }
-
-        function closeInvitationModal() {
-            document.getElementById('invitationModal').style.display = 'none';
-        }
-
-        async function editEmployee(employeeId) {
+      async function toggleEmployeeStatus(employeeId, active) {
+        if (!active) {
+            if (!confirm("Are you sure you want to deactivate this employee?")) return;
             try {
-                const employee = await apiRequest(`/employees/${employeeId}`);
-                editingEmployeeId = employeeId;
-                
-                document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
-                document.getElementById('firstName').value = employee.firstName;
-                document.getElementById('lastName').value = employee.lastName;
-                document.getElementById('email').value = employee.email;
-                document.getElementById('phoneNumber').value = employee.phoneNumber || '';
-                document.getElementById('role').value = employee.role;
-                document.getElementById('department').value = employee.departmentId || '';
-                document.getElementById('active').value = employee.active.toString();
-                
-                document.getElementById('employeeModal').style.display = 'block';
-            } catch (error) {
-                showAlert('Failed to load employee details', 'error');
-            }
-        }
-
-        async function handleEmployeeSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const employeeData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                email: formData.get('email'),
-                phoneNumber: formData.get('phoneNumber') || null,
-                role: formData.get('role'),
-                departmentId: formData.get('departmentId') ? parseInt(formData.get('departmentId')) : null,
-                active: formData.get('active') === 'true'
-            };
-
-            try {
-                if (editingEmployeeId) {
-                    await apiRequest(`/employees/${editingEmployeeId}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(employeeData)
-                    });
-                    showAlert('Employee updated successfully!', 'success');
-                } else {
-                    await apiRequest('/employees', {
-                        method: 'POST',
-                        body: JSON.stringify(employeeData)
-                    });
-                    showAlert('Employee created successfully!', 'success');
-                }
-                
-                closeEmployeeModal();
+                await apiRequest(`/employees/${employeeId}`, {
+                    method: "DELETE"
+                });
+                showAlert("Employee deactivated successfully!", "success");
                 loadEmployees();
             } catch (error) {
-                showAlert('Failed to save employee. Please try again.', 'error');
+                showAlert("Failed to deactivate employee", "error");
             }
+        } else {
+            // Optionally implement activation endpoint in backend, or show error
+            showAlert("Activation is not supported. Please contact admin.", "error");
         }
+      }
 
-        async function handleInvitationSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const invitationData = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                email: formData.get('email'),
-                phoneNumber: formData.get('phoneNumber'),
-                role: formData.get('role'),
-                departmentId: parseInt(formData.get('departmentId')),
-                notes: formData.get('notes'),
-                expiryDays: parseInt(formData.get('expiryDays'))
-            };
+      function viewEmployeeSchedule(employeeId) {
+        window.location.href = `shifts.html?employeeId=${employeeId}`;
+      }
 
-            try {
-                const response = await apiRequest('/auth/generate-invitation', {
-                    method: 'POST',
-                    body: JSON.stringify(invitationData)
-                });
-                
-                showAlert('Invitation created successfully!', 'success');
-                closeInvitationModal();
-                loadPendingInvitations();
-                
-                // Show the invitation link
-                const inviteUrl = `${window.location.origin}/register.html?token=${response.token}`;
-                prompt('Invitation link created! Copy this link to send to the employee:', inviteUrl);
-                
-            } catch (error) {
-                showAlert('Failed to create invitation. Please try again.', 'error');
-            }
+      async function copyInvitationLink(token, code) {
+        const inviteUrl = `${window.location.origin}/register.html?code=${code}&token=${token}`;
+        try {
+          await navigator.clipboard.writeText(inviteUrl);
+          showAlert("Invitation link copied to clipboard!", "success");
+        } catch (error) {
+          prompt("Copy this invitation link:", inviteUrl);
         }
+      }
 
-        async function toggleEmployeeStatus(employeeId, active) {
-            const action = active ? 'activate' : 'deactivate';
-            if (!confirm(`Are you sure you want to ${action} this employee?`)) return;
-            
-            try {
-                await apiRequest(`/employees/${employeeId}/${action}`, { method: 'PUT' });
-                showAlert(`Employee ${action}d successfully!`, 'success');
-                loadEmployees();
-            } catch (error) {
-                showAlert(`Failed to ${action} employee`, 'error');
-            }
+      async function resendInvitation(invitationId) {
+        try {
+          // No direct resend endpoint in backend, so just show info for now
+          showAlert("Resend functionality not implemented in backend.", "info");
+        } catch (error) {
+          showAlert("Failed to resend invitation", "error");
         }
+      }
 
-        function viewEmployeeSchedule(employeeId) {
-            window.location.href = `shifts.html?employeeId=${employeeId}`;
-        }
-
-        async function copyInvitationLink(token) {
-            const inviteUrl = `${window.location.origin}/register.html?token=${token}`;
-            try {
-                await navigator.clipboard.writeText(inviteUrl);
-                showAlert('Invitation link copied to clipboard!', 'success');
-            } catch (error) {
-                prompt('Copy this invitation link:', inviteUrl);
-            }
-        }
-
-        async function resendInvitation(invitationId) {
-            try {
-                await apiRequest(`/employee-invitations/${invitationId}/resend`, { method: 'POST' });
-                showAlert('Invitation resent successfully!', 'success');
-            } catch (error) {
-                showAlert('Failed to resend invitation', 'error');
-            }
-        }
-
-        async function revokeInvitation(invitationId) {
-            if (!confirm('Are you sure you want to revoke this invitation?')) return;
-            
-            try {
-                await apiRequest(`/employee-invitations/${invitationId}`, { method: 'DELETE' });
-                showAlert('Invitation revoked successfully!', 'success');
-                loadPendingInvitations();
-            } catch (error) {
-                showAlert('Failed to revoke invitation', 'error');
-            }
-        }
-
-        // Utility functions
-        function canManageEmployees() {
-            return currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
-        }
-
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+      async function revokeInvitation(invitationId) {
+        if (!confirm("Are you sure you want to revoke this invitation?")) return;
+        try {
+            await apiRequest(`/auth/delete-invitation/${invitationId}`, {
+                method: "DELETE",
             });
+            showAlert("Invitation revoked successfully!", "success");
+            loadPendingInvitations();
+        } catch (error) {
+            showAlert("Failed to revoke invitation", "error");
         }
+      }
 
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
-            
-            alertContainer.innerHTML = `
-                <div class="alert ${alertClass}">
-                    ${message}
-                </div>
-            `;
-            
-            setTimeout(() => {
-                alertContainer.innerHTML = '';
-            }, 5000);
-        }
+      function showAlert(message, type = "info") {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertClass = type === "error" ? "alert-error" : "alert-success";
+        alertContainer.innerHTML = `
+            <div class="alert ${alertClass}">
+                ${message}
+            </div>
+        `;
+        setTimeout(() => {
+            alertContainer.innerHTML = "";
+        }, 5000);
+    }
 
-        async function exportEmployees() {
-            try {
-                showAlert('Export functionality coming soon!', 'info');
-            } catch (error) {
-                showAlert('Failed to export employees', 'error');
-            }
-        }
+    function formatDate(dateString) {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+    }
 
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const employeeModal = document.getElementById('employeeModal');
-            const invitationModal = document.getElementById('invitationModal');
-            
-            if (event.target === employeeModal) {
-                closeEmployeeModal();
-            }
-            if (event.target === invitationModal) {
-                closeInvitationModal();
-            }
-        }
+    function canManageEmployees() {
+      return currentUser && (currentUser.role === "MANAGER" || currentUser.role === "ADMIN");
+    }
     </script>
-</body>
+  </body>
 </html>

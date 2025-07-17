@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Scheduler - Dashboard</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
@@ -12,37 +14,41 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8f9fa;
-            color: #2c3e50;
+            font-family: 'Inter', 'Roboto', 'Poppins', Arial, sans-serif;
+            background: linear-gradient(135deg, #e3f0ff 0%, #f6f8fa 100%);
+            color: #222;
+            font-size: 16px;
+            line-height: 1.6;
         }
 
         .header {
-            background: white;
+            background: #fff;
             padding: 20px 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+            box-shadow: 0 4px 24px rgba(31,194,255,0.10);
+            margin-bottom: 32px;
+            border-radius: 0 0 18px 18px;
         }
 
         .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.7rem;
             font-weight: 700;
-            color: #2c3e50;
+            color: #667eea;
+            letter-spacing: 1px;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 24px;
         }
 
         .user-details {
@@ -51,186 +57,227 @@
 
         .user-name {
             font-weight: 600;
-            color: #2c3e50;
+            color: #222;
+            font-size: 1.05rem;
         }
 
         .user-role {
-            font-size: 0.9rem;
-            color: #7f8c8d;
+            font-size: 0.95rem;
+            color: #888;
+            margin-top: 2px;
         }
 
         .logout-btn {
-            background: #e74c3c;
-            color: white;
+            background: #667eea;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 10px 22px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
         }
-
         .logout-btn:hover {
-            background: #c0392b;
+            background: #5a6fd8;
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.15);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
         }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
+            gap: 32px;
+            margin-bottom: 48px;
         }
 
         .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
+            background: #fff;
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10);
+            transition: box-shadow 0.2s, transform 0.2s;
+            border: none;
+            position: relative;
         }
-
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 16px 48px rgba(102,126,234,0.18);
         }
 
         .card h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 1.25rem;
+            font-weight: 700;
         }
 
         .card p {
-            color: #7f8c8d;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            color: #666;
+            margin-bottom: 22px;
+            font-size: 1rem;
         }
 
         .card-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #667eea;
+            color: #fff;
             border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
+            padding: 14px 0;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 600;
             width: 100%;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+            transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
         }
-
         .card-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            background: #5a6fd8;
+            box-shadow: 0 6px 18px rgba(102,126,234,0.18);
+            transform: translateY(-2px) scale(1.01);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
             margin-bottom: 40px;
         }
 
         .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
+            background: linear-gradient(135deg, #e3f0ff 0%, #fff 100%);
+            border-radius: 16px;
+            padding: 28px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 6px 24px rgba(102,126,234,0.10);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .stat-card:hover {
+            box-shadow: 0 12px 32px rgba(102,126,234,0.18);
+            transform: translateY(-2px) scale(1.01);
         }
 
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2.3rem;
             font-weight: 700;
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
         }
 
         .stat-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
+            color: #888;
+            font-size: 1rem;
             font-weight: 500;
         }
 
         .welcome-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            border-radius: 12px;
+            background: #fff;
+            color: #667eea;
+            padding: 44px 0;
+            border-radius: 18px;
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 44px;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.07);
         }
 
         .welcome-section h1 {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
+            font-size: 2.3rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            color: #222;
         }
 
         .welcome-section p {
             font-size: 1.1rem;
-            opacity: 0.9;
+            color: #667eea;
+            opacity: 0.85;
         }
 
         .api-info {
-            background: #2c3e50;
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-top: 40px;
+            background: #fff;
+            color: #222;
+            padding: 32px;
+            border-radius: 18px;
+            margin-top: 44px;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.07);
         }
 
         .api-info h3 {
-            margin-bottom: 20px;
-            color: #ecf0f1;
+            margin-bottom: 18px;
+            color: #667eea;
+            font-weight: 700;
         }
 
         .api-endpoint {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
+            background: #f6f8fa;
+            padding: 14px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 0.97rem;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.04);
         }
 
         .role-badge {
             display: inline-block;
-            padding: 4px 12px;
+            padding: 4px 14px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             margin-left: 10px;
+            background: #e3f7ff;
+            color: #667eea;
+            letter-spacing: 0.5px;
         }
 
-        .role-admin { background: #e74c3c; color: white; }
-        .role-manager { background: #f39c12; color: white; }
-        .role-employee { background: #27ae60; color: white; }
+        .role-admin { background: #ffe3e3; color: #e74c3c; }
+        .role-manager { background: #fff6e3; color: #f39c12; }
+        .role-employee { background: #e3ffe7; color: #27ae60; }
+
+        .admin-only, .admin-logs-only {
+            /* No visual change, but keep for logic */
+        }
 
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
-                gap: 15px;
+                gap: 18px;
             }
 
             .user-info {
                 flex-direction: column;
-                gap: 10px;
+                gap: 12px;
             }
 
             .welcome-section h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
 
             .dashboard-grid {
                 grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+
+            .container {
+                padding: 0 10px;
             }
         }
     </style>
+    <link rel="stylesheet" href="ai-bubble.css">
 </head>
 <body>
     <div class="header">
@@ -250,29 +297,7 @@
     </div>
 
     <div class="container">
-        <div class="welcome-section">
-            <h1>Welcome to Your Dashboard</h1>
-            <p>Manage your hotel scheduling efficiently with our comprehensive tools</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number">24</div>
-                <div class="stat-label">Active Shifts</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">12</div>
-                <div class="stat-label">Employees</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">4</div>
-                <div class="stat-label">Departments</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">3</div>
-                <div class="stat-label">Pending Trades</div>
-            </div>
-        </div>
+        <div class="stats-grid"></div>
 
         <div class="dashboard-grid">
             <div class="card">
@@ -348,40 +373,90 @@
 
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
+    <script src="ai-bubble.js"></script>
     <script>
         const API_BASE_URL = 'http://localhost:8080/api';
 
         // Initialize page on load
         document.addEventListener('DOMContentLoaded', async function() {
             await initializePage();
+            await loadDashboardStats();
         });
 
         // Initialize the dashboard
         async function initializePage() {
-            // Show loading state
             showLoading();
-            
             try {
                 // Check authentication first
                 const isAuthenticated = window.authManager.checkAuth(['MANAGER', 'ADMIN']);
                 if (!isAuthenticated) {
-                    return; // checkAuth will redirect to login
+                    return;
                 }
-
-                // Load user info and update UI
                 updateUserInfo();
-                
-                // Show admin features for eligible users
                 showAdminFeaturesIfEligible();
-                
-                // Test API connection
                 await testApiConnection();
-                
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
                 showError('Failed to initialize dashboard. Please refresh the page.');
             } finally {
                 hideLoading();
+            }
+        }
+
+        // Load and display real dashboard stats in header
+        async function loadDashboardStats() {
+            const token = localStorage.getItem('authToken');
+            const statsGrid = document.querySelector('.stats-grid');
+            if (!statsGrid) return;
+            statsGrid.innerHTML = '<div style="text-align:center;color:#888;grid-column:1/-1;">Loading stats...</div>';
+            try {
+                // Fetch stats from backend (copied from employee-dashboard.html)
+                const [shiftsRes, hoursRes, tradesRes, notificationsRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/shifts/my-shifts`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/shifts/employee-hours?startDate=&endDate=`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/shifts/trades`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/notifications`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                let shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+                let hours = 0;
+                if (hoursRes.ok) {
+                    const hoursData = await hoursRes.json();
+                    if (Array.isArray(hoursData)) {
+                        const userInfo = localStorage.getItem('userInfo');
+                        const userId = userInfo ? JSON.parse(userInfo).id : null;
+                        const userHours = hoursData.find(e => e.employeeId === userId);
+                        hours = userHours ? userHours.hours : 0;
+                    }
+                }
+                if (typeof hours !== 'number' || isNaN(hours)) hours = 0;
+                let trades = tradesRes.ok ? await tradesRes.json() : [];
+                let notifications = notificationsRes.ok ? await notificationsRes.json() : [];
+
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #3498db;">📅</div>
+                        <div class="stat-number" style="color: #3498db;">${shifts.length}</div>
+                        <div class="stat-label">This Week's Shifts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #27ae60;">⏰</div>
+                        <div class="stat-number" style="color: #27ae60;">${hours}</div>
+                        <div class="stat-label">Hours This Week</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #f39c12;">🔄</div>
+                        <div class="stat-number" style="color: #f39c12;">${trades.filter(t => t.status === 'PENDING').length}</div>
+                        <div class="stat-label">Pending Trades</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="color: #e74c3c;">🔔</div>
+                        <div class="stat-number" style="color: #e74c3c;">${notifications.length}</div>
+                        <div class="stat-label">New Notifications</div>
+                    </div>
+                `;
+            } catch (error) {
+                statsGrid.innerHTML = '<div style="text-align:center;color:#e74c3c;grid-column:1/-1;">Unable to load stats. Please refresh.</div>';
             }
         }
 

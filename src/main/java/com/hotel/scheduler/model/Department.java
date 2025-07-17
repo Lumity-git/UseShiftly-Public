@@ -22,20 +22,29 @@ public class Department {
     
     @Column(unique = true, nullable = false)
     private String name;
-    
+
     @Column
     private String description;
-    
+
     @Column(nullable = false)
     private Boolean active = true;
-    
+
+    @Column(name = "min_staffing")
+    private Integer minStaffing;
+
+    @Column(name = "max_staffing")
+    private Integer maxStaffing;
+
+    @Column(name = "total_shifts")
+    private Integer totalShifts;
+
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore  // Prevent circular reference during JSON serialization
     private List<Employee> employees;
-    
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     

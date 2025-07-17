@@ -24,4 +24,12 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Employee> findByRoleAndActiveTrue(@Param("role") Employee.Role role);
     
     boolean existsByEmail(String email);
+
+    /**
+     * Returns an employee by ID, eagerly fetching the associated department.
+     * @param id Employee ID
+     * @return Optional containing the employee if found, empty otherwise
+     */
+    @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.department WHERE e.id = :id")
+    Optional<Employee> findByIdWithDepartment(@Param("id") Long id);
 }

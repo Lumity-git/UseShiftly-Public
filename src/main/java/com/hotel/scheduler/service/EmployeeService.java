@@ -53,6 +53,10 @@ public class EmployeeService implements UserDetailsService {
      * Repository for ShiftTrade entity operations.
      */
     private final ShiftTradeRepository shiftTradeRepository;
+    /**
+     * Repository for Department entity operations.
+     */
+    private final com.hotel.scheduler.repository.DepartmentRepository departmentRepository;
 
     /**
      * Loads an employee by email for authentication.
@@ -67,6 +71,33 @@ public class EmployeeService implements UserDetailsService {
         Employee employee = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
         return employee;
+    }
+    
+    /**
+     * Assigns a single employee to a department.
+     * @param employee the employee entity
+     * @param departmentId the department ID
+     */
+    public void assignEmployeeToDepartment(Employee employee, Long departmentId) {
+        var department = departmentRepository.findById(departmentId)
+            .orElseThrow(() -> new RuntimeException("Department not found"));
+        employee.setDepartment(department);
+        employeeRepository.save(employee);
+    }
+
+    /**
+     * Assigns multiple employees to a department.
+     * @param employeeIds list of employee IDs
+     * @param departmentId the department ID
+     */
+    public void assignEmployeesToDepartment(List<Long> employeeIds, Long departmentId) {
+        var department = departmentRepository.findById(departmentId)
+            .orElseThrow(() -> new RuntimeException("Department not found"));
+        var employees = employeeRepository.findAllById(employeeIds);
+        for (Employee employee : employees) {
+            employee.setDepartment(department);
+        }
+        employeeRepository.saveAll(employees);
     }
 
     /**

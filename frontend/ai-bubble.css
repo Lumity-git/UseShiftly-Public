@@ -1,0 +1,151 @@
+/* AI Assistant Bubble Styles */
+.ai-bubble-toggle {
+  background: #4f8cff;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+.ai-bubble {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 340px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  z-index: 10000;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  animation: aiBubbleOpenLeft 0.5s cubic-bezier(0.4,0.2,0.2,1);
+}
+
+@keyframes aiBubbleOpenLeft {
+  0% {
+    transform: translateX(120px) scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+.ai-bubble-header {
+  background: #4f8cff;
+  color: #fff;
+  padding: 12px 16px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ai-bubble-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.ai-bubble-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+   position: relative;
+}
+
+/* Help message bubble matches robot button size and animates left */
+.ai-bubble-help-message {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  background: #4f8cff;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  animation: aiBubbleHelpOpenLeft 0.5s cubic-bezier(0.4,0.2,0.2,1);
+  overflow: hidden;
+}
+
+@keyframes aiBubbleHelpOpenLeft {
+  0% {
+    width: 56px;
+    opacity: 0;
+    transform: translateX(80px);
+  }
+  60% {
+    width: 180px;
+    opacity: 1;
+    transform: translateX(-10px);
+  }
+  100% {
+    width: 180px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+@keyframes aiBubbleHelpFadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ai-bubble-messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  max-height: 180px;
+}
+.ai-bubble-message {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.98rem;
+}
+.ai-bubble-message.user {
+  background: #eaf1fb;
+  text-align: right;
+}
+.ai-bubble-message.ai {
+  background: #f5f5f5;
+  text-align: left;
+}
+#aiBubbleForm {
+  display: flex;
+  gap: 8px;
+}
+#aiBubbleInput {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  font-size: 1rem;
+}
+#aiBubbleForm button {
+  background: #4f8cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+}
