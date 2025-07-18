@@ -27,6 +27,32 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class AuthController {
     /**
+     * Allows an authenticated user to change their password.
+     * Endpoint: POST /api/auth/change-password
+     * Request: { newPassword }
+     * Response: Success or error message
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal Employee employee,
+                                            @Valid @RequestBody com.hotel.scheduler.dto.auth.ChangePasswordRequest request) {
+        if (employee == null) {
+            return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
+        }
+        String newPassword = request.getNewPassword();
+        // Password policy: 1 special char, 1 uppercase, 1 number, min 8 chars
+        // Fixed regex: properly escape special characters and brackets
+        // Fixed regex: dash moved to the end, all special chars escaped, no unclosed class
+        String passwordPattern = "^(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+=\\[\\]{};':\\\"\\\\|,.<>/?-]).{8,}$";
+        if (!java.util.regex.Pattern.matches(passwordPattern, newPassword)) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                "Password must be at least 8 characters, include 1 uppercase letter, 1 number, and 1 special character."));
+        }
+        employeeService.updatePassword(employee, newPassword);
+        userActionLogService.logAction("CHANGE_PASSWORD", employee);
+        return ResponseEntity.ok(new MessageResponse("Password changed successfully!"));
+    }
+    private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
+    /**
      * Returns the current authenticated user's info, including department.
      * Endpoint: GET /api/auth/me
      * Response: { email, firstName, lastName, role, departmentId, departmentName }
@@ -72,19 +98,22 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtils.generateJwtToken((Employee) authentication.getPrincipal());
             Employee employee = (Employee) authentication.getPrincipal();
-            // Create response manually to avoid serialization issues
+            // Add mustChangePassword to the response
             String responseJson = String.format(
-                "{\"token\":\"%s\",\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\"}",
+                "{\"token\":\"%s\",\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s}",
                 jwt,
                 employee.getEmail(),
                 employee.getFirstName(),
                 employee.getLastName(),
-                employee.getRole().name()
+                employee.getRole().name(),
+                employee.isMustChangePassword() ? "true" : "false"
             );
+            userActionLogService.logAction("LOGIN_SUCCESS", employee);
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")
                     .body(responseJson);
         } catch (Exception e) {
+            userActionLogService.logAction("LOGIN_FAILED", null);
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: Invalid credentials!"));
         }
@@ -121,6 +150,11 @@ public class AuthController {
             employee.setLastName(signUpRequest.getLastName());
             employee.setPhoneNumber(signUpRequest.getPhoneNumber());
             employee.setRole(Employee.Role.valueOf(invitation.getRole()));
+            employee.setDateOfBirth(signUpRequest.getDateOfBirth());
+            employee.setAddress(signUpRequest.getAddress());
+            employee.setEmergencyContactName(signUpRequest.getEmergencyContactName());
+            employee.setEmergencyContactRelation(signUpRequest.getEmergencyContactRelation());
+            employee.setEmergencyContactPhone(signUpRequest.getEmergencyContactPhone());
             // Set department if provided
             if (signUpRequest.getDepartmentId() != null) {
                 Department department = departmentRepository.findById(signUpRequest.getDepartmentId())
@@ -129,8 +163,10 @@ public class AuthController {
             }
             employeeService.createEmployee(employee);
             invitationService.markInvitationUsed(code);
+            userActionLogService.logAction("REGISTER_SUCCESS", employee);
             return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
         } catch (Exception e) {
+            userActionLogService.logAction("REGISTER_FAILED", null);
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: " + e.getMessage()));
         }
@@ -189,6 +225,7 @@ public class AuthController {
                 .invitedBy(currentUser.getFirstName() + " " + currentUser.getLastName())
                 .build();
             invitationService.createInvitation(invitation);
+            userActionLogService.logAction("GENERATED_INVITATION", currentUser);
             return ResponseEntity.ok(java.util.Map.of(
                 "invitationCode", invitationCode,
                 "invitationToken", invitationToken,
@@ -197,6 +234,7 @@ public class AuthController {
                 "createdBy", currentUser.getFirstName() + " " + currentUser.getLastName()
             ));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_GENERATE_INVITATION", currentUser);
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: " + e.getMessage()));
         }
@@ -238,15 +276,18 @@ public class AuthController {
      */
     @DeleteMapping("/delete-invitation/{code}")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> deleteInvitation(@PathVariable String code) {
+    public ResponseEntity<?> deleteInvitation(@PathVariable String code, @AuthenticationPrincipal Employee currentUser) {
         try {
             boolean deleted = invitationService.deleteInvitationByCode(code);
             if (deleted) {
+                userActionLogService.logAction("DELETED_INVITATION", currentUser);
                 return ResponseEntity.ok(new MessageResponse("Invitation deleted successfully."));
             } else {
+                userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser);
                 return ResponseEntity.status(404).body(new MessageResponse("Invitation not found or already used/expired."));
             }
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }

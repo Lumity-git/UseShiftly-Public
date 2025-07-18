@@ -44,6 +44,8 @@ app:
       enabled: ${EMAIL_ENABLED:true}
 
 logging:
+  file:
+    name: logs/hotel-scheduler.log
   level:
     com.hotel.scheduler: INFO
     org.springframework.security: DEBUG

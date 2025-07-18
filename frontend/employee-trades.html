@@ -291,7 +291,7 @@
             const end = new Date(shift.endTime);
             const formattedTimes = `${start.toLocaleString()} - ${end.toLocaleString()}`;
             const department =
-              shift.departmentName || (shift.department && shift.department.name) || "No Deplook artment";
+              shift.departmentName || (shift.department && shift.department.name) || "No Deplook wartment";
             const position = shift.position || "General Staff";
             // Use shift.employeeName or shift.createdByName for poster name
             const posterName = shift.employeeName || shift.createdByName || "Unknown";

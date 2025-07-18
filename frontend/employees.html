@@ -25,8 +25,8 @@
     <div class="container">
 
       <div class="filters">
-        <div class="filter-row">
-          <div class="filter-group">
+        <div class="filter-row" style="display: flex; flex-wrap: nowrap; align-items: flex-end; gap: 1em; overflow-x: auto;">
+          <div class="filter-group" style="min-width: 180px;">
             <label for="searchTerm">Search Employee</label>
             <input
               type="text"
@@ -34,13 +34,13 @@
               placeholder="Search by name, email, or phone"
             />
           </div>
-          <div class="filter-group">
+          <div class="filter-group" style="min-width: 140px;">
             <label for="departmentFilter">Department</label>
             <select id="departmentFilter">
               <option value="">All Departments</option>
             </select>
           </div>
-          <div class="filter-group">
+          <div class="filter-group" style="min-width: 120px;">
             <label for="roleFilter">Role</label>
             <select id="roleFilter">
               <option value="">All Roles</option>
@@ -49,7 +49,7 @@
               <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
-          <div class="filter-group">
+          <div class="filter-group" style="min-width: 120px;">
             <label for="statusFilter">Status</label>
             <select id="statusFilter">
               <option value="">All Statuses</option>
@@ -57,9 +57,9 @@
               <option value="false">Inactive</option>
             </select>
           </div>
-        </div>
-        <div class="action-buttons" id="actionButtons">
-          <!-- Buttons will be populated based on user role -->
+          <div class="action-buttons" id="actionButtons" style="display: flex; gap: 0.5em; align-items: flex-end; min-width: 420px;">
+            <!-- Buttons will be populated based on user role -->
+          </div>
         </div>
       </div>
 
@@ -120,6 +120,30 @@
             <div class="form-group">
               <label for="phoneNumber">Phone Number</label>
               <input type="tel" id="phoneNumber" name="phoneNumber" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dateOfBirth">Date of Birth</label>
+              <input type="date" id="dateOfBirth" name="dateOfBirth" />
+            </div>
+            <div class="form-group">
+              <label for="address">Address</label>
+              <input type="text" id="address" name="address" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="emergencyContactName">Emergency Contact Name</label>
+              <input type="text" id="emergencyContactName" name="emergencyContactName" />
+            </div>
+            <div class="form-group">
+              <label for="emergencyContactRelation">Emergency Contact Relation</label>
+              <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" />
+            </div>
+            <div class="form-group">
+              <label for="emergencyContactPhone">Emergency Contact Phone</label>
+              <input type="tel" id="emergencyContactPhone" name="emergencyContactPhone" />
             </div>
           </div>
           <div class="form-row">
@@ -290,26 +314,102 @@
 
       function setupActionButtons() {
         const actionButtons = document.getElementById("actionButtons");
-
         if (canManageEmployees()) {
           actionButtons.innerHTML = `
                           <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
                               ➕ Add Employee
                           </button>
-                          <button class="btn btn-secondary" onclick="loadEmployees()">
+                          <button class="btn btn-secondary" onclick="openBulkImportModal()">
+                              ➕ Add Employees by File
+                          </button>
+                          <button class="btn btn-secondary" onclick="refreshWithFilters()">
                               🔄 Refresh
                           </button>
-                          <button class="btn btn-success" onclick="exportEmployees()">
+                          <button class="btn btn-success" onclick="exportEmployeesFiltered()">
                               📊 Export
                           </button>
                       `;
         } else {
           actionButtons.innerHTML = `
-                          <button class="btn btn-secondary" onclick="loadEmployees()">
+                          <button class="btn btn-secondary" onclick="refreshWithFilters()">
                               🔄 Refresh
                           </button>
                       `;
         }
+      }
+
+      // Refresh button that reloads and re-applies filters
+      async function refreshWithFilters() {
+        await loadEmployees();
+        filterEmployees();
+      }
+
+      // Export only currently filtered employees
+      function exportEmployeesFiltered() {
+        // Get current filtered employees
+        const searchTerm = document.getElementById("searchTerm").value.toLowerCase();
+        const departmentFilter = document.getElementById("departmentFilter").value;
+        const roleFilter = document.getElementById("roleFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+        const filtered = employees.filter((employee) => {
+          const matchesSearch =
+            employee.firstName.toLowerCase().includes(searchTerm) ||
+            employee.lastName.toLowerCase().includes(searchTerm) ||
+            employee.email.toLowerCase().includes(searchTerm) ||
+            (employee.phoneNumber && employee.phoneNumber.includes(searchTerm));
+          const matchesDepartment = !departmentFilter || employee.departmentId == departmentFilter;
+          const matchesRole = !roleFilter || employee.role === roleFilter;
+          const matchesStatus = !statusFilter || employee.active.toString() === statusFilter;
+          return matchesSearch && matchesDepartment && matchesRole && matchesStatus;
+        });
+        if (!filtered || filtered.length === 0) {
+          showAlert("No employees to export.", "info");
+          return;
+        }
+        const csvRows = [
+          [
+            "First Name",
+            "Last Name",
+            "Email",
+            "Phone Number",
+            "Date of Birth",
+            "Address",
+            "Emergency Contact Name",
+            "Emergency Contact Relation",
+            "Emergency Contact Phone",
+            "Role",
+            "Department",
+            "Status",
+            "Joined"
+          ].join(",")
+        ];
+        filtered.forEach(emp => {
+          csvRows.push([
+            emp.firstName,
+            emp.lastName,
+            emp.email,
+            emp.phoneNumber || "",
+            emp.dateOfBirth || "",
+            emp.address || "",
+            emp.emergencyContactName || "",
+            emp.emergencyContactRelation || "",
+            emp.emergencyContactPhone || "",
+            emp.role,
+            emp.departmentName || "",
+            emp.active ? "Active" : "Inactive",
+            formatDate(emp.createdAt)
+          ].map(val => `"${val}"`).join(","));
+        });
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "employees_export.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
 
       // Authentication
@@ -483,16 +583,29 @@
       }
 
       // Render employees
+      // Pagination variables
+      let currentPage = 1;
+      const employeesPerPage = 9;
+
       function renderEmployees(filteredEmployees = employees) {
         const container = document.getElementById("employeesContainer");
-
         if (filteredEmployees.length === 0) {
           container.innerHTML =
             '<div class="alert alert-info">No employees found for the selected criteria.</div>';
+          document.getElementById("paginationContainer")?.remove();
           return;
         }
 
-        const employeesHtml = filteredEmployees
+        // Pagination logic
+        const totalEmployees = filteredEmployees.length;
+        const totalPages = Math.ceil(totalEmployees / employeesPerPage);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        const startIdx = (currentPage - 1) * employeesPerPage;
+        const endIdx = startIdx + employeesPerPage;
+        const employeesToShow = filteredEmployees.slice(startIdx, endIdx);
+
+        const employeesHtml = employeesToShow
           .map(function (employee) {
             let html = '<div class="employee-card">';
             html += '<div class="employee-header">';
@@ -561,6 +674,29 @@
           .join("");
         container.innerHTML =
           '<div class="employees-grid">' + employeesHtml + "</div>";
+
+        // Pagination controls
+        let paginationHtml = '';
+        if (totalPages > 1) {
+          paginationHtml += '<div class="pagination-controls">';
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
+          paginationHtml += `<span class="pagination-info"> Page ${currentPage} of ${totalPages} </span>`;
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next &raquo;</button>`;
+          paginationHtml += '</div>';
+        }
+        // Remove old pagination if exists
+        document.getElementById("paginationContainer")?.remove();
+        // Add new pagination
+        const pagDiv = document.createElement("div");
+        pagDiv.id = "paginationContainer";
+        pagDiv.innerHTML = paginationHtml;
+        container.parentNode.appendChild(pagDiv);
+      }
+
+      // Change page
+      window.changeEmployeePage = function (delta) {
+        currentPage += delta;
+        renderEmployees();
       }
 
       function renderPendingInvitations(invitations) {
@@ -677,11 +813,14 @@
           document.getElementById("firstName").value = employee.firstName;
           document.getElementById("lastName").value = employee.lastName;
           document.getElementById("email").value = employee.email;
-          document.getElementById("phoneNumber").value =
-            employee.phoneNumber || "";
+          document.getElementById("phoneNumber").value = employee.phoneNumber || "";
+          document.getElementById("dateOfBirth").value = employee.dateOfBirth || "";
+          document.getElementById("address").value = employee.address || "";
+          document.getElementById("emergencyContactName").value = employee.emergencyContactName || "";
+          document.getElementById("emergencyContactRelation").value = employee.emergencyContactRelation || "";
+          document.getElementById("emergencyContactPhone").value = employee.emergencyContactPhone || "";
           document.getElementById("role").value = employee.role;
-          document.getElementById("department").value =
-            employee.departmentId || "";
+          document.getElementById("department").value = employee.departmentId || "";
           document.getElementById("active").value = employee.active.toString();
 
           document.getElementById("employeeModal").style.display = "block";
@@ -699,6 +838,11 @@
           lastName: formData.get("lastName"),
           email: formData.get("email"),
           phoneNumber: formData.get("phoneNumber") || null,
+          dateOfBirth: formData.get("dateOfBirth") || null,
+          address: formData.get("address") || null,
+          emergencyContactName: formData.get("emergencyContactName") || null,
+          emergencyContactRelation: formData.get("emergencyContactRelation") || null,
+          emergencyContactPhone: formData.get("emergencyContactPhone") || null,
           role: formData.get("role"),
           departmentId: formData.get("departmentId")
             ? parseInt(formData.get("departmentId"))
@@ -841,6 +985,83 @@
     function canManageEmployees() {
       return currentUser && (currentUser.role === "MANAGER" || currentUser.role === "ADMIN");
     }
+
+    // Bulk Import Modal
+    // Placed at the end of body for correct scope
+    // Only one instance will be appended
+    if (!document.getElementById('bulkImportModal')) {
+      const modalHtml = `
+        <div id="bulkImportModal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">Bulk Import Employees</h3>
+              <button class="close" onclick="closeBulkImportModal()">&times;</button>
+            </div>
+            <form id="bulkImportForm">
+              <div class="form-group">
+                <label for="bulkFile">Upload CSV File</label>
+                <input type="file" id="bulkFile" name="bulkFile" accept=".csv" required />
+              </div>
+              <div class="form-group">
+                <small>CSV must include: firstName, lastName, email, role, departmentId (optional: phoneNumber, dateOfBirth, address, emergencyContactName, emergencyContactRelation, emergencyContactPhone)</small>
+              </div>
+              <div class="action-buttons">
+                <button type="submit" class="btn btn-primary">⬆️ Import</button>
+                <button type="button" class="btn btn-secondary" onclick="closeBulkImportModal()">❌ Cancel</button>
+              </div>
+            </form>
+            <div id="bulkImportResult" style="margin-top:1em;"></div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Bulk Import Modal JS
+    window.openBulkImportModal = function() {
+      document.getElementById('bulkImportForm').reset();
+      document.getElementById('bulkImportResult').innerHTML = '';
+      document.getElementById('bulkImportModal').style.display = 'block';
+    }
+    window.closeBulkImportModal = function() {
+      document.getElementById('bulkImportModal').style.display = 'none';
+    }
+    document.getElementById('bulkImportForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('bulkFile');
+      if (!fileInput.files.length) return;
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('authToken');
+      try {
+        const response = await fetch(`${API_BASE_URL}/employees/bulk-import`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const resultDiv = document.getElementById('bulkImportResult');
+        if (!response.ok) {
+          const text = await response.text();
+          resultDiv.innerHTML = `<div class='alert alert-error'>Import failed: ${text}</div>`;
+          return;
+        }
+        const data = await response.json();
+        let html = `<div class='alert alert-success'>${data.successCount} employees imported.`;
+        if (data.failures && data.failures.length > 0) {
+          html += `<br>Failures:<ul>`;
+          data.failures.forEach(f => {
+            html += `<li>${f.row}: ${f.reason}</li>`;
+          });
+          html += `</ul>`;
+        }
+        html += `</div>`;
+        resultDiv.innerHTML = html;
+        loadEmployees();
+      } catch (err) {
+        document.getElementById('bulkImportResult').innerHTML = `<div class='alert alert-error'>Import failed. Please try again.</div>`;
+      }
+    });
     </script>
   </body>
 </html>

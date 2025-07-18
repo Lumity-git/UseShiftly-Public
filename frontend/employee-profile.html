@@ -77,27 +77,41 @@
                             </div>
                             <div class="info-value" id="roleInfo">Loading...</div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">
-                                <span>📅</span>
-                                Hire Date
-                            </div>
-                            <div class="info-value" id="hireDate">Loading...</div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <span>📅</span>
+                            Date of Birth
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">
-                                <span>✅</span>
-                                Account Status
-                            </div>
-                            <div class="info-value" id="accountStatus">Active</div>
+                        <div class="info-value" id="dateOfBirth">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <span>🏠</span>
+                            Address
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">
-                                <span>📞</span>
-                                Phone Number
-                            </div>
-                            <div class="info-value" id="phoneNumber">Loading...</div>
+                        <div class="info-value" id="address">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <span>✅</span>
+                            Account Status
                         </div>
+                        <div class="info-value" id="accountStatus">Active</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <span>📞</span>
+                            Phone Number
+                        </div>
+                        <div class="info-value" id="phoneNumber">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">
+                            <span>🚨</span>
+                            Emergency Contact
+                        </div>
+                        <div class="info-value" id="emergencyContact">Loading...</div>
+                    </div>
                     </div>
 
                     <h3 class="section-title">Quick Actions</h3>
@@ -152,17 +166,26 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('profileContent').style.display = 'block';
 
-            // Defensive: fallback to empty string if missing
             document.getElementById('profileName').textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
             document.getElementById('profileEmail').textContent = profile.email || '';
             document.getElementById('fullName').textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
             document.getElementById('emailAddress').textContent = profile.email || '';
             document.getElementById('department').textContent = profile.departmentName || 'Not Assigned';
             document.getElementById('roleInfo').textContent = profile.role || '';
-            // EmployeeDTO does not have hireDate, so show Not Available
-            document.getElementById('hireDate').textContent = 'Not Available';
+            document.getElementById('dateOfBirth').textContent = profile.dateOfBirth ? formatDate(profile.dateOfBirth) : 'Not Provided';
+            document.getElementById('address').textContent = profile.address || 'Not Provided';
             document.getElementById('accountStatus').textContent = profile.active ? 'Active' : 'Inactive';
             document.getElementById('phoneNumber').textContent = profile.phoneNumber || 'Not Provided';
+            // Emergency contact: show name, relation, phone
+            let emergency = '';
+            if (profile.emergencyContactName || profile.emergencyContactRelation || profile.emergencyContactPhone) {
+                emergency = `${profile.emergencyContactName || ''}`;
+                if (profile.emergencyContactRelation) emergency += ` (${profile.emergencyContactRelation})`;
+                if (profile.emergencyContactPhone) emergency += ` - ${profile.emergencyContactPhone}`;
+            } else {
+                emergency = 'Not Provided';
+            }
+            document.getElementById('emergencyContact').textContent = emergency;
         }
 
         function formatDate(dateString) {

@@ -18,6 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class DepartmentController {
+    private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
     /**
      * DepartmentController manages hotel departments (CRUD operations).
      * 
@@ -89,8 +90,10 @@ public class DepartmentController {
                 department.setTotalShifts((Integer) request.get("totalShifts"));
             }
             Department saved = departmentRepository.save(department);
+            userActionLogService.logAction("CREATED_DEPARTMENT", currentUser);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_CREATE_DEPARTMENT", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -126,8 +129,10 @@ public class DepartmentController {
                 existing.setTotalShifts((Integer) request.get("totalShifts"));
             }
             Department saved = departmentRepository.save(existing);
+            userActionLogService.logAction("UPDATED_DEPARTMENT", currentUser);
             return ResponseEntity.ok(DepartmentDTO.fromEntity(saved));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_UPDATE_DEPARTMENT", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -139,11 +144,13 @@ public class DepartmentController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
+    public ResponseEntity<?> deleteDepartment(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             departmentRepository.deleteById(id);
+            userActionLogService.logAction("DELETED_DEPARTMENT", currentUser);
             return ResponseEntity.ok(new MessageResponse("Department deleted successfully"));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_DELETE_DEPARTMENT", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }

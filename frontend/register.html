@@ -8,86 +8,71 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="registration-container">
-        <div class="header">
-            <div class="logo">
-                <i class="fas fa-hotel"></i> Hotel Scheduler
-            </div>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo"><i class="fas fa-hotel"></i> Hotel Scheduler</div>
             <div class="subtitle">Employee Registration</div>
         </div>
-
+    </header>
+    <main class="container registration-container">
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
-
         <div id="alertContainer"></div>
-
-        <div class="invitation-info" id="invitationInfo" style="display: none;">
+        <section class="invitation-info card" id="invitationInfo" style="display: none;">
             <h3><i class="fas fa-envelope-open"></i> Invitation Details</h3>
             <p>You've been invited to join <strong id="hotelName">Grand Hotel</strong> as a <strong id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong> department.</p>
             <p>Invited by: <strong id="invitedBy">Manager Name</strong> on <strong id="invitationDate">March 15, 2024</strong></p>
-        </div>
-
-        <form id="registrationForm">
+        </section>
+        <form id="registrationForm" class="card form-card">
             <input type="hidden" id="invitationCode" name="invitationCode">
             <input type="hidden" id="invitationToken" name="invitationToken">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+            <div class="dashboard-grid">
                 <div>
                     <!-- Personal Information -->
-                    <div class="form-section">
+                    <section class="form-section">
                         <h3><i class="fas fa-user"></i> Personal Info</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="firstName">First Name <span class="required">*</span></label>
+                                <label for="firstName">First Name <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="text" id="firstName" name="firstName" required>
                             </div>
                             <div class="form-group">
-                                <label for="lastName">Last Name <span class="required">*</span></label>
+                                <label for="lastName">Last Name <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="text" id="lastName" name="lastName" required>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="email">Email <span class="required">*</span></label>
+                                <label for="email">Email <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="email" id="email" name="email" required readonly>
                             </div>
                             <div class="form-group">
-                                <label for="phone">Phone <span class="required">*</span></label>
+                                <label for="phone">Phone <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="tel" id="phone" name="phone" required>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="dateOfBirth">DOB <span class="required">*</span></label>
+                                <label for="dateOfBirth">DOB <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="date" id="dateOfBirth" name="dateOfBirth" required>
                             </div>
                             <div class="form-group">
-                                <label for="ssn">SSN <span class="required">*</span></label>
-                                <input type="password" id="ssn" name="ssn" placeholder="XXX-XX-XXXX" required maxlength="11" autocomplete="off">
-                                <div style="margin-top:0.3rem;">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="ssnToggle" onchange="toggleSSN(this.checked)">
-                                        <span class="slider"></span>
-                                        <span style="font-size:0.95rem;margin-left:0.7rem;vertical-align:middle;">Show SSN</span>
-                                    </label>
-                                </div>
+                                <label for="address">Address <span class="required" style="color:#e74c3c">*</span></label>
+                                <textarea id="address" name="address" placeholder="Street address, city, state, ZIP code" required></textarea>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="address">Address <span class="required">*</span></label>
-                            <textarea id="address" name="address" placeholder="Street address, city, state, ZIP code" required></textarea>
-                        </div>
-                    </div>
+                    </section>
                     <!-- Emergency Contact -->
-                    <div class="form-section">
+                    <section class="form-section">
                         <h3><i class="fas fa-phone"></i> Emergency Contact</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="emergencyName">Contact Name <span class="required">*</span></label>
+                                <label for="emergencyName">Contact Name <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="text" id="emergencyName" name="emergencyName" required>
                             </div>
                             <div class="form-group">
-                                <label for="emergencyRelation">Relationship <span class="required">*</span></label>
+                                <label for="emergencyRelation">Relationship <span class="required" style="color:#e74c3c">*</span></label>
                                 <select id="emergencyRelation" name="emergencyRelation" required>
                                     <option value="">Select relationship</option>
                                     <option value="spouse">Spouse</option>
@@ -100,109 +85,27 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="emergencyPhone">Emergency Phone <span class="required">*</span></label>
+                            <label for="emergencyPhone">Emergency Phone <span class="required" style="color:#e74c3c">*</span></label>
                             <input type="tel" id="emergencyPhone" name="emergencyPhone" required>
                         </div>
-                    </div>
+                    </section>
                 </div>
                 <div>
                     <!-- Account Setup -->
-                    <div class="form-section">
+                    <section class="form-section">
                         <h3><i class="fas fa-key"></i> Account Setup</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="password">Password <span class="required">*</span></label>
+                                <label for="password">Password <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="password" id="password" name="password" required minlength="8">
-                                <small style="color: #666;">Min 8 chars, include uppercase, lowercase, number, special</small>
+                                <small class="form-hint">Min 8 chars, include uppercase, lowercase, number, special</small>
                             </div>
                             <div class="form-group">
-                                <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+                                <label for="confirmPassword">Confirm Password <span class="required" style="color:#e74c3c">*</span></label>
                                 <input type="password" id="confirmPassword" name="confirmPassword" required>
                             </div>
                         </div>
-                    </div>
-                    <!-- Document Upload (collapsible) -->
-                    <div class="form-section" style="margin-bottom:0.5rem;">
-                        <h3 style="cursor:pointer;" onclick="togglePanel('docPanel')"><i class="fas fa-file-upload"></i> Documents <span style="font-size:0.9rem;color:#667eea;">(click to expand/collapse)</span></h3>
-                        <div id="docPanel" style="display:none;">
-                            <p style="color: #666; margin-bottom: 0.7rem;">Upload required documents (PDF, JPG, PNG, max 5MB each):</p>
-                            <div class="form-group">
-                                <label>Government-issued ID <span class="required">*</span></label>
-                                <div class="file-upload">
-                                    <input type="file" id="governmentId" name="governmentId" accept=".pdf,.jpg,.jpeg,.png" required>
-                                    <div class="file-upload-btn" onclick="document.getElementById('governmentId').click()">
-                                        <i class="fas fa-id-card"></i>
-                                        <p>Upload Government ID</p>
-                                    </div>
-                                    <div class="file-list" id="governmentIdList"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>I-9 Employment Eligibility <span class="required">*</span></label>
-                                <div class="file-upload">
-                                    <input type="file" id="i9Form" name="i9Form" accept=".pdf,.jpg,.jpeg,.png" required>
-                                    <div class="file-upload-btn" onclick="document.getElementById('i9Form').click()">
-                                        <i class="fas fa-file-alt"></i>
-                                        <p>Upload I-9 Form</p>
-                                    </div>
-                                    <div class="file-list" id="i9FormList"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>W-4 Tax Withholding <span class="required">*</span></label>
-                                <div class="file-upload">
-                                    <input type="file" id="w4Form" name="w4Form" accept=".pdf,.jpg,.jpeg,.png" required>
-                                    <div class="file-upload-btn" onclick="document.getElementById('w4Form').click()">
-                                        <i class="fas fa-file-invoice-dollar"></i>
-                                        <p>Upload W-4 Form</p>
-                                    </div>
-                                    <div class="file-list" id="w4FormList"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Legal Agreements (collapsible) -->
-                    <div class="form-section" style="margin-bottom:0.5rem;">
-                        <h3 style="cursor:pointer;" onclick="togglePanel('legalPanel')"><i class="fas fa-gavel"></i> Legal Agreements <span style="font-size:0.9rem;color:#667eea;">(click to expand/collapse)</span></h3>
-                        <div id="legalPanel" style="display:none;">
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="backgroundCheck" name="backgroundCheck" required>
-                                <label for="backgroundCheck" class="legal-text">
-                                    <strong>Background Check Consent:</strong> I authorize Grand Hotel to conduct a background check. <a href="#" class="legal-link" onclick="showBackgroundCheckInfo()">Learn more</a>
-                                </label>
-                            </div>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="drugTest" name="drugTest" required>
-                                <label for="drugTest" class="legal-text">
-                                    <strong>Drug Testing Policy:</strong> I consent to pre-employment and random drug testing.
-                                </label>
-                            </div>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="employmentAgreement" name="employmentAgreement" required>
-                                <label for="employmentAgreement" class="legal-text">
-                                    <strong>Employment Agreement:</strong> I agree to the terms and conditions. <a href="#" class="legal-link" onclick="showEmploymentAgreement()">View full agreement</a>
-                                </label>
-                            </div>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="privacyPolicy" name="privacyPolicy" required>
-                                <label for="privacyPolicy" class="legal-text">
-                                    <strong>Privacy Policy:</strong> I have read and understand the privacy policy. <a href="#" class="legal-link" onclick="showPrivacyPolicy()">Read privacy policy</a>
-                                </label>
-                            </div>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="atWillEmployment" name="atWillEmployment" required>
-                                <label for="atWillEmployment" class="legal-text">
-                                    <strong>At-Will Employment:</strong> I understand my employment is at-will.
-                                </label>
-                            </div>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="dataAccuracy" name="dataAccuracy" required>
-                                <label for="dataAccuracy" class="legal-text">
-                                    <strong>Information Accuracy:</strong> I certify all information is true and accurate.
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                    </section>
                 </div>
             </div>
             <div class="form-actions">
@@ -214,7 +117,7 @@
                 </button>
             </div>
         </form>
-    </div>
+    </main>
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">

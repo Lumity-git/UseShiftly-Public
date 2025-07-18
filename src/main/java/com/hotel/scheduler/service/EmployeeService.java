@@ -1,3 +1,4 @@
+// ...existing code...
 package com.hotel.scheduler.service;
 
 import com.hotel.scheduler.model.Employee;
@@ -24,6 +25,7 @@ import java.util.Optional;
  * <p>
  * <b>Usage:</b> Injected into controllers and other services for employee-related operations.
  */
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -107,12 +109,31 @@ public class EmployeeService implements UserDetailsService {
      * @return the saved Employee
      * @throws RuntimeException if the email is already taken
      */
-    public Employee createEmployee(Employee employee) {
+    private final NotificationService notificationService;
+
+    /**
+     * Creates a new employee, generates a temp password, sets mustChangePassword, and sends registration email if created by admin/manager.
+     * @param employee the employee to create
+     * @param createdByAdminOrManager true if created by admin/manager, false if self-registration
+     * @return the saved Employee
+     */
+    public Employee createEmployee(Employee employee, boolean createdByAdminOrManager) {
         if (employeeRepository.existsByEmail(employee.getEmail())) {
             throw new RuntimeException("Error: Email is already taken!");
         }
+        String tempPassword = employee.getPassword();
+        if (createdByAdminOrManager) {
+            // Generate random password
+            tempPassword = java.util.UUID.randomUUID().toString().substring(0, 10);
+            employee.setPassword(tempPassword);
+            employee.setMustChangePassword(true);
+        }
         employee.setPassword(passwordEncoder.encode(employee.getPassword()));
-        return employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+        if (createdByAdminOrManager) {
+            notificationService.sendEmployeeRegistrationEmail(saved, tempPassword);
+        }
+        return saved;
     }
 
     /**
@@ -184,6 +205,22 @@ public class EmployeeService implements UserDetailsService {
      */
     public List<Employee> getManagersAndAdmins() {
         return employeeRepository.findByRoleAndActiveTrue(Employee.Role.MANAGER);
+    }
+
+    /**
+     * Checks if the provided password matches the employee's current password.
+     */
+    public boolean checkPassword(Employee employee, String rawPassword) {
+        return passwordEncoder.matches(rawPassword, employee.getPassword());
+    }
+
+    /**
+     * Updates the employee's password and sets mustChangePassword to false.
+     */
+    public void updatePassword(Employee employee, String newPassword) {
+        employee.setPassword(passwordEncoder.encode(newPassword));
+        employee.setMustChangePassword(false);
+        employeeRepository.save(employee);
     }
 
     /**

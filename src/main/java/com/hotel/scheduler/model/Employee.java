@@ -19,6 +19,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Employee implements UserDetails {
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,6 +60,21 @@ public class Employee implements UserDetails {
     
     @Column(nullable = false)
     private Boolean active = true;
+
+    @Column(name = "date_of_birth")
+    private String dateOfBirth; // ISO format (yyyy-MM-dd)
+
+    @Column(name = "address")
+    private String address;
+
+    @Column(name = "emergency_contact_name")
+    private String emergencyContactName;
+
+    @Column(name = "emergency_contact_relation")
+    private String emergencyContactRelation;
+
+    @Column(name = "emergency_contact_phone")
+    private String emergencyContactPhone;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

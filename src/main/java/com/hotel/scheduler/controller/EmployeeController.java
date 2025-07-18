@@ -17,6 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
+    private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
     /**
      * Update employee info by ID (Manager/Admin only)
      */
@@ -40,6 +41,21 @@ public class EmployeeController {
             if (employeeUpdate.containsKey("phoneNumber")) {
                 employee.setPhoneNumber((String) employeeUpdate.get("phoneNumber"));
             }
+            if (employeeUpdate.containsKey("dateOfBirth")) {
+                employee.setDateOfBirth((String) employeeUpdate.get("dateOfBirth"));
+            }
+            if (employeeUpdate.containsKey("address")) {
+                employee.setAddress((String) employeeUpdate.get("address"));
+            }
+            if (employeeUpdate.containsKey("emergencyContactName")) {
+                employee.setEmergencyContactName((String) employeeUpdate.get("emergencyContactName"));
+            }
+            if (employeeUpdate.containsKey("emergencyContactRelation")) {
+                employee.setEmergencyContactRelation((String) employeeUpdate.get("emergencyContactRelation"));
+            }
+            if (employeeUpdate.containsKey("emergencyContactPhone")) {
+                employee.setEmergencyContactPhone((String) employeeUpdate.get("emergencyContactPhone"));
+            }
             if (employeeUpdate.containsKey("role")) {
                 employee.setRole(Employee.Role.valueOf((String) employeeUpdate.get("role")));
             }
@@ -51,8 +67,10 @@ public class EmployeeController {
                 employee.setActive(Boolean.valueOf(employeeUpdate.get("active").toString()));
             }
             Employee updated = employeeService.updateEmployee(employee);
+            userActionLogService.logAction("UPDATED_EMPLOYEE", currentUser);
             return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -62,7 +80,7 @@ public class EmployeeController {
      */
     @GetMapping("/export")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<String> exportEmployeesCsv() {
+    public ResponseEntity<String> exportEmployeesCsv(@AuthenticationPrincipal Employee currentUser) {
         List<Employee> employees = employeeService.getAllActiveEmployees();
         StringBuilder csv = new StringBuilder();
         csv.append("ID,First Name,Last Name,Email,Phone,Role,Department,Active\n");
@@ -76,6 +94,7 @@ public class EmployeeController {
                 .append(e.getDepartment() != null ? e.getDepartment().getName() : "Unassigned").append(",")
                 .append(e.getActive() ? "Active" : "Inactive").append("\n");
         }
+        userActionLogService.logAction("EXPORTED_EMPLOYEES", currentUser);
         return ResponseEntity.ok()
                 .header("Content-Type", "text/csv")
                 .body(csv.toString());
@@ -197,11 +216,13 @@ public class EmployeeController {
     
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deactivateEmployee(@PathVariable Long id) {
+    public ResponseEntity<?> deactivateEmployee(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             employeeService.deactivateEmployee(id);
+            userActionLogService.logAction("DEACTIVATED_EMPLOYEE", currentUser);
             return ResponseEntity.ok(new MessageResponse("Employee deactivated successfully"));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_DEACTIVATE_EMPLOYEE", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -222,8 +243,10 @@ public class EmployeeController {
             employee.setRole(Employee.Role.valueOf(newRole));
             Employee updated = employeeService.updateEmployee(employee);
             
+            userActionLogService.logAction("UPDATED_EMPLOYEE_ROLE", currentUser);
             return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_ROLE", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -238,21 +261,22 @@ public class EmployeeController {
             newEmployee.setLastName((String) employeeData.get("lastName"));
             newEmployee.setEmail((String) employeeData.get("email"));
             newEmployee.setPhoneNumber((String) employeeData.get("phoneNumber"));
-            
-            // Set default password or use provided one
-            String password = (String) employeeData.getOrDefault("password", "defaultpassword123");
-            newEmployee.setPassword(password);
-            
             // Set role - default to EMPLOYEE if not specified
             String roleStr = (String) employeeData.getOrDefault("role", "EMPLOYEE");
             newEmployee.setRole(Employee.Role.valueOf(roleStr));
-            
             // Set active status
             newEmployee.setActive(true);
-            
-            Employee saved = employeeService.createEmployee(newEmployee);
+            // Create employee with email notification and temp password
+            Employee saved = employeeService.createEmployee(newEmployee, true);
+            // Assign department if provided
+            if (employeeData.containsKey("departmentId")) {
+                Long deptId = Long.valueOf(employeeData.get("departmentId").toString());
+                employeeService.assignEmployeeToDepartment(saved, deptId);
+            }
+            userActionLogService.logAction("CREATED_EMPLOYEE", currentUser);
             return ResponseEntity.ok(EmployeeDTO.fromEntity(saved));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_CREATE_EMPLOYEE", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -268,26 +292,38 @@ public class EmployeeController {
                 return ResponseEntity.badRequest().body(new MessageResponse("No employee IDs provided"));
             }
             employeeService.assignEmployeesToDepartment(employeeIds, departmentId);
+            userActionLogService.logAction("ASSIGNED_EMPLOYEES_TO_DEPARTMENT", currentUser);
             return ResponseEntity.ok(new MessageResponse("Employees assigned to department successfully"));
         } catch (Exception e) {
+            userActionLogService.logAction("FAILED_ASSIGN_EMPLOYEES_TO_DEPARTMENT", currentUser);
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
     
+    /**
+     * Change password endpoint for employees, managers, and admins.
+     * Requires old password, new password. Sets mustChangePassword=false on success.
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> req,
+                                            @AuthenticationPrincipal Employee currentUser) {
+        String oldPassword = req.get("oldPassword");
+        String newPassword = req.get("newPassword");
+        if (oldPassword == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Missing old or new password"));
+        }
+        if (!employeeService.checkPassword(currentUser, oldPassword)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Old password is incorrect"));
+        }
+        employeeService.updatePassword(currentUser, newPassword);
+        return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+    }
+
     // Helper class for response messages
     public static class MessageResponse {
         private String message;
-        
-        public MessageResponse(String message) {
-            this.message = message;
-        }
-        
-        public String getMessage() {
-            return message;
-        }
-        
-        public void setMessage(String message) {
-            this.message = message;
-        }
+        public MessageResponse(String message) { this.message = message; }
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
     }
 }

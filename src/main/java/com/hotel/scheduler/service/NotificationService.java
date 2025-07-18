@@ -34,6 +34,39 @@ public class NotificationService {
     private final com.hotel.scheduler.repository.EmployeeRepository employeeRepository;
 
     // ...existing code...
+    /**
+     * Sends a registration email to a new employee with their temporary password and login instructions.
+     * @param employee The new employee
+     * @param tempPassword The temporary password
+     */
+    @Async
+    public void sendEmployeeRegistrationEmail(Employee employee, String tempPassword) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(employee.getEmail());
+            message.setSubject("Welcome to Hotel Scheduler - Account Created");
+            message.setText(String.format(
+                "Hello %s,\n\n" +
+                "Your account has been created on Hotel Scheduler.\n" +
+                "You can log in at: http://localhost:8080/login.html\n\n" +
+                "Your temporary password: %s\n" +
+                "You will be required to change your password on first login.\n\n" +
+                "If you have any questions, please contact your manager or HR.\n\n" +
+                "Best regards,\nHotel Scheduler Team",
+                employee.getFirstName(),
+                tempPassword
+            ));
+            mailSender.send(message);
+            log.info("Registration email sent to {}", employee.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send registration email to {}: {}", employee.getEmail(), e.getMessage());
+        }
+    }
 
     /**
      * Notify requester that a trade was declined by the employee.

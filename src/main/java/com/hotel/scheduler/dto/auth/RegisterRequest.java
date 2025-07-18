@@ -31,4 +31,19 @@ public class RegisterRequest {
 
     @NotBlank(message = "Invitation token is required")
     private String invitationToken;
+
+    @NotBlank(message = "Date of birth is required")
+    private String dateOfBirth; // ISO format (yyyy-MM-dd)
+
+    @NotBlank(message = "Address is required")
+    private String address;
+
+    @NotBlank(message = "Emergency contact name is required")
+    private String emergencyContactName;
+
+    @NotBlank(message = "Emergency contact relation is required")
+    private String emergencyContactRelation;
+
+    @NotBlank(message = "Emergency contact phone is required")
+    private String emergencyContactPhone;
 }
