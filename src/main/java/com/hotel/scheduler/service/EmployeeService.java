@@ -1,4 +1,3 @@
-// ...existing code...
 package com.hotel.scheduler.service;
 
 import com.hotel.scheduler.model.Employee;
@@ -30,6 +29,18 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class EmployeeService implements UserDetailsService {
+    private final com.hotel.scheduler.repository.BuildingRepository buildingRepository;
+    /**
+     * Assigns a single employee to a building.
+     * @param employee the employee entity
+     * @param buildingId the building ID
+     */
+    public void assignEmployeeToBuilding(Employee employee, Long buildingId) {
+        var building = buildingRepository.findById(buildingId)
+            .orElseThrow(() -> new RuntimeException("Building not found"));
+        employee.setBuilding(building);
+        employeeRepository.save(employee);
+    }
 
     /**
      * Checks if an employee exists by email.
@@ -196,6 +207,14 @@ public class EmployeeService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
         employee.setActive(false);
         employeeRepository.save(employee);
+    }
+
+    /**
+     * Permanently deletes an employee by ID.
+     * @param id Employee ID
+     */
+    public void deleteEmployee(Long id) {
+        employeeRepository.deleteById(id);
     }
 
     /**

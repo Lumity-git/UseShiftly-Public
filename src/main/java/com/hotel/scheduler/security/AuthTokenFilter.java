@@ -62,8 +62,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
-        // Skip filter for static resources, frontend files, and public auth endpoints
+        // Skip filter for static resources, frontend files, public endpoints
         if (path.startsWith("/frontend/") ||
+            path.startsWith("/static/") ||
+            path.startsWith("/public/") ||
+            path.startsWith("/api/public/") ||
             path.matches(".*\\.(html|css|js|png|jpg|ico)$") ||
             path.equals("/api/auth/login") ||
             path.equals("/api/auth/register") ||

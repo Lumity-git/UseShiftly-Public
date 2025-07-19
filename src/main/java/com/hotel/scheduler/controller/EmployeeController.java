@@ -17,6 +17,50 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
+    /**
+     * Permanently deletes an employee by ID (Admin only).
+     * Endpoint: DELETE /api/employees/{id}/delete
+     * Logs the action.
+     */
+    @DeleteMapping("/{id}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteEmployee(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
+        try {
+            employeeService.deleteEmployee(id);
+            userActionLogService.logAction("DELETED_EMPLOYEE", currentUser);
+            return ResponseEntity.ok(new MessageResponse("Employee deleted permanently"));
+        } catch (Exception e) {
+            userActionLogService.logAction("FAILED_DELETE_EMPLOYEE", currentUser);
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+    /**
+     * Updates only the active status of an employee (activate/deactivate).
+     * Endpoint: PUT /api/employees/{id}/status
+     * Request: { "active": true/false }
+     * Response: Success or error message
+     */
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> updateEmployeeStatus(@PathVariable Long id,
+                                                  @RequestBody Map<String, Object> statusUpdate,
+                                                  @AuthenticationPrincipal Employee currentUser) {
+        try {
+            Employee employee = employeeService.getEmployeeById(id)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+            if (!statusUpdate.containsKey("active")) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Missing 'active' field"));
+            }
+            boolean active = Boolean.parseBoolean(statusUpdate.get("active").toString());
+            employee.setActive(active);
+            Employee updated = employeeService.updateEmployee(employee);
+            userActionLogService.logAction(active ? "ACTIVATED_EMPLOYEE" : "DEACTIVATED_EMPLOYEE", currentUser);
+            return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
+        } catch (Exception e) {
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_STATUS", currentUser);
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
     private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
     /**
      * Update employee info by ID (Manager/Admin only)
@@ -62,6 +106,10 @@ public class EmployeeController {
             if (employeeUpdate.containsKey("departmentId")) {
                 Long deptId = Long.valueOf(employeeUpdate.get("departmentId").toString());
                 employeeService.assignEmployeeToDepartment(employee, deptId);
+            }
+            if (employeeUpdate.containsKey("buildingId")) {
+                Long buildingId = Long.valueOf(employeeUpdate.get("buildingId").toString());
+                employeeService.assignEmployeeToBuilding(employee, buildingId);
             }
             if (employeeUpdate.containsKey("active")) {
                 employee.setActive(Boolean.valueOf(employeeUpdate.get("active").toString()));
@@ -272,6 +320,11 @@ public class EmployeeController {
             if (employeeData.containsKey("departmentId")) {
                 Long deptId = Long.valueOf(employeeData.get("departmentId").toString());
                 employeeService.assignEmployeeToDepartment(saved, deptId);
+            }
+            // Assign building if provided
+            if (employeeData.containsKey("buildingId")) {
+                Long buildingId = Long.valueOf(employeeData.get("buildingId").toString());
+                employeeService.assignEmployeeToBuilding(saved, buildingId);
             }
             userActionLogService.logAction("CREATED_EMPLOYEE", currentUser);
             return ResponseEntity.ok(EmployeeDTO.fromEntity(saved));

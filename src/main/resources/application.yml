@@ -5,9 +5,9 @@ spring:
   application:
     name: hotel-scheduler
   datasource:
-    url: jdbc:postgresql://localhost:5432/hotel_scheduler
-    username: ${DB_USERNAME:scheduler_user}
-    password: ${DB_PASSWORD:testPassword123!}
+    url: jdbc:postgresql://scheduler-postgres:5432/hotel_scheduler
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -34,10 +34,10 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:MySecretKey123456789012345678901234567890}
+    secret: ${JWT_SECRET:NUkpwZybKi2HGV0AHPf704rpGkubj94WXL7hYH7hoyDs}
     expiration: 86400000 # 24 hours
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:4200}
+  allowed-origins: ${CORS_ORIGINS:https://scheduler.asluxeco.org}
   notification:
     email:
       from: ${EMAIL_FROM:noreply@hotelscheduler.com}

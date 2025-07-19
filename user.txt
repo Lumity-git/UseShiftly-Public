@@ -1,8 +1,0 @@
-
-postgres=# CREATE DATABASE hotel_scheduler;
-CREATE DATABASE
-postgres=# CREATE USER scheduler_user WITH PASSWORD 'testPassword123!';
-CREATE ROLE
-postgres=# GRANT ALL PRIVILEGES ON DATABASE hotel_scheduler TO scheduler_user;
-GRANT
-postgres=# \q

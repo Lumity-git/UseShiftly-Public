@@ -93,7 +93,10 @@ CREATE TABLE public.departments (
     created_at timestamp(6) without time zone NOT NULL,
     description character varying(255),
     name character varying(255) NOT NULL,
-    updated_at timestamp(6) without time zone
+    updated_at timestamp(6) without time zone,
+    min_staffing integer,
+    max_staffing integer,
+    total_shifts integer
 );
 
 
@@ -138,6 +141,12 @@ CREATE TABLE public.employees (
     department_id bigint,
     building_id bigint,
     uuid character varying(255),
+    date_of_birth character varying(20),
+    address character varying(255),
+    emergency_contact_name character varying(100),
+    emergency_contact_relation character varying(100),
+    emergency_contact_phone character varying(30),
+    must_change_password boolean DEFAULT false NOT NULL,
     CONSTRAINT employees_role_check CHECK (((role)::text = ANY ((ARRAY['EMPLOYEE'::character varying, 'MANAGER'::character varying, 'ADMIN'::character varying])::text[])))
 );
 
@@ -227,6 +236,44 @@ ALTER SEQUENCE public.invitation_id_seq OWNED BY public.invitation.id;
 
 
 --
+-- Name: notification; Type: TABLE; Schema: public; Owner: scheduler_user
+--
+
+CREATE TABLE public.notification (
+    id bigint NOT NULL,
+    message text NOT NULL,
+    read boolean NOT NULL,
+    "timestamp" timestamp(6) without time zone NOT NULL,
+    title character varying(255) NOT NULL,
+    type character varying(255) NOT NULL,
+    user_id bigint NOT NULL
+);
+
+
+ALTER TABLE public.notification OWNER TO scheduler_user;
+
+--
+-- Name: notification_id_seq; Type: SEQUENCE; Schema: public; Owner: scheduler_user
+--
+
+CREATE SEQUENCE public.notification_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.notification_id_seq OWNER TO scheduler_user;
+
+--
+-- Name: notification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: scheduler_user
+--
+
+ALTER SEQUENCE public.notification_id_seq OWNED BY public.notification.id;
+
+
+--
 -- Name: shift_trades; Type: TABLE; Schema: public; Owner: scheduler_user
 --
 
@@ -240,7 +287,7 @@ CREATE TABLE public.shift_trades (
     pickup_employee_id bigint,
     requesting_employee_id bigint NOT NULL,
     shift_id bigint NOT NULL,
-    CONSTRAINT shift_trades_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'PICKED_UP'::character varying, 'CANCELLED'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'POSTED_TO_EVERYONE'::character varying])::text[])))
+    CONSTRAINT shift_trades_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'PENDING_APPROVAL'::character varying, 'PICKED_UP'::character varying, 'CANCELLED'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'POSTED_TO_EVERYONE'::character varying])::text[])))
 );
 
 
@@ -283,7 +330,7 @@ CREATE TABLE public.shifts (
     created_by_id bigint NOT NULL,
     department_id bigint NOT NULL,
     employee_id bigint,
-    CONSTRAINT shifts_status_check CHECK (((status)::text = ANY ((ARRAY['SCHEDULED'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying, 'AVAILABLE_FOR_PICKUP'::character varying, 'PENDING'::character varying])::text[])))
+    CONSTRAINT shifts_status_check CHECK (((status)::text = ANY ((ARRAY['SCHEDULED'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying, 'AVAILABLE_FOR_PICKUP'::character varying, 'PENDING'::character varying, 'NEW_STATUS'::character varying])::text[])))
 );
 
 
@@ -378,6 +425,13 @@ ALTER TABLE ONLY public.invitation ALTER COLUMN id SET DEFAULT nextval('public.i
 
 
 --
+-- Name: notification id; Type: DEFAULT; Schema: public; Owner: scheduler_user
+--
+
+ALTER TABLE ONLY public.notification ALTER COLUMN id SET DEFAULT nextval('public.notification_id_seq'::regclass);
+
+
+--
 -- Name: shift_trades id; Type: DEFAULT; Schema: public; Owner: scheduler_user
 --
 
@@ -444,6 +498,14 @@ ALTER TABLE ONLY public.flyway_schema_history
 
 ALTER TABLE ONLY public.invitation
     ADD CONSTRAINT invitation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification notification_pkey; Type: CONSTRAINT; Schema: public; Owner: scheduler_user
+--
+
+ALTER TABLE ONLY public.notification
+    ADD CONSTRAINT notification_pkey PRIMARY KEY (id);
 
 
 --

@@ -10,6 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Building {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id")
+    private Employee admin;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

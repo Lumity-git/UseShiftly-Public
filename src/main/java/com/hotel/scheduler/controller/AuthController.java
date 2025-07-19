@@ -161,7 +161,7 @@ public class AuthController {
                     .orElseThrow(() -> new RuntimeException("Department not found"));
                 employee.setDepartment(department);
             }
-            employeeService.createEmployee(employee);
+            employeeService.createEmployee(employee, false);
             invitationService.markInvitationUsed(code);
             userActionLogService.logAction("REGISTER_SUCCESS", employee);
             return ResponseEntity.ok(new MessageResponse("User registered successfully!"));

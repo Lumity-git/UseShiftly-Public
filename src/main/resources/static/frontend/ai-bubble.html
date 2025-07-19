@@ -1,0 +1,15 @@
+<!-- AI Assistant Bubble Markup -->
+<div class="ai-bubble" id="aiBubble" style="display:none;">
+  <div class="ai-bubble-header">
+    <span>🤖 AI Assistant</span>
+    <button class="ai-bubble-close" id="aiBubbleClose">×</button>
+  </div>
+  <div class="ai-bubble-body" id="aiBubbleBody">
+    <div class="ai-bubble-messages" id="aiBubbleMessages"></div>
+    <form id="aiBubbleForm">
+      <input type="text" id="aiBubbleInput" placeholder="Ask me anything..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div>
+<button class="ai-bubble-toggle" id="aiBubbleToggle" style="position:fixed;bottom:32px;right:32px;z-index:9999;">🤖</button>

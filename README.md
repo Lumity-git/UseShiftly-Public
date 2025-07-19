@@ -27,34 +27,16 @@ A professional, enterprise-ready scheduling application built with Spring Boot f
 
 - **Backend**: Spring Boot 3.2, Java 17
 - **Database**: PostgreSQL (production), H2 (testing)
-- **Security**: Spring Security with JWT
 - **Build Tool**: Maven
 - **Testing**: JUnit 5, Spring Boot Test
+
+
 - **Deployment**: Docker & Docker Compose ready
 
-## 🎯 Quick Start
-
-### Prerequisites
-- Java 17 or higher
-- PostgreSQL database (or use Docker Compose)
-- Maven 3.6+
-
-### Option 1: Local Development
-1. **Clone and configure**:
    ```bash
    git clone <repository>
-   cd hotel-scheduler
-   ```
 
-2. **Set up database** (PostgreSQL):
-   ```sql
-   CREATE DATABASE hotel_scheduler;
-   ```
-
-3. **Configure application.yml**:
-   ```yaml
    spring:
-     datasource:
        url: jdbc:postgresql://localhost:5432/hotel_scheduler
        username: your_username
        password: your_password

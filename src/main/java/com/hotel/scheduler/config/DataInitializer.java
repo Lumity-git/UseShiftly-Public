@@ -62,7 +62,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setLastName("Administrator");
             admin.setRole(Employee.Role.ADMIN);
             admin.setDepartment(frontDesk);
-            employeeService.createEmployee(admin);
+            employeeService.createEmployee(admin, false);
             log.info("Default admin user created: admin@hotel.com / admin123");
         }
     }

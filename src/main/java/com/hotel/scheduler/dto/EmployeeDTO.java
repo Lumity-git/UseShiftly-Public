@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmployeeDTO {
+    private Long buildingId;
+    private String buildingName;
     private Long id;
     private String email;
     private String firstName;
@@ -31,6 +33,8 @@ public class EmployeeDTO {
 
     public static EmployeeDTO fromEntity(Employee employee) {
         EmployeeDTO dto = new EmployeeDTO();
+        dto.setBuildingId(employee.getBuilding() != null ? employee.getBuilding().getId() : null);
+        dto.setBuildingName(employee.getBuilding() != null ? employee.getBuilding().getName() : null);
         dto.setId(employee.getId());
         dto.setEmail(employee.getEmail());
         dto.setFirstName(employee.getFirstName());
