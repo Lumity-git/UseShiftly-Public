@@ -157,34 +157,82 @@
                 return false;
             }
 
-            const userObj = JSON.parse(user);
-            
+            let userObj = JSON.parse(user);
             // Redirect employees to their own trades page
             if (userObj.role === 'EMPLOYEE') {
                 window.location.href = 'employee-trades.html';
                 return false;
             }
-            // For MANAGER and ADMIN, show pending approval tab and load all trades
-            if (userObj.role === 'MANAGER' || userObj.role === 'ADMIN') {
-                document.getElementById('pendingTab').style.display = 'block';
-            }
 
             try {
-                // Validate token by making a test API call
-                const response = await fetch('http://localhost:8080/api/auth/validate', {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
-                
-                if (!response.ok) {
+                if (response.status === 401) {
+                    // Try to refresh token if backend supports
+                    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        if (data.token) {
+                            localStorage.setItem('authToken', data.token);
+                            if (data.userInfo) {
+                                localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                                userObj = data.userInfo;
+                            }
+                            // Check role after refresh
+                            if (userObj.role === 'EMPLOYEE') {
+                                window.location.href = 'employee-trades.html';
+                                return false;
+                            }
+                            if (userObj.role === 'MANAGER' || userObj.role === 'ADMIN') {
+                                document.getElementById('pendingTab').style.display = 'block';
+                            }
+                            currentUser = userObj;
+                            document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+                            setupNavigation(currentUser.role);
+                            loadData();
+                            return true;
+                        }
+                    }
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('userInfo');
                     window.location.href = 'login.html';
                     return false;
                 }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                }
+                if (data.userInfo) {
+                    localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                    userObj = data.userInfo;
+                }
+                // Check role
+                if (userObj.role === 'EMPLOYEE') {
+                    window.location.href = 'employee-trades.html';
+                    return false;
+                }
+                if (userObj.role === 'MANAGER' || userObj.role === 'ADMIN') {
+                    document.getElementById('pendingTab').style.display = 'block';
+                }
+                currentUser = userObj;
+                document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+                setupNavigation(currentUser.role);
+                loadData();
+                return true;
             } catch (error) {
                 console.error('Auth validation failed:', error);
                 localStorage.removeItem('authToken');
@@ -192,18 +240,6 @@
                 window.location.href = 'login.html';
                 return false;
             }
-
-            currentUser = JSON.parse(user);
-            document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
-            setupNavigation(currentUser.role);
-
-            // Show pending approval tab for managers and admins
-            if (currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN') {
-                document.getElementById('pendingTab').style.display = 'block';
-            }
-
-            loadData();
-            return true;
         }
 
         function setupNavigation(userRole) {

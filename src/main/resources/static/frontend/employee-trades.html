@@ -176,26 +176,81 @@
       let userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
 
       // Check authentication and role
-      function checkAuth() {
-        console.debug("[checkAuth] token:", authToken);
-        if (!authToken) {
-          console.debug("[checkAuth] No token, redirecting to login");
-          window.location.href = "login.html";
+      async function checkAuth(role) {
+        const token = localStorage.getItem('authToken');
+        const userInfo = localStorage.getItem('userInfo');
+        if (!token || !userInfo) {
+          window.location.href = 'login.html';
           return false;
         }
-        if (userInfo.role !== "EMPLOYEE") {
-          console.debug(
-            "[checkAuth] Role not EMPLOYEE, redirecting to dashboard"
-          );
-          window.location.href = "employee-dashboard.html";
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (response.status === 401) {
+            // Try to refresh token if backend supports
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              if (data.token) {
+                localStorage.setItem('authToken', data.token);
+                if (data.userInfo) {
+                  localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                }
+                // Check role after refresh
+                const refreshedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+                if (refreshedUser.role !== role) {
+                  window.location.href = 'login.html';
+                  return false;
+                }
+                return true;
+              }
+            }
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            window.location.href = 'login.html';
+            return false;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem('authToken', data.token);
+          }
+          if (data.userInfo) {
+            localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+          }
+          // Check role
+          const validatedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+          if (validatedUser.role !== role) {
+            window.location.href = 'login.html';
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error('Auth validation failed:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          window.location.href = 'login.html';
           return false;
         }
-        return true;
       }
 
       // Initialize page
-      function init() {
-        if (!authManager.checkAuth("EMPLOYEE")) return;
+      async function init() {
+        const isAuthenticated = await checkAuth('EMPLOYEE');
+        if (!isAuthenticated) return;
 
         const userInfo = authManager.getUserInfo();
         document.getElementById("userName").textContent = `${userInfo.firstName} ${userInfo.lastName}`;

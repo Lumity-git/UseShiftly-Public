@@ -579,10 +579,9 @@
 
         async function initializePage() {
             try {
-                // Check authentication using auth manager
-                if (!window.authManager.checkAuth(['MANAGER', 'ADMIN'])) {
-                    return; // Will redirect to login
-                }
+                // Validate and refresh token before loading page
+                const valid = await checkAuth(['MANAGER', 'ADMIN']);
+                if (!valid) return;
 
                 // Load user info and setup UI
                 loadUserInfo();
@@ -594,6 +593,77 @@
             } catch (error) {
                 console.error('Page initialization error:', error);
                 showAlert('Failed to load page. Please refresh.', 'error');
+            }
+        }
+
+        async function checkAuth(roles) {
+            const token = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('userInfo');
+            if (!token || !userInfo) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401) {
+                    // Try to refresh token if backend supports
+                    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        if (data.token) {
+                            localStorage.setItem('authToken', data.token);
+                            if (data.userInfo) {
+                                localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                            }
+                            // Check role after refresh
+                            const refreshedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+                            if (!roles.includes(refreshedUser.role)) {
+                                window.location.href = 'login.html';
+                                return false;
+                            }
+                            return true;
+                        }
+                    }
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                }
+                if (data.userInfo) {
+                    localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                }
+                // Check role
+                const validatedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+                if (!roles.includes(validatedUser.role)) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Auth validation failed:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+                window.location.href = 'login.html';
+                return false;
             }
         }
 
@@ -674,10 +744,10 @@
 
         async function enhanceDepartmentsWithEmployees() {
             departments.forEach(dept => {
-                // Ensure type match for departmentId and managerId
                 dept.employees = employees.filter(emp => String(emp.departmentId) === String(dept.id));
                 dept.manager = employees.find(emp => String(emp.id) === String(dept.managerId));
-                // totalShifts, minStaffing, maxStaffing should come from backend only
+                // Include admin users in department employee lists if they belong to a department
+                dept.admins = employees.filter(emp => emp.role === 'ADMIN' && String(emp.departmentId) === String(dept.id));
             });
         }
 
@@ -705,15 +775,37 @@
             const canEdit = currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN';
             const canAssign = currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN';
             
+            let managerSection = '';
+            if (dept.manager) {
+                managerSection = `<p><strong>Manager:</strong> ${dept.manager.firstName} ${dept.manager.lastName}</p>`;
+            } else {
+                managerSection = `<p><em>No manager assigned</em></p>`;
+                if (canAssign) {
+                    managerSection += `<button class="btn btn-sm btn-primary" onclick="assignManager(${dept.id})">Assign Manager</button>`;
+                }
+            }
+
+            let employeesSection = '';
+            if (dept.employees.length > 0) {
+                employeesSection = dept.employees.map(emp => `<span class="employee-tag">${emp.firstName} ${emp.lastName}</span>`).join('');
+            } else {
+                employeesSection = `<em>No employees assigned</em>`;
+                if (canAssign) {
+                    employeesSection += `<button class="btn btn-sm btn-secondary" onclick="assignEmployees(${dept.id})">Add Employees</button>`;
+                }
+            }
+            // Show admin users in department employee lists
+            if (dept.admins && dept.admins.length > 0) {
+                employeesSection += '<br><strong>Admins:</strong> ' + dept.admins.map(admin => `<span class="employee-tag admin">${admin.firstName} ${admin.lastName}</span>`).join('');
+            }
+
             return `
                 <div class="department-card">
                     <div class="department-header">
                         <div class="department-info">
                             <h3>${dept.name}</h3>
                             <p>${dept.description || 'No description provided'}</p>
-                            ${dept.manager ? `
-                                <p><strong>Manager:</strong> ${dept.manager.firstName} ${dept.manager.lastName}</p>
-                            ` : '<p><em>No manager assigned</em></p>'}
+                            ${managerSection}
                         </div>
                         <div class="department-actions">
                             ${canEdit ? `
@@ -733,7 +825,6 @@
                             ` : ''}
                         </div>
                     </div>
-                    
                     <div class="department-stats">
                         <div class="stat-item">
                             <div class="stat-number">${dept.employees.length ?? 0}</div>
@@ -752,16 +843,10 @@
                             <div class="stat-label">Max Staff</div>
                         </div>
                     </div>
-
                     <div class="department-employees">
                         <strong>Employees (${dept.employees.length ?? 0}):</strong>
                         <div class="employee-list">
-                            ${dept.employees.length > 0 ? 
-                                dept.employees.map(emp => 
-                                    `<span class="employee-tag">${emp.firstName} ${emp.lastName}</span>`
-                                ).join('') :
-                                '<em>No employees assigned</em>'
-                            }
+                            ${employeesSection}
                         </div>
                     </div>
                 </div>

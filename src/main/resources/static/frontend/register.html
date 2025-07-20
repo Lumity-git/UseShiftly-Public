@@ -97,12 +97,12 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="password">Password <span class="required" style="color:#e74c3c">*</span></label>
-                                <input type="password" id="password" name="password" required minlength="8">
+                                <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
                                 <small class="form-hint">Min 8 chars, include uppercase, lowercase, number, special</small>
                             </div>
                             <div class="form-group">
                                 <label for="confirmPassword">Confirm Password <span class="required" style="color:#e74c3c">*</span></label>
-                                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
                             </div>
                         </div>
                     </section>
@@ -119,23 +119,73 @@
         </form>
     </main>
 
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
-            <i class="fas fa-spinner"></i>
-            <h3>Processing Registration...</h3>
-            <p>Please wait while we set up your account</p>
-        </div>
-    </div>
-
     <script>
         let invitationData = null;
         let uploadedFiles = {};
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) return;
             validateInvitation();
             setupEventListeners();
             updateProgress();
         });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('userInfo');
+            if (!token || !userInfo) {
+                return true; // Allow registration if not logged in
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401) {
+                    // Try to refresh token if backend supports
+                    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        if (data.token) {
+                            localStorage.setItem('authToken', data.token);
+                            if (data.userInfo) {
+                                localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                            }
+                            return true;
+                        }
+                    }
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    return true;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                }
+                if (data.userInfo) {
+                    localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                }
+                return true;
+            } catch (error) {
+                console.error('Auth validation failed:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+                return true;
+            }
+        }
 
         function togglePanel(panelId) {
             const panel = document.getElementById(panelId);
@@ -150,13 +200,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const token = urlParams.get('token');
-
+            const registrationForm = document.getElementById('registrationForm');
             if (!code || !token) {
                 showAlert('Invalid invitation link. Please contact your manager for a valid invitation.', 'error');
-                document.getElementById('registrationForm').style.display = 'none';
+                if (registrationForm) registrationForm.style.display = 'none';
                 return;
             }
-
             // Validate invitation code
             validateInvitationCode(code, token);
         }
@@ -165,21 +214,23 @@
 
         async function validateInvitationCode(code, token) {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/validate-invitation?code=${code}&token=${token}`, {
+        const response = await fetch(`${API_BASE_URL}/auth/validate-invitation?code=${encodeURIComponent(code)}&token=${encodeURIComponent(token)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
-
+        const registrationForm = document.getElementById('registrationForm');
         if (response.ok) {
             invitationData = await response.json();
             displayInvitationInfo();
-            document.getElementById('invitationCode').value = code;
-            document.getElementById('invitationToken').value = invitationData.invitationToken || token;
-            document.getElementById('email').value = invitationData.email || '';
-            document.getElementById('email').readOnly = true;
-            document.getElementById('registrationForm').style.display = '';
+            if (document.getElementById('invitationCode')) document.getElementById('invitationCode').value = code;
+            if (document.getElementById('invitationToken')) document.getElementById('invitationToken').value = invitationData.invitationToken || token;
+            if (document.getElementById('email')) {
+                document.getElementById('email').value = invitationData.email || '';
+                document.getElementById('email').readOnly = true;
+            }
+            if (registrationForm) registrationForm.style.display = '';
         } else {
             const error = await response.text();
             disablePage(error || 'Invalid or expired invitation. Please contact your manager.');
@@ -188,8 +239,7 @@
         console.error('Error validating invitation:', error);
         disablePage('Unable to validate invitation. Please contact your manager for a valid invitation.');
     }
-        }
-
+}
         function displayInvitationInfo() {
             document.getElementById('hotelName').textContent = invitationData.hotelName;
             document.getElementById('invitedRole').textContent = invitationData.role;
@@ -200,34 +250,24 @@
         }
 
         function setupEventListeners() {
-            // File upload handlers
-            document.getElementById('governmentId').addEventListener('change', function() {
-                handleFileUpload(this, 'governmentIdList');
-            });
-            document.getElementById('i9Form').addEventListener('change', function() {
-                handleFileUpload(this, 'i9FormList');
-            });
-            document.getElementById('w4Form').addEventListener('change', function() {
-                handleFileUpload(this, 'w4FormList');
-            });
-
-            // Password validation
-            document.getElementById('password').addEventListener('input', validatePassword);
-            document.getElementById('confirmPassword').addEventListener('input', validatePasswordMatch);
-
-            // Phone number formatting
-            document.getElementById('phone').addEventListener('input', formatPhoneNumber);
-            document.getElementById('emergencyPhone').addEventListener('input', formatPhoneNumber);
-
-            // SSN formatting
-            document.getElementById('ssn').addEventListener('input', formatSSN);
-
-            // Form validation
-            document.getElementById('registrationForm').addEventListener('input', validateForm);
-            document.getElementById('registrationForm').addEventListener('change', validateForm);
-
-            // Form submission
-            document.getElementById('registrationForm').addEventListener('submit', handleSubmit);
+            // Defensive: only add listeners if elements exist
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) passwordInput.addEventListener('input', validatePassword);
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+            const phoneInput = document.getElementById('phone');
+            if (phoneInput) phoneInput.addEventListener('input', formatPhoneNumber);
+            const emergencyPhoneInput = document.getElementById('emergencyPhone');
+            if (emergencyPhoneInput) emergencyPhoneInput.addEventListener('input', formatPhoneNumber);
+            const registrationForm = document.getElementById('registrationForm');
+            if (registrationForm) {
+                registrationForm.addEventListener('input', validateForm);
+                registrationForm.addEventListener('change', validateForm);
+                registrationForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    handleSubmit(event);
+                });
+            }
         }
 
         function handleFileUpload(input, listId) {
@@ -297,74 +337,6 @@
             event.target.value = value;
         }
 
-        function formatSSN(event) {
-            let value = event.target.getAttribute('data-ssn') || '';
-            // Always update stored value
-            value = event.target.value.replace(/\D/g, '');
-            event.target.setAttribute('data-ssn', value);
-
-            // Masked display: ***-**-**** as they type
-            let masked = '';
-            if (value.length > 0) {
-                masked = value
-                    .replace(/\d/g, '*')
-                    .replace(/^(...)(..)(....)$/,
-                        (m, p1, p2, p3) => `${p1}-${p2}-${p3}`);
-                // Partial masking for incomplete input
-                if (value.length < 9) {
-                    let temp = value.padEnd(9, '*');
-                    masked = temp
-                        .replace(/^(...)(..)(....)$/,
-                            (m, p1, p2, p3) => `${p1}-${p2}-${p3}`)
-                        .replace(/\*+$/,'');
-                }
-            }
-            if (document.getElementById('ssn').type === 'password') {
-                event.target.value = masked;
-            } else {
-                // Show formatted SSN (real digits)
-                let formatted = value;
-                if (formatted.length >= 5) {
-                    formatted = formatted.replace(/(\d{3})(\d{2})(\d{0,4})/, '$1-$2-$3');
-                } else if (formatted.length >= 3) {
-                    formatted = formatted.replace(/(\d{3})(\d{0,2})/, '$1-$2');
-                }
-                event.target.value = formatted;
-            }
-        }
-
-        function toggleSSN(show) {
-            const ssnInput = document.getElementById('ssn');
-            if (show) {
-                ssnInput.type = 'text';
-                let value = ssnInput.getAttribute('data-ssn') || '';
-                let formatted = value;
-                if (formatted.length >= 5) {
-                    formatted = formatted.replace(/(\d{3})(\d{2})(\d{0,4})/, '$1-$2-$3');
-                } else if (formatted.length >= 3) {
-                    formatted = formatted.replace(/(\d{3})(\d{0,2})/, '$1-$2');
-                }
-                ssnInput.value = formatted;
-            } else {
-                ssnInput.type = 'password';
-                let value = ssnInput.getAttribute('data-ssn') || '';
-                let masked = '';
-                if (value.length > 0) {
-                    masked = value
-                        .replace(/\d/g, '*')
-                        .replace(/^(...)(..)(....)$/,
-                            (m, p1, p2, p3) => `${p1}-${p2}-${p3}`);
-                    if (value.length < 9) {
-                        let temp = value.padEnd(9, '*');
-                        masked = temp
-                            .replace(/^(...)(..)(....)$/,
-                                (m, p1, p2, p3) => `${p1}-${p2}-${p3}`)
-                            .replace(/\*+$/,'');
-                    }
-                }
-                ssnInput.value = masked;
-            }
-        }
 
         function validatePassword() {
             const password = document.getElementById('password').value;
@@ -448,8 +420,6 @@
         }
 
         async function handleSubmit(event) {
-            event.preventDefault();
-
             // Validate and highlight missing fields
             const form = document.getElementById('registrationForm');
             const requiredFields = form.querySelectorAll('[required]');
@@ -490,10 +460,14 @@
 
             if (!allValid) {
                 showAlert('Please complete all required fields before submitting.', 'error');
+                // Defensive: hide loading overlay if present
+                var loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'none';
                 return;
             }
 
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'flex';
 
             try {
                 const formData = new FormData();
@@ -505,13 +479,15 @@
                         }
                     } else if (input.type === 'checkbox') {
                         formData.append(input.name, input.checked);
-                    } else if (input.name === 'ssn') {
-                        // Always send real SSN value securely
-                        formData.append('ssn', input.getAttribute('data-ssn') || '');
-                    } else if (input.name === 'invitationToken') {
+                    } else if (input.name === 'invitationToken' || input.name === 'invitationCode') {
                         // Skip hidden input, will set below
-                    } else if (input.name === 'invitationCode') {
-                        // Skip hidden input, will set below
+                    } else if (input.name === 'emergencyName') {
+                        // Map to backend DTO field
+                        formData.append('emergencyContactName', input.value);
+                    } else if (input.name === 'emergencyRelation') {
+                        formData.append('emergencyContactRelation', input.value);
+                    } else if (input.name === 'emergencyPhone') {
+                        formData.append('emergencyContactPhone', input.value);
                     } else {
                         formData.append(input.name, input.value);
                     }
@@ -531,7 +507,12 @@
                 });
 
                 if (response.ok) {
-                    showAlert('Registration completed successfully! You may now close this tab.', 'success');
+                    // Clear previous alerts and show success
+                    const container = document.getElementById('alertContainer');
+                    container.innerHTML = '';
+                    showAlert('Account created successfully! Redirecting to login...', 'success');
+                    // Scroll to alert
+                    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     // Remove invitation link from localStorage (if present)
                     try {
                         const code = document.getElementById('invitationCode').value;
@@ -539,6 +520,9 @@
                         savedInvites = savedInvites.filter(link => !link.includes(code));
                         localStorage.setItem('invitationLinks', JSON.stringify(savedInvites));
                     } catch (e) {}
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2500);
                 } else {
                     const error = await response.text();
                     showAlert(error || 'Registration failed. Please try again.', 'error');
@@ -547,7 +531,8 @@
                 console.error('Registration error:', error);
                 showAlert('Registration failed. Please try again.', 'error');
             } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
+                var loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'none';
             }
         }
 
@@ -587,18 +572,6 @@
             if (confirm('Are you sure you want to cancel registration? All entered data will be lost.')) {
                 window.location.href = 'login.html';
             }
-        }
-
-        function showBackgroundCheckInfo() {
-            alert('Background Check Information:\n\nAs part of our employment process, we conduct background checks to ensure the safety and security of our guests, employees, and property. This includes:\n\n• Criminal history verification\n• Employment history verification\n• Reference checks\n• Education verification (if applicable)\n\nThis information is kept confidential and used solely for employment purposes in accordance with federal and state laws.');
-        }
-
-        function showEmploymentAgreement() {
-            alert('Employment Agreement Summary:\n\nBy accepting this position, you agree to:\n\n• Follow all company policies and procedures\n• Maintain confidentiality of guest and company information\n• Comply with all applicable laws and regulations\n• Participate in required training programs\n• Maintain professional conduct at all times\n\nFull terms and conditions will be provided in your employee handbook upon hire.');
-        }
-
-        function showPrivacyPolicy() {
-            alert('Privacy Policy Summary:\n\nWe collect and use your personal information for:\n\n• Employment verification and background checks\n• Payroll and benefits administration\n• Communication regarding work schedules and policies\n• Compliance with legal requirements\n\nYour information is protected and not shared with third parties except as required by law or for legitimate business purposes.');
         }
     </script>
 </body>

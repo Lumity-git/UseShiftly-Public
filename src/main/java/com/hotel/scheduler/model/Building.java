@@ -12,7 +12,13 @@ import java.util.List;
 public class Building {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Employee admin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Employee manager;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

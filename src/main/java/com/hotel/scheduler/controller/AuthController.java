@@ -32,20 +32,44 @@ public class AuthController {
      * Request: { newPassword }
      * Response: Success or error message
      */
+    /**
+     * Allows password change via invitation code/token (for password reset links).
+     * Accepts: { code, token, newPassword }
+     * If code/token are present, validates invitation and updates password for the invited user.
+     * If authenticated, allows normal password change.
+     */
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@AuthenticationPrincipal Employee employee,
                                             @Valid @RequestBody com.hotel.scheduler.dto.auth.ChangePasswordRequest request) {
-        if (employee == null) {
-            return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
-        }
         String newPassword = request.getNewPassword();
-        // Password policy: 1 special char, 1 uppercase, 1 number, min 8 chars
-        // Fixed regex: properly escape special characters and brackets
-        // Fixed regex: dash moved to the end, all special chars escaped, no unclosed class
+        String code = request.getCode();
+        String token = request.getToken();
         String passwordPattern = "^(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+=\\[\\]{};':\\\"\\\\|,.<>/?-]).{8,}$";
         if (!java.util.regex.Pattern.matches(passwordPattern, newPassword)) {
             return ResponseEntity.badRequest().body(new MessageResponse(
                 "Password must be at least 8 characters, include 1 uppercase letter, 1 number, and 1 special character."));
+        }
+        // If code/token are provided, handle password reset via invitation
+        if (code != null && token != null) {
+            var invitationOpt = invitationService.validateInvitation(code, token);
+            if (invitationOpt.isEmpty()) {
+                return ResponseEntity.status(401).body(new MessageResponse("Invalid or expired password reset link."));
+            }
+            Invitation invitation = invitationOpt.get();
+            // Find employee by email from invitation
+            var employeeOpt = employeeService.getEmployeeByEmail(invitation.getEmail());
+            if (employeeOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(new MessageResponse("User not found for this invitation."));
+            }
+            Employee invitedEmployee = employeeOpt.get();
+            employeeService.updatePassword(invitedEmployee, newPassword);
+            invitationService.markInvitationUsed(code); // Mark/reset link as used
+            userActionLogService.logAction("CHANGE_PASSWORD_BY_LINK", invitedEmployee);
+            return ResponseEntity.ok(new MessageResponse("Password changed successfully! The reset link is now invalid."));
+        }
+        // Otherwise, require authentication for normal password change
+        if (employee == null) {
+            return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
         }
         employeeService.updatePassword(employee, newPassword);
         userActionLogService.logAction("CHANGE_PASSWORD", employee);
@@ -68,13 +92,26 @@ public class AuthController {
             departmentId = employee.getDepartment().getId();
             departmentName = employee.getDepartment().getName();
         }
+        Long buildingId = null;
+        String buildingName = null;
+        if (employee.getBuilding() != null) {
+            try {
+                buildingId = employee.getBuilding().getId();
+                buildingName = employee.getBuilding().getName();
+            } catch (Exception e) {
+                log.warn("Could not initialize building for employee: " + e.getMessage());
+            }
+        }
         return ResponseEntity.ok(java.util.Map.of(
+            "id", employee.getId(),
             "email", employee.getEmail(),
             "firstName", employee.getFirstName(),
             "lastName", employee.getLastName(),
             "role", employee.getRole().name(),
             "departmentId", departmentId,
-            "departmentName", departmentName
+            "departmentName", departmentName,
+            "buildingId", buildingId,
+            "buildingName", buildingName
         ));
     }
     
@@ -96,17 +133,27 @@ public class AuthController {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtUtils.generateJwtToken((Employee) authentication.getPrincipal());
             Employee employee = (Employee) authentication.getPrincipal();
-            // Add mustChangePassword to the response
+            String jwt = jwtUtils.generateJwtToken(employee);
+            // Get building info if available
+            Long buildingId = null;
+            String buildingName = null;
+            if (employee.getBuilding() != null) {
+                buildingId = employee.getBuilding().getId();
+                buildingName = employee.getBuilding().getName();
+            }
+            // Add mustChangePassword and building info to the response
             String responseJson = String.format(
-                "{\"token\":\"%s\",\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s}",
+                "{\"token\":\"%s\",\"id\":%d,\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s,\"buildingId\":%s,\"buildingName\":%s}",
                 jwt,
+                employee.getId(),
                 employee.getEmail(),
                 employee.getFirstName(),
                 employee.getLastName(),
                 employee.getRole().name(),
-                employee.isMustChangePassword() ? "true" : "false"
+                employee.isMustChangePassword() ? "true" : "false",
+                buildingId == null ? "null" : buildingId.toString(),
+                buildingName == null ? "null" : String.format("\"%s\"", buildingName)
             );
             userActionLogService.logAction("LOGIN_SUCCESS", employee);
             return ResponseEntity.ok()
@@ -148,18 +195,23 @@ public class AuthController {
             employee.setPassword(signUpRequest.getPassword());
             employee.setFirstName(signUpRequest.getFirstName());
             employee.setLastName(signUpRequest.getLastName());
-            employee.setPhoneNumber(signUpRequest.getPhoneNumber());
+            // Ensure phone number is saved
+            employee.setPhoneNumber(signUpRequest.getPhoneNumber() != null ? signUpRequest.getPhoneNumber().trim() : null);
             employee.setRole(Employee.Role.valueOf(invitation.getRole()));
             employee.setDateOfBirth(signUpRequest.getDateOfBirth());
             employee.setAddress(signUpRequest.getAddress());
             employee.setEmergencyContactName(signUpRequest.getEmergencyContactName());
             employee.setEmergencyContactRelation(signUpRequest.getEmergencyContactRelation());
             employee.setEmergencyContactPhone(signUpRequest.getEmergencyContactPhone());
-            // Set department if provided
+            // Set department if provided and valid
             if (signUpRequest.getDepartmentId() != null) {
                 Department department = departmentRepository.findById(signUpRequest.getDepartmentId())
-                    .orElseThrow(() -> new RuntimeException("Department not found"));
-                employee.setDepartment(department);
+                    .orElse(null);
+                if (department != null) {
+                    employee.setDepartment(department);
+                } else {
+                    log.warn("Department not found for ID: " + signUpRequest.getDepartmentId());
+                }
             }
             employeeService.createEmployee(employee, false);
             invitationService.markInvitationUsed(code);
@@ -212,10 +264,30 @@ public class AuthController {
     public ResponseEntity<?> generateInvitation(@AuthenticationPrincipal Employee currentUser,
                                                @RequestBody java.util.Map<String, Object> request) {
         try {
-            String departmentId = request.get("departmentId").toString();
+            String departmentId = request.get("departmentId") != null ? request.get("departmentId").toString() : null;
             String invitationCode = "INV-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             String invitationToken = java.util.UUID.randomUUID().toString();
-            // Persist invitation to database
+
+            Long buildingId = null;
+            String buildingName = null;
+            // Manager: assign their building automatically
+            if (currentUser.getRole().name().equals("MANAGER")) {
+                if (currentUser.getBuilding() == null) {
+                    return ResponseEntity.badRequest().body(new MessageResponse("Manager is not assigned to any building."));
+                }
+                buildingId = currentUser.getBuilding().getId();
+                buildingName = currentUser.getBuilding().getName();
+            }
+            // Admin: require buildingId/buildingName in request, validate ownership
+            else if (currentUser.getRole().name().equals("ADMIN")) {
+                if (request.get("buildingId") == null || request.get("buildingName") == null) {
+                    return ResponseEntity.badRequest().body(new MessageResponse("Admin must select a building to assign."));
+                }
+                buildingId = Long.valueOf(request.get("buildingId").toString());
+                buildingName = request.get("buildingName").toString();
+                // TODO: Optionally validate admin owns this building
+            }
+
             Invitation invitation = Invitation.builder()
                 .code(invitationCode)
                 .token(invitationToken)
@@ -223,6 +295,8 @@ public class AuthController {
                 .role((String) request.getOrDefault("role", "EMPLOYEE"))
                 .departmentName((String) request.getOrDefault("departmentName", ""))
                 .invitedBy(currentUser.getFirstName() + " " + currentUser.getLastName())
+                .buildingId(buildingId)
+                .buildingName(buildingName)
                 .build();
             invitationService.createInvitation(invitation);
             userActionLogService.logAction("GENERATED_INVITATION", currentUser);
@@ -231,6 +305,8 @@ public class AuthController {
                 "invitationToken", invitationToken,
                 "expiresIn", "7 days",
                 "departmentId", departmentId,
+                "buildingId", buildingId,
+                "buildingName", buildingName,
                 "createdBy", currentUser.getFirstName() + " " + currentUser.getLastName()
             ));
         } catch (Exception e) {
@@ -248,7 +324,26 @@ public class AuthController {
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(@AuthenticationPrincipal Employee employee) {
         if (employee != null) {
-            return ResponseEntity.ok(new MessageResponse("Token is valid"));
+            Long buildingId = null;
+            String buildingName = null;
+            if (employee.getBuilding() != null) {
+                try {
+                    buildingId = employee.getBuilding().getId();
+                    buildingName = employee.getBuilding().getName();
+                } catch (Exception e) {
+                    log.warn("Could not initialize building for employee: " + e.getMessage());
+                }
+            }
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("id", employee.getId());
+            response.put("email", employee.getEmail());
+            response.put("firstName", employee.getFirstName());
+            response.put("lastName", employee.getLastName());
+            response.put("role", employee.getRole().name());
+            response.put("mustChangePassword", employee.isMustChangePassword());
+            response.put("buildingId", buildingId);
+            response.put("buildingName", buildingName);
+            return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(new MessageResponse("Invalid token"));
     }

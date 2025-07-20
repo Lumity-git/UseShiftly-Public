@@ -361,14 +361,6 @@
                 <button class="card-btn" onclick="openAdminLogs()">Review Logs</button>
             </div>
         </div>
-
-        <div class="api-info">
-            <h3>🔗 API Integration Status</h3>
-            <div class="api-endpoint">Backend: ✅ Connected to https://localhost:8080/api</div>
-            <div class="api-endpoint">Database: ✅ PostgreSQL Connected</div>
-            <div class="api-endpoint">Authentication: ✅ JWT Token Active</div>
-            <div class="api-endpoint">Sample Data: ✅ Loaded Successfully</div>
-        </div>
     </div>
 
     <script src="auto-logout.js"></script>
@@ -388,7 +380,7 @@
             showLoading();
             try {
                 // Check authentication first
-                const isAuthenticated = window.authManager.checkAuth(['MANAGER', 'ADMIN']);
+                const isAuthenticated = await checkAuth();
                 if (!isAuthenticated) {
                     return;
                 }
@@ -509,11 +501,14 @@
             if (userInfo) {
                 const userNameElement = document.getElementById('userName');
                 const userRoleElement = document.getElementById('userRole');
-                
-                if (userNameElement) {
-                    userNameElement.textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+                let displayName = `${userInfo.firstName} ${userInfo.lastName}`;
+                // Show building name if available and not null
+                if (userInfo.buildingName && userInfo.buildingName !== 'null') {
+                    displayName += ` (${userInfo.buildingName})`;
                 }
-                
+                if (userNameElement) {
+                    userNameElement.textContent = displayName;
+                }
                 if (userRoleElement) {
                     userRoleElement.textContent = userInfo.role;
                 }
@@ -541,14 +536,82 @@
 
         // Check authentication and load user info
         async function checkAuth() {
-            const isAuthenticated = await authManager.checkAuth(['MANAGER', 'ADMIN']);
-            if (!isAuthenticated) {
+            const token = localStorage.getItem('authToken');
+            const userInfo = localStorage.getItem('userInfo');
+            if (!token || !userInfo) {
+                window.location.href = 'login.html';
                 return false;
             }
-
-            updateUserInfo();
-            showAdminFeaturesIfEligible();
-            return true;
+            let user = JSON.parse(userInfo);
+            // Only allow MANAGER and ADMIN
+            if (!['MANAGER', 'ADMIN'].includes(user.role)) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401) {
+                    // Try to refresh token if backend supports
+                    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        if (data.token) {
+                            localStorage.setItem('authToken', data.token);
+                        }
+                        if (data.userInfo) {
+                            localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                            user = data.userInfo;
+                        }
+                        if (!['MANAGER', 'ADMIN'].includes(user.role)) {
+                            window.location.href = 'login.html';
+                            return false;
+                        }
+                        updateUserInfo();
+                        showAdminFeaturesIfEligible();
+                        return true;
+                    }
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userInfo');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                }
+                if (data.userInfo) {
+                    localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                    user = data.userInfo;
+                }
+                if (!['MANAGER', 'ADMIN'].includes(user.role)) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                updateUserInfo();
+                showAdminFeaturesIfEligible();
+                return true;
+            } catch (error) {
+                console.error('Auth validation failed:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userInfo');
+                window.location.href = 'login.html';
+                return false;
+            }
         }
 
         // Logout function
@@ -675,24 +738,75 @@
             // Populate department dropdown from backend (async IIFE)
             const deptSelect = modal.querySelector('#inviteDepartmentSelect');
             deptSelect.innerHTML = '<option value="">Loading departments...</option>';
+            const userInfo = window.authManager.getUserInfo();
+            // Only show building dropdown for admins
+            let buildingSelect, buildingLabel;
+            if (userInfo.role === 'ADMIN') {
+                buildingSelect = document.createElement('select');
+                buildingSelect.id = 'inviteBuildingSelect';
+                buildingSelect.style = 'width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;';
+                buildingSelect.innerHTML = '<option value="">Loading buildings...</option>';
+                deptSelect.parentNode.insertBefore(buildingSelect, deptSelect.nextSibling);
+                buildingLabel = document.createElement('label');
+                buildingLabel.htmlFor = 'inviteBuildingSelect';
+                buildingLabel.textContent = 'Building:';
+                buildingLabel.style = 'display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;';
+                deptSelect.parentNode.insertBefore(buildingLabel, buildingSelect);
+            } else if (userInfo.role === 'MANAGER') {
+                // Display building name as non-editable field
+                const buildingDisplayLabel = document.createElement('label');
+                buildingDisplayLabel.textContent = 'Building:';
+                buildingDisplayLabel.style = 'display:block;margin-bottom:10px;color:#2c3e50;font-weight:500;';
+                const buildingDisplay = document.createElement('div');
+                buildingDisplay.id = 'inviteBuildingDisplay';
+                buildingDisplay.style = 'width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;margin-bottom:20px;background:#f6f8fa;color:#222;';
+                buildingDisplay.textContent = userInfo.buildingName || '(No building)';
+                deptSelect.parentNode.insertBefore(buildingDisplay, deptSelect.nextSibling);
+                deptSelect.parentNode.insertBefore(buildingDisplayLabel, buildingDisplay);
+            }
             (async () => {
                 try {
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch(`${API_BASE_URL}/departments`, {
+                    // Fetch departments
+                    const deptResponse = await fetch(`${API_BASE_URL}/departments`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         }
                     });
-                    if (response.ok) {
-                        const departments = await response.json();
+                    if (deptResponse.ok) {
+                        const departments = await deptResponse.json();
                         deptSelect.innerHTML = '<option value="">Select a department...</option>' +
                             departments.map(dept => `<option value="${dept.id}" data-name="${dept.name}">${dept.name} (ID: ${dept.id})</option>`).join('');
                     } else {
                         deptSelect.innerHTML = '<option value="">Failed to load departments</option>';
                     }
+                    // For admins, fetch buildings and show dropdown
+                    if (userInfo.role === 'ADMIN') {
+                        const buildingResponse = await fetch(`${API_BASE_URL}/buildings/by-admin/${userInfo.id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (buildingResponse.ok) {
+                            const buildings = await buildingResponse.json();
+                            if (!buildings.length) {
+                                buildingSelect.innerHTML = '<option value="">No buildings found. Please create one first.</option>';
+                                buildingSelect.disabled = true;
+                                showError('No buildings found. Please create a building first.');
+                            } else {
+                                buildingSelect.innerHTML = '<option value="">Select a building...</option>' +
+                                    buildings.map(b => `<option value="${b.id}" data-name="${b.name}">${b.name} (ID: ${b.id})</option>`).join('');
+                                buildingSelect.disabled = false;
+                            }
+                        } else {
+                            buildingSelect.innerHTML = '<option value="">Failed to load buildings</option>';
+                        }
+                    }
                 } catch (err) {
                     deptSelect.innerHTML = '<option value="">Failed to load departments</option>';
+                    if (buildingSelect) buildingSelect.innerHTML = '<option value="">Failed to load buildings</option>';
                 }
             })();
 
@@ -703,9 +817,22 @@
                 const deptOption = deptSelect.options[deptSelect.selectedIndex];
                 const departmentId = deptOption.value;
                 const departmentName = deptOption.getAttribute('data-name') || '';
+                let buildingId = '';
+                let buildingName = '';
+                if (buildingSelect) {
+                    // Admin: select building from dropdown
+                    const buildingOption = buildingSelect.options[buildingSelect.selectedIndex];
+                    buildingId = buildingOption ? buildingOption.value : '';
+                    buildingName = buildingOption ? (buildingOption.getAttribute('data-name') || '') : '';
+                } else if (userInfo.role === 'MANAGER') {
+                    // Manager: use their own building
+                    buildingId = userInfo.buildingId || '';
+                    buildingName = userInfo.buildingName || '';
+                }
                 const invitedBy = window.authManager.getUserInfo()?.email || '';
-                if (!email || !role || !departmentId || !departmentName) {
-                    alert('Please fill in all required fields.');
+                // For admins, require building fields; for managers, skip building check
+                if (!email || !role || !departmentId || !departmentName || (buildingSelect && (!buildingId || !buildingName))) {
+                    alert('Please fill in all required fields' + (buildingSelect ? ', including building.' : '.'));
                     return;
                 }
                 // Call backend to create invitation and get code/token
@@ -717,7 +844,7 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ email, role, departmentId, departmentName, invitedBy })
+                        body: JSON.stringify({ email, role, departmentId, departmentName, buildingId, buildingName, invitedBy })
                     });
                     if (response.ok) {
                         const data = await response.json();
@@ -870,8 +997,6 @@
                 
                 if (response.ok) {
                     console.log('✅ API connection successful');
-                    // Update API status on dashboard
-                    document.querySelector('.api-info .api-endpoint:nth-child(3)').innerHTML = '✅ Authentication: JWT Token Active';
                 } else if (response.status === 401) {
                     console.log('⚠️ Token expired, redirecting to login');
                     localStorage.removeItem('authToken');
@@ -879,11 +1004,9 @@
                     window.location.href = 'login.html';
                 } else {
                     console.log('⚠️ API connection issue:', response.status);
-                    document.querySelector('.api-info .api-endpoint:nth-child(3)').innerHTML = `⚠️ Authentication: Error ${response.status}`;
                 }
             } catch (error) {
                 console.log('❌ API connection failed:', error);
-                document.querySelector('.api-info .api-endpoint:nth-child(3)').innerHTML = '❌ Authentication: Connection Failed';
             }
         }
 

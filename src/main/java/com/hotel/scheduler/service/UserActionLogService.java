@@ -25,13 +25,23 @@ public class UserActionLogService {
      */
     public void logAction(String action, Employee employee) {
         if (employee == null || employee.getBuilding() == null) return;
+        Long buildingId = null;
+        String buildingName = null;
+        try {
+            buildingId = employee.getBuilding().getId();
+            buildingName = employee.getBuilding().getName();
+        } catch (Exception e) {
+            // Avoid LazyInitializationException
+            buildingId = employee.getBuilding().getId();
+            buildingName = "Unknown";
+        }
         UserActionLog log = UserActionLog.builder()
                 .action(action)
                 .userUuid(employee.getUuid())
                 .userEmail(employee.getEmail())
                 .role(employee.getRole().name())
-                .buildingId(employee.getBuilding().getId())
-                .buildingName(employee.getBuilding().getName())
+                .buildingId(buildingId)
+                .buildingName(buildingName)
                 .build();
         userActionLogRepository.save(log);
     }

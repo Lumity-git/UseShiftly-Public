@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hotel Scheduler - Login</title>
+    <title>Shiftly Scheduler - Login</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body class="login-page">
     <div class="login-container">
       <div class="login-left">
-        <div class="logo">🏨 Hotel Scheduler</div>
+        <div class="logo">🏨 Shiftly Scheduler</div>
         <div class="tagline">
-          Professional employee scheduling made simple. Streamline your hotel
+          Professional employee scheduling made simple. Streamline your
           operations with our comprehensive shift management system.
         </div>
       </div>
@@ -132,22 +132,24 @@
           const data = await response.json();
 
           if (response.ok) {
+            // Prepare user info object with all details, including id
+            const userInfo = {
+              id: data.id,
+              email: data.email,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              role: data.role,
+              buildingId: data.buildingId,
+              buildingName: data.buildingName,
+              mustChangePassword: data.mustChangePassword
+            };
             // Check if mustChangePassword is true
             if (
               data.mustChangePassword === true ||
               data.mustChangePassword === "true"
             ) {
-              // Store token and user info for password change page if needed
               localStorage.setItem("authToken", data.token);
-              localStorage.setItem(
-                "userInfo",
-                JSON.stringify({
-                  email: data.email,
-                  firstName: data.firstName,
-                  lastName: data.lastName,
-                  role: data.role,
-                })
-              );
+              localStorage.setItem("userInfo", JSON.stringify(userInfo));
               showAlert(
                 "You must change your password before continuing.",
                 "error"
@@ -159,15 +161,7 @@
             }
             // Store token and user info
             localStorage.setItem("authToken", data.token);
-            localStorage.setItem(
-              "userInfo",
-              JSON.stringify({
-                email: data.email,
-                firstName: data.firstName,
-                lastName: data.lastName,
-                role: data.role,
-              })
-            );
+            localStorage.setItem("userInfo", JSON.stringify(userInfo));
 
             showAlert(`Welcome back, ${data.firstName}!`, "success");
             // Redirect based on user role after short delay

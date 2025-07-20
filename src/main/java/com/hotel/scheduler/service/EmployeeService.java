@@ -58,6 +58,15 @@ public class EmployeeService implements UserDetailsService {
     private final EmployeeRepository employeeRepository;
 
     /**
+     * Returns all employees assigned to a specific building.
+     * @param buildingId the building ID
+     * @return list of employees in the building
+     */
+    public List<Employee> getEmployeesByBuilding(Long buildingId) {
+        return employeeRepository.findByBuildingId(buildingId);
+    }
+
+    /**
      * Password encoder for hashing employee passwords.
      */
     private final PasswordEncoder passwordEncoder;

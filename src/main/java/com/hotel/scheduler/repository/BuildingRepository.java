@@ -11,4 +11,7 @@ public interface BuildingRepository extends JpaRepository<Building, Long> {
     Building findByName(String name);
 
     List<Building> findByAdminId(Long adminId);
+
+    // Find buildings by manager id
+    List<Building> findByManager_Id(Long managerId);
 }

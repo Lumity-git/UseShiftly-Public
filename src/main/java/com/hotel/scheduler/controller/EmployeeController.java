@@ -62,6 +62,20 @@ public class EmployeeController {
         }
     }
     private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
+
+    /**
+     * Lists all employees assigned to a specific building.
+     * Endpoint: GET /api/employees/by-building/{buildingId}
+     * @param buildingId the building ID
+     * @return list of EmployeeDTOs
+     */
+    @GetMapping("/by-building/{buildingId}")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getEmployeesByBuilding(@PathVariable Long buildingId) {
+        List<Employee> employees = employeeService.getEmployeesByBuilding(buildingId);
+        List<EmployeeDTO> dtos = employees.stream().map(EmployeeDTO::fromEntity).toList();
+        return ResponseEntity.ok(dtos);
+    }
     /**
      * Update employee info by ID (Manager/Admin only)
      */
@@ -104,12 +118,26 @@ public class EmployeeController {
                 employee.setRole(Employee.Role.valueOf((String) employeeUpdate.get("role")));
             }
             if (employeeUpdate.containsKey("departmentId")) {
-                Long deptId = Long.valueOf(employeeUpdate.get("departmentId").toString());
-                employeeService.assignEmployeeToDepartment(employee, deptId);
+                Object deptObj = employeeUpdate.get("departmentId");
+                if (deptObj != null && !deptObj.toString().isBlank()) {
+                    try {
+                        Long deptId = Long.valueOf(deptObj.toString());
+                        employeeService.assignEmployeeToDepartment(employee, deptId);
+                    } catch (NumberFormatException ex) {
+                        return ResponseEntity.badRequest().body(new MessageResponse("Invalid departmentId value"));
+                    }
+                }
             }
             if (employeeUpdate.containsKey("buildingId")) {
-                Long buildingId = Long.valueOf(employeeUpdate.get("buildingId").toString());
-                employeeService.assignEmployeeToBuilding(employee, buildingId);
+                Object buildingObj = employeeUpdate.get("buildingId");
+                if (buildingObj != null && !buildingObj.toString().isBlank()) {
+                    try {
+                        Long buildingId = Long.valueOf(buildingObj.toString());
+                        employeeService.assignEmployeeToBuilding(employee, buildingId);
+                    } catch (NumberFormatException ex) {
+                        return ResponseEntity.badRequest().body(new MessageResponse("Invalid buildingId value"));
+                    }
+                }
             }
             if (employeeUpdate.containsKey("active")) {
                 employee.setActive(Boolean.valueOf(employeeUpdate.get("active").toString()));
@@ -305,10 +333,17 @@ public class EmployeeController {
                                           @AuthenticationPrincipal Employee currentUser) {
         try {
             Employee newEmployee = new Employee();
+            newEmployee.setId(null); // Always null, let JPA generate
+            newEmployee.setUuid(java.util.UUID.randomUUID().toString()); // Always new UUID
             newEmployee.setFirstName((String) employeeData.get("firstName"));
             newEmployee.setLastName((String) employeeData.get("lastName"));
             newEmployee.setEmail((String) employeeData.get("email"));
             newEmployee.setPhoneNumber((String) employeeData.get("phoneNumber"));
+            newEmployee.setDateOfBirth((String) employeeData.get("dateOfBirth"));
+            newEmployee.setAddress((String) employeeData.get("address"));
+            newEmployee.setEmergencyContactName((String) employeeData.get("emergencyContactName"));
+            newEmployee.setEmergencyContactRelation((String) employeeData.get("emergencyContactRelation"));
+            newEmployee.setEmergencyContactPhone((String) employeeData.get("emergencyContactPhone"));
             // Set role - default to EMPLOYEE if not specified
             String roleStr = (String) employeeData.getOrDefault("role", "EMPLOYEE");
             newEmployee.setRole(Employee.Role.valueOf(roleStr));

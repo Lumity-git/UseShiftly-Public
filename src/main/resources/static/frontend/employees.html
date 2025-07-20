@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Employee Directory - Hotel Scheduler</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Employee Directory - Shiftly Scheduler</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="header">
       <div class="header-content">
-        <div class="logo">🏨 Hotel Scheduler</div>
+        <div class="logo">🏨 Shiftly Scheduler</div>
         <nav class="nav-links" id="navigation">
           <!-- Navigation will be populated based on user role -->
         </nav>
@@ -23,10 +23,95 @@
     </div>
 
     <div class="container">
+      <!-- ...existing code... -->
+    </div>
 
+    <!-- Only include each script once, in the head -->
+    <script>
+// Generate change password link for selected employee
+function generateChangePasswordLink() {
+  const employeeId = editingEmployeeId;
+  const employeeEmail = document.getElementById('email')?.value;
+  if (!employeeId || !employeeEmail) {
+    alert('Employee ID or email missing.');
+    return;
+  }
+  // Generate a link with userId and a dummy token (could be replaced with a real token if needed)
+  const token = btoa(employeeEmail + ':' + Date.now()); // Simple base64 token for demo
+  const link = `${window.location.origin}/change-password.html?userId=${employeeId}&token=${token}`;
+  const linkInput = document.getElementById('changePasswordLink');
+  const linkContainer = document.getElementById('changePasswordLinkContainer');
+  if (linkInput && linkContainer) {
+    linkInput.value = link;
+    linkContainer.style.display = '';
+  }
+}
+
+function copyChangePasswordLink() {
+  const linkInput = document.getElementById('changePasswordLink');
+  if (linkInput && linkInput.value) {
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+      showAlert('Change password link copied to clipboard!', 'success');
+    }, () => {
+      prompt('Copy this link:', linkInput.value);
+    });
+  }
+}
+
+// Show the button only for admin/manager
+function showGeneratePasswordLinkBtn(userRole) {
+  const btn = document.getElementById('generatePasswordLinkBtn');
+  if (btn) {
+    btn.style.display = (userRole === 'ADMIN' || userRole === 'MANAGER') ? '' : 'none';
+  }
+}
+// Call this when opening the modal
+// showGeneratePasswordLinkBtn(currentUserRole);
+      // Navigation setup function
+      function setupNavigation(userRole) {
+        const navigation = document.getElementById("navigation");
+        let navLinks = "";
+        navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
+        navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
+        navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
+        navLinks += '<a href="notifications.html" class="nav-link">Notifications</a>';
+        if (userRole === "MANAGER" || userRole === "ADMIN") {
+          navLinks += '<a href="employees.html" class="nav-link active">Employees</a>';
+          navLinks += '<a href="reports.html" class="nav-link">Reports</a>';
+          navLinks += '<a href="departments.html" class="nav-link">Departments</a>';
+        }
+        navigation.innerHTML = navLinks;
+      }
+
+      // ...existing code...
+
+      // Ensure all functions are properly defined and scoped
+      // ...existing code...
+    </script>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Directory - Hotel Scheduler</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
       <div class="filters">
-        <div class="filter-row" style="display: flex; flex-wrap: nowrap; align-items: flex-end; gap: 1em; overflow-x: auto;">
-          <div class="filter-group" style="min-width: 180px;">
+        <div
+          class="filter-row"
+          style="
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: flex-end;
+            gap: 1em;
+            overflow-x: auto;
+          "
+        >
+          <div class="filter-group" style="min-width: 180px">
             <label for="searchTerm">Search Employee</label>
             <input
               type="text"
@@ -34,19 +119,19 @@
               placeholder="Search by name, email, or phone"
             />
           </div>
-          <div class="filter-group" style="min-width: 140px;">
+          <div class="filter-group" style="min-width: 140px">
             <label for="buildingFilter">Building</label>
             <select id="buildingFilter">
               <option value="">All Buildings</option>
             </select>
           </div>
-          <div class="filter-group" style="min-width: 140px;">
+          <div class="filter-group" style="min-width: 140px">
             <label for="departmentFilter">Department</label>
             <select id="departmentFilter">
               <option value="">All Departments</option>
             </select>
           </div>
-          <div class="filter-group" style="min-width: 120px;">
+          <div class="filter-group" style="min-width: 120px">
             <label for="roleFilter">Role</label>
             <select id="roleFilter">
               <option value="">All Roles</option>
@@ -55,7 +140,7 @@
               <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
-          <div class="filter-group" style="min-width: 120px;">
+          <div class="filter-group" style="min-width: 120px">
             <label for="statusFilter">Status</label>
             <select id="statusFilter">
               <option value="">All Statuses</option>
@@ -63,7 +148,16 @@
               <option value="false">Inactive</option>
             </select>
           </div>
-          <div class="action-buttons" id="actionButtons" style="display: flex; gap: 0.5em; align-items: flex-end; min-width: 420px;">
+          <div
+            class="action-buttons"
+            id="actionButtons"
+            style="
+              display: flex;
+              gap: 0.5em;
+              align-items: flex-end;
+              min-width: 420px;
+            "
+          >
             <!-- Buttons will be populated based on user role -->
           </div>
         </div>
@@ -141,15 +235,29 @@
           <div class="form-row">
             <div class="form-group">
               <label for="emergencyContactName">Emergency Contact Name</label>
-              <input type="text" id="emergencyContactName" name="emergencyContactName" />
+              <input
+                type="text"
+                id="emergencyContactName"
+                name="emergencyContactName"
+              />
             </div>
             <div class="form-group">
-              <label for="emergencyContactRelation">Emergency Contact Relation</label>
-              <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" />
+              <label for="emergencyContactRelation"
+                >Emergency Contact Relation</label
+              >
+              <input
+                type="text"
+                id="emergencyContactRelation"
+                name="emergencyContactRelation"
+              />
             </div>
             <div class="form-group">
               <label for="emergencyContactPhone">Emergency Contact Phone</label>
-              <input type="tel" id="emergencyContactPhone" name="emergencyContactPhone" />
+              <input
+                type="tel"
+                id="emergencyContactPhone"
+                name="emergencyContactPhone"
+              />
             </div>
           </div>
           <div class="form-row">
@@ -165,6 +273,12 @@
               <label for="department">Department</label>
               <select id="department" name="departmentId">
                 <option value="">Select Department</option>
+              </select>
+            </div>
+            <div class="form-group" id="buildingGroup" style="display:none;">
+              <label for="employeeBuilding">Building</label>
+              <select id="employeeBuilding" name="buildingId">
+                <option value="">Select Building</option>
               </select>
             </div>
           </div>
@@ -184,8 +298,22 @@
               class="btn btn-secondary"
               onclick="closeEmployeeModal()"
             >
-              ❌ Cancel
+              ✖ Cancel
             </button>
+            <button
+              type="button"
+              class="btn btn-warning"
+              id="generatePasswordLinkBtn"
+              style="display:none;"
+              onclick="generateChangePasswordLink()"
+            >
+              🔗 Generate Change Password Link
+            </button>
+            <div id="changePasswordLinkContainer" style="display:none; margin-top:1em;">
+              <label for="changePasswordLink">Change Password Link:</label>
+              <input type="text" id="changePasswordLink" readonly style="width:80%;" />
+              <button type="button" class="btn btn-info" onclick="copyChangePasswordLink()">📋 Copy</button>
+            </div>
           </div>
         </form>
       </div>
@@ -278,22 +406,28 @@
     <script src="auth-manager.js"></script>
     <script>
       let currentUser = null;
-      const API_BASE_URL = window.location.origin + '/api';
+      const API_BASE_URL = window.location.origin + "/api";
 
       // Initialize page
       document.addEventListener("DOMContentLoaded", async function () {
-        if (!authManager.checkAuth(["MANAGER", "ADMIN"])) return;
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) return;
 
         loadUserInfo();
-        await loadBuildingsByAdmin();
-        loadDepartments();
-        loadEmployees();
+        // Use currentUser (set by loadUserInfo) for all user.id checks
+        if (currentUser && currentUser.id && !isNaN(Number(currentUser.id))) {
+          await loadBuildingsByAdmin();
+        } else {
+          console.warn("Skipping loadBuildingsByAdmin: currentUser.id is missing or invalid.");
+        }
+        await loadDepartments();
+        await loadEmployees();
         setupEventListeners();
         setupActionButtons();
 
         // Load invitations if user is admin/manager
         if (canManageEmployees()) {
-          loadPendingInvitations();
+          await loadPendingInvitations();
           document.getElementById("invitationSection").style.display = "block";
         }
       });
@@ -305,10 +439,12 @@
           if (!userInfo) return;
           const user = JSON.parse(userInfo);
           let buildingsResult = [];
-          if (user.role === "ADMIN") {
-            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
-          } else if (user.role === "MANAGER") {
-            // For managers, only show buildings where they are the admin
+          // Defensive: ensure user.id is a valid number
+          if (!user.id || isNaN(Number(user.id))) {
+            console.error("User ID is missing or invalid, cannot load buildings.");
+            return;
+          }
+          if (user.role === "ADMIN" || user.role === "MANAGER") {
             buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
           }
           buildings = buildingsResult;
@@ -336,7 +472,10 @@
           .addEventListener("input", filterEmployees);
         document
           .getElementById("buildingFilter")
-          .addEventListener("change", filterEmployees);
+          .addEventListener("change", async function () {
+            await loadEmployees();
+            filterEmployees();
+          });
         document
           .getElementById("departmentFilter")
           .addEventListener("change", filterEmployees);
@@ -357,26 +496,31 @@
       function setupActionButtons() {
         const actionButtons = document.getElementById("actionButtons");
         if (canManageEmployees()) {
+          let buildingBtn = "";
+          if (currentUser && currentUser.role === "ADMIN") {
+            buildingBtn = `<button class="btn btn-info" onclick="openCreateBuildingModal()">🏢 Add Building</button>`;
+          }
           actionButtons.innerHTML = `
-                          <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
-                              ➕ Add Employee
-                          </button>
-                          <button class="btn btn-secondary" onclick="openBulkImportModal()">
-                              ➕ Add Employees by File
-                          </button>
-                          <button class="btn btn-secondary" onclick="refreshWithFilters()">
-                              🔄 Refresh
-                          </button>
-                          <button class="btn btn-success" onclick="exportEmployeesFiltered()">
-                              📊 Export
-                          </button>
-                      `;
+            <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
+                ➕ Add Employee
+            </button>
+            <button class="btn btn-secondary" onclick="openBulkImportModal()">
+                ➕ Add Employees by File
+            </button>
+            <button class="btn btn-secondary" onclick="refreshWithFilters()">
+                🔄 Refresh
+            </button>
+            <button class="btn btn-success" onclick="exportEmployeesFiltered()">
+                📊 Export
+            </button>
+            ${buildingBtn}
+          `;
         } else {
           actionButtons.innerHTML = `
-                          <button class="btn btn-secondary" onclick="refreshWithFilters()">
-                              🔄 Refresh
-                          </button>
-                      `;
+            <button class="btn btn-secondary" onclick="refreshWithFilters()">
+                🔄 Refresh
+            </button>
+          `;
         }
       }
 
@@ -389,9 +533,12 @@
       // Export only currently filtered employees
       function exportEmployeesFiltered() {
         // Get current filtered employees
-        const searchTerm = document.getElementById("searchTerm").value.toLowerCase();
+        const searchTerm = document
+          .getElementById("searchTerm")
+          .value.toLowerCase();
         const buildingFilter = document.getElementById("buildingFilter").value;
-        const departmentFilter = document.getElementById("departmentFilter").value;
+        const departmentFilter =
+          document.getElementById("departmentFilter").value;
         const roleFilter = document.getElementById("roleFilter").value;
         const statusFilter = document.getElementById("statusFilter").value;
         const filtered = employees.filter((employee) => {
@@ -400,33 +547,56 @@
             employee.lastName.toLowerCase().includes(searchTerm) ||
             employee.email.toLowerCase().includes(searchTerm) ||
             (employee.phoneNumber && employee.phoneNumber.includes(searchTerm));
-          const matchesBuilding = !buildingFilter || employee.buildingId == buildingFilter;
-          const matchesDepartment = !departmentFilter || employee.departmentId == departmentFilter;
+          const matchesBuilding =
+            !buildingFilter || employee.buildingId == buildingFilter;
+          const matchesDepartment =
+            !departmentFilter || employee.departmentId == departmentFilter;
           const matchesRole = !roleFilter || employee.role === roleFilter;
-          const matchesStatus = !statusFilter || employee.active.toString() === statusFilter;
-          return matchesSearch && matchesBuilding && matchesDepartment && matchesRole && matchesStatus;
+          const matchesStatus =
+            !statusFilter || employee.active.toString() === statusFilter;
+          return (
+            matchesSearch &&
+            matchesBuilding &&
+            matchesDepartment &&
+            matchesRole &&
+            matchesStatus
+          );
         });
-      // Update filterEmployees to include building filter
-      function filterEmployees() {
-        const searchTerm = document.getElementById("searchTerm").value.toLowerCase();
-        const buildingFilter = document.getElementById("buildingFilter").value;
-        const departmentFilter = document.getElementById("departmentFilter").value;
-        const roleFilter = document.getElementById("roleFilter").value;
-        const statusFilter = document.getElementById("statusFilter").value;
-        const filtered = employees.filter((employee) => {
-          const matchesSearch =
-            employee.firstName.toLowerCase().includes(searchTerm) ||
-            employee.lastName.toLowerCase().includes(searchTerm) ||
-            employee.email.toLowerCase().includes(searchTerm) ||
-            (employee.phoneNumber && employee.phoneNumber.includes(searchTerm));
-          const matchesBuilding = !buildingFilter || employee.buildingId == buildingFilter;
-          const matchesDepartment = !departmentFilter || employee.departmentId == departmentFilter;
-          const matchesRole = !roleFilter || employee.role === roleFilter;
-          const matchesStatus = !statusFilter || employee.active.toString() === statusFilter;
-          return matchesSearch && matchesBuilding && matchesDepartment && matchesRole && matchesStatus;
-        });
-        renderEmployees(filtered);
-      }
+        // Update filterEmployees to include building filter
+        function filterEmployees() {
+          const searchTerm = document
+            .getElementById("searchTerm")
+            .value.toLowerCase();
+          const buildingFilter =
+            document.getElementById("buildingFilter").value;
+          const departmentFilter =
+            document.getElementById("departmentFilter").value;
+          const roleFilter = document.getElementById("roleFilter").value;
+          const statusFilter = document.getElementById("statusFilter").value;
+          const filtered = employees.filter((employee) => {
+            const matchesSearch =
+              employee.firstName.toLowerCase().includes(searchTerm) ||
+              employee.lastName.toLowerCase().includes(searchTerm) ||
+              employee.email.toLowerCase().includes(searchTerm) ||
+              (employee.phoneNumber &&
+                employee.phoneNumber.includes(searchTerm));
+            const matchesBuilding =
+              !buildingFilter || employee.buildingId == buildingFilter;
+            const matchesDepartment =
+              !departmentFilter || employee.departmentId == departmentFilter;
+            const matchesRole = !roleFilter || employee.role === roleFilter;
+            const matchesStatus =
+              !statusFilter || employee.active.toString() === statusFilter;
+            return (
+              matchesSearch &&
+              matchesBuilding &&
+              matchesDepartment &&
+              matchesRole &&
+              matchesStatus
+            );
+          });
+          renderEmployees(filtered);
+        }
         if (!filtered || filtered.length === 0) {
           showAlert("No employees to export.", "info");
           return;
@@ -445,25 +615,29 @@
             "Role",
             "Department",
             "Status",
-            "Joined"
-          ].join(",")
+            "Joined",
+          ].join(","),
         ];
-        filtered.forEach(emp => {
-          csvRows.push([
-            emp.firstName,
-            emp.lastName,
-            emp.email,
-            emp.phoneNumber || "",
-            emp.dateOfBirth || "",
-            emp.address || "",
-            emp.emergencyContactName || "",
-            emp.emergencyContactRelation || "",
-            emp.emergencyContactPhone || "",
-            emp.role,
-            emp.departmentName || "",
-            emp.active ? "Active" : "Inactive",
-            formatDate(emp.createdAt)
-          ].map(val => `"${val}"`).join(","));
+        filtered.forEach((emp) => {
+          csvRows.push(
+            [
+              emp.firstName,
+              emp.lastName,
+              emp.email,
+              emp.phoneNumber || "",
+              emp.dateOfBirth || "",
+              emp.address || "",
+              emp.emergencyContactName || "",
+              emp.emergencyContactRelation || "",
+              emp.emergencyContactPhone || "",
+              emp.role,
+              emp.departmentName || "",
+              emp.active ? "Active" : "Inactive",
+              formatDate(emp.createdAt),
+            ]
+              .map((val) => `"${val}"`)
+              .join(",")
+          );
         });
         const csvContent = csvRows.join("\n");
         const blob = new Blob([csvContent], { type: "text/csv" });
@@ -481,40 +655,74 @@
       async function checkAuth() {
         const token = localStorage.getItem("authToken");
         const userInfo = localStorage.getItem("userInfo");
-
         if (!token || !userInfo) {
           window.location.href = "login.html";
           return false;
         }
-
-        const user = JSON.parse(userInfo);
-
+        let user = JSON.parse(userInfo);
+        // Only allow MANAGER and ADMIN
+        if (!["MANAGER", "ADMIN"].includes(user.role)) {
+          window.location.href = "login.html";
+          return false;
+        }
         try {
-          // Validate token by making a test API call
-          const response = await fetch(
-            "http://localhost:8080/api/auth/validate",
-            {
-              method: "GET",
+          const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (response.status === 401) {
+            // Try to refresh token if backend supports
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: "POST",
               headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
-            }
-          );
-
-          if (!response.ok) {
-                localStorage.removeItem("authToken");
-                localStorage.removeItem("userInfo");
+            });
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              if (data.token) {
+                localStorage.setItem("authToken", data.token);
+              }
+              if (data.userInfo) {
+                localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+                user = data.userInfo;
+              }
+              if (!["MANAGER", "ADMIN"].includes(user.role)) {
                 window.location.href = "login.html";
-            return false;
-          }
-
-          return true;
-        } catch (error) {
-          console.error("Auth validation failed:", error);
+                return false;
+              }
+              return true;
+            }
             localStorage.removeItem("authToken");
             localStorage.removeItem("userInfo");
             window.location.href = "login.html";
+            return false;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem("authToken", data.token);
+          }
+          if (data.userInfo) {
+            localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+            user = data.userInfo;
+          }
+          if (!["MANAGER", "ADMIN"].includes(user.role)) {
+            window.location.href = "login.html";
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error("Auth validation failed:", error);
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("userInfo");
+          window.location.href = "login.html";
           return false;
         }
       }
@@ -523,34 +731,59 @@
         const userInfo = localStorage.getItem("userInfo");
         if (userInfo) {
           currentUser = JSON.parse(userInfo);
-          document.getElementById(
-            "userName"
-          ).textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+          // Defensive: force logout if id is missing or invalid
+          if (!currentUser.id || isNaN(Number(currentUser.id))) {
+            showAlert("Your session is invalid. Please log in again.", "error");
+            setTimeout(() => { logout(); }, 1200);
+            return;
+          }
+          // Optionally display building info in header or elsewhere
+          let userDisplay = `${currentUser.firstName} ${currentUser.lastName}`;
+          if (currentUser.buildingName && currentUser.buildingName !== "null") {
+            userDisplay += ` (${currentUser.buildingName})`;
+          }
+          document.getElementById("userName").textContent = userDisplay;
           setupNavigation(currentUser.role);
+          // Optionally, handle mustChangePassword flag
+          if (
+            currentUser.mustChangePassword === true ||
+            currentUser.mustChangePassword === "true"
+          ) {
+            showAlert(
+              "You must change your password before continuing.",
+              "error"
+            );
+            setTimeout(() => {
+              window.location.href = "/frontend/change-password.html";
+            }, 1200);
+            return;
+          }
         }
       }
 
-      function setupNavigation(userRole) {
-        const navigation = document.getElementById("navigation");
-        let navLinks = "";
-
-        // Common links for all users
-        navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
-        navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
-        navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
-        navLinks +=
-          '<a href="notifications.html" class="nav-link">Notifications</a>';
-
-        // Manager and Admin only links
-        if (userRole === "MANAGER" || userRole === "ADMIN") {
-          navLinks +=
-            '<a href="employees.html" class="nav-link active">Employees</a>';
-          navLinks += '<a href="reports.html" class="nav-link">Reports</a>';
-          navLinks +=
-            '<a href="departments.html" class="nav-link">Departments</a>';
+      async function loadBuildingsByAdmin() {
+        try {
+          const userInfo = localStorage.getItem("userInfo");
+          if (!userInfo) return;
+          const user = JSON.parse(userInfo);
+          let buildingsResult = [];
+          // Strict check for valid user.id
+          if (!user.id || isNaN(Number(user.id))) {
+            console.error("User ID is missing or invalid, cannot load buildings.");
+            return;
+          }
+          // Use buildingId from userInfo if available
+          if (user.buildingId && user.buildingId !== "null") {
+            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
+          } else if ((user.role === "ADMIN" || user.role === "MANAGER") && user.id && !isNaN(Number(user.id))) {
+            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
+          }
+          buildings = buildingsResult;
+          populateBuildingSelect();
+        } catch (error) {
+          console.error("Failed to load buildings:", error);
         }
-
-        navigation.innerHTML = navLinks;
+        // Removed stray navLinks code from loadBuildingsByAdmin
       }
 
       function logout() {
@@ -563,26 +796,39 @@
       async function apiRequest(endpoint, options = {}) {
         const token = localStorage.getItem("authToken");
         const url = `${API_BASE_URL}${endpoint}`;
- 
-         const config = {
-             headers: {
-                 "Content-Type": "application/json",
-                 Authorization: `Bearer ${token}`,
-                 ...options.headers,
-             },
-             ...options,
-         };
+
+        // Defensive: check for valid token
+        if (!token || token === "null" || token === "undefined") {
+          logout();
+          return;
+        }
+
+        const config = {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            ...options.headers,
+          },
+          ...options,
+        };
 
         try {
           const response = await fetch(url, config);
 
           if (response.status === 401) {
-                logout();
+            logout();
             return;
           }
 
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // Try to parse error message from backend
+            let errorMsg = `HTTP error! status: ${response.status}`;
+            try {
+              const text = await response.text();
+              errorMsg = text || errorMsg;
+            } catch {}
+            showAlert(errorMsg, "error");
+            throw new Error(errorMsg);
           }
 
           return await response.json();
@@ -600,16 +846,30 @@
           populateDepartmentSelects();
         } catch (error) {
           console.error("Failed to load departments:", error);
+          departments = [];
+          populateDepartmentSelects();
         }
       }
 
       async function loadEmployees() {
         try {
-          employees = await apiRequest("/employees");
-          console.log("Loaded employees:", employees); // Add this line
+          let buildingId = "";
+          const buildingFilter = document.getElementById("buildingFilter");
+          if (buildingFilter) {
+            buildingId = buildingFilter.value;
+          }
+          let endpoint = "/employees";
+          if (buildingId) {
+            endpoint = `/employees/by-building/${buildingId}`;
+          } else if (currentUser && currentUser.role === "MANAGER" && buildings.length > 0) {
+            endpoint = `/employees/by-building/${buildings[0].id}`;
+          }
+          employees = await apiRequest(endpoint);
+          if (!employees || !Array.isArray(employees)) employees = [];
           renderEmployees();
         } catch (error) {
           console.error("Failed to load employees:", error);
+          employees = [];
           document.getElementById("employeesContainer").innerHTML =
             '<div class="alert alert-error">Failed to load employees. Please try again.</div>';
         }
@@ -673,7 +933,11 @@
         const employeesHtml = employeesToShow
           .filter(function (employee) {
             // Managers cannot see admin accounts
-            if (currentUser && currentUser.role === "MANAGER" && employee.role === "ADMIN") {
+            if (
+              currentUser &&
+              currentUser.role === "MANAGER" &&
+              employee.role === "ADMIN"
+            ) {
               return false;
             }
             return true;
@@ -723,7 +987,14 @@
               '<button class="btn btn-primary btn-small" onclick="viewEmployeeSchedule(' +
               employee.id +
               ')">📅 Schedule</button>';
-            if (canManageEmployees() && !(currentUser && currentUser.role === "MANAGER" && employee.role === "ADMIN")) {
+            if (
+              canManageEmployees() &&
+              !(
+                currentUser &&
+                currentUser.role === "MANAGER" &&
+                employee.role === "ADMIN"
+              )
+            ) {
               html +=
                 '<button class="btn btn-secondary btn-small" onclick="editEmployee(' +
                 employee.id +
@@ -748,13 +1019,17 @@
           '<div class="employees-grid">' + employeesHtml + "</div>";
 
         // Pagination controls
-        let paginationHtml = '';
+        let paginationHtml = "";
         if (totalPages > 1) {
           paginationHtml += '<div class="pagination-controls">';
-          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(-1)" ${
+            currentPage === 1 ? "disabled" : ""
+          }>&laquo; Prev</button>`;
           paginationHtml += `<span class="pagination-info"> Page ${currentPage} of ${totalPages} </span>`;
-          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next &raquo;</button>`;
-          paginationHtml += '</div>';
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(1)" ${
+            currentPage === totalPages ? "disabled" : ""
+          }>Next &raquo;</button>`;
+          paginationHtml += "</div>";
         }
         // Remove old pagination if exists
         document.getElementById("paginationContainer")?.remove();
@@ -769,7 +1044,7 @@
       window.changeEmployeePage = function (delta) {
         currentPage += delta;
         renderEmployees();
-      }
+      };
 
       function renderPendingInvitations(invitations) {
         const container = document.getElementById("pendingInvitations");
@@ -869,6 +1144,13 @@
       function openInvitationModal() {
         document.getElementById("invitationForm").reset();
         document.getElementById("invitationModal").style.display = "block";
+        // Show building select for admins only
+        if (currentUser && currentUser.role === "ADMIN") {
+          document.getElementById("inviteBuildingGroup").style.display = "block";
+          populateInviteBuildings();
+        } else {
+          document.getElementById("inviteBuildingGroup").style.display = "none";
+        }
       }
 
       function closeInvitationModal() {
@@ -879,9 +1161,7 @@
         try {
           const employee = await apiRequest(`/employees/${employeeId}`);
           editingEmployeeId = employeeId;
-
-          document.getElementById("employeeModalTitle").textContent =
-            "Edit Employee";
+          document.getElementById("employeeModalTitle").textContent = "Edit Employee";
           document.getElementById("firstName").value = employee.firstName;
           document.getElementById("lastName").value = employee.lastName;
           document.getElementById("email").value = employee.email;
@@ -894,8 +1174,32 @@
           document.getElementById("role").value = employee.role;
           document.getElementById("department").value = employee.departmentId || "";
           document.getElementById("active").value = employee.active.toString();
-
+          // Show building dropdown for admins
+          const buildingGroup = document.getElementById("buildingGroup");
+          const buildingSelect = document.getElementById("employeeBuilding");
+          if (currentUser && currentUser.role === "ADMIN") {
+            buildingGroup.style.display = "block";
+            buildingSelect.innerHTML = '<option value="">Select Building</option>';
+            buildings.forEach(b => {
+              const option = document.createElement("option");
+              option.value = b.id;
+              option.textContent = b.name;
+              if (employee.buildingId == b.id) option.selected = true;
+              buildingSelect.appendChild(option);
+            });
+          } else {
+            buildingGroup.style.display = "none";
+          }
           document.getElementById("employeeModal").style.display = "block";
+          // Show the Generate Change Password Link button for admins/managers
+          const generatePasswordLinkBtn = document.getElementById("generatePasswordLinkBtn");
+          if (currentUser && (currentUser.role === "ADMIN" || currentUser.role === "MANAGER")) {
+            generatePasswordLinkBtn.style.display = "inline-block";
+          } else {
+            generatePasswordLinkBtn.style.display = "none";
+          }
+          // Hide the link container by default
+          document.getElementById("changePasswordLinkContainer").style.display = "none";
         } catch (error) {
           showAlert("Failed to load employee details", "error");
         }
@@ -903,44 +1207,105 @@
 
       async function handleEmployeeSubmit(e) {
         e.preventDefault();
-
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const formData = new FormData(form);
+        // Helper to trim and nullify empty strings
+        function cleanField(val) {
+          if (val === undefined || val === null) return null;
+          if (typeof val !== "string") return val;
+          const trimmed = val.trim();
+          return trimmed === "" ? null : trimmed;
+        }
+        // Debug: log all form values
+        console.debug("handleEmployeeSubmit: formData", Object.fromEntries(formData.entries()));
+        // Validate required fields
+        const firstName = cleanField(formData.get("firstName"));
+        const lastName = cleanField(formData.get("lastName"));
+        const email = cleanField(formData.get("email"));
+        let role = cleanField(formData.get("role"));
+        if (!role) role = "EMPLOYEE";
+        const validRoles = ["EMPLOYEE", "MANAGER", "ADMIN"];
+        if (!firstName || !lastName || !email || !validRoles.includes(role)) {
+          console.debug("Validation failed", { firstName, lastName, email, role });
+          showAlert("Please fill all required fields and select a valid role.", "error");
+          return;
+        }
+        let departmentIdRaw = formData.get("departmentId");
+        let departmentId = null;
+        if (departmentIdRaw && departmentIdRaw !== "" && !isNaN(departmentIdRaw)) {
+          departmentId = parseInt(departmentIdRaw);
+        }
+        // Debug: log departmentId
+        console.debug("departmentIdRaw", departmentIdRaw, "departmentId", departmentId);
+        // Ensure current admin/manager/employee has valid user ID
+        const userInfo = localStorage.getItem("userInfo");
+        let user = null;
+        if (userInfo) {
+          try {
+            user = JSON.parse(userInfo);
+          } catch (e) {
+            user = null;
+          }
+        }
+        // Debug: log user and user.id
+        console.debug("userInfo", userInfo, "user", user, "user.id", user && user.id);
+        if (!user || typeof user.id === "undefined" || user.id === null || isNaN(Number(user.id))) {
+          showAlert("Your account is missing an employee ID. Please log out and log in again.", "error");
+          console.error("User validation failed: missing or invalid id", user);
+          return;
+        }
+        // Always send departmentId as a number or null
+        if (departmentId !== null) departmentId = Number(departmentId);
+        // Send all employee fields to backend, and include admin/manager id for auditing if needed
         const employeeData = {
-          firstName: formData.get("firstName"),
-          lastName: formData.get("lastName"),
-          email: formData.get("email"),
-          phoneNumber: formData.get("phoneNumber") || null,
-          dateOfBirth: formData.get("dateOfBirth") || null,
-          address: formData.get("address") || null,
-          emergencyContactName: formData.get("emergencyContactName") || null,
-          emergencyContactRelation: formData.get("emergencyContactRelation") || null,
-          emergencyContactPhone: formData.get("emergencyContactPhone") || null,
-          role: formData.get("role"),
-          departmentId: formData.get("departmentId")
-            ? parseInt(formData.get("departmentId"))
-            : null,
-          active: formData.get("active") === "true",
+          firstName,
+          lastName,
+          email,
+          phoneNumber: cleanField(formData.get("phoneNumber")),
+          dateOfBirth: cleanField(formData.get("dateOfBirth")),
+          address: cleanField(formData.get("address")),
+          emergencyContactName: cleanField(formData.get("emergencyContactName")),
+          emergencyContactRelation: cleanField(formData.get("emergencyContactRelation")),
+          emergencyContactPhone: cleanField(formData.get("emergencyContactPhone")),
+          role,
+          departmentId,
+          // Optionally send admin/manager id for backend auditing
+          adminId: user.id,
+          // For admins, update buildingId/buildingName
+          ...(currentUser && currentUser.role === "ADMIN" ? (() => {
+            const buildingSelect = document.getElementById("employeeBuilding");
+            const buildingId = buildingSelect ? buildingSelect.value : null;
+            const buildingName = buildingSelect ? (buildingSelect.options[buildingSelect.selectedIndex]?.text || "") : "";
+            return { buildingId, buildingName };
+          })() : {})
         };
-
+        // Debug: log employeeData and adminId
+        console.debug("employeeData", employeeData, "adminId", user.id);
         try {
+          let apiResult;
           if (editingEmployeeId) {
-            await apiRequest(`/employees/${editingEmployeeId}`, {
+            console.debug("Updating employee", editingEmployeeId);
+            apiResult = await apiRequest(`/employees/${editingEmployeeId}`, {
               method: "PUT",
               body: JSON.stringify(employeeData),
             });
+            console.debug("Update result", apiResult);
             showAlert("Employee updated successfully!", "success");
           } else {
-            await apiRequest("/employees", {
+            console.debug("Creating employee");
+            apiResult = await apiRequest("/employees", {
               method: "POST",
               body: JSON.stringify(employeeData),
             });
+            console.debug("Create result", apiResult);
             showAlert("Employee created successfully!", "success");
           }
-
+          form.reset();
           closeEmployeeModal();
-          loadEmployees();
+          await loadEmployees();
         } catch (error) {
-          showAlert("Failed to save employee. Please try again.", "error");
+          console.error("Failed to save employee", error);
+          showAlert("Failed to save employee. Please check required fields, role, and email uniqueness.", "error");
         }
       }
 
@@ -958,6 +1323,14 @@
           notes: formData.get("notes"),
           expiryDays: parseInt(formData.get("expiryDays")),
         };
+        // For admins, add buildingId/buildingName
+        if (currentUser && currentUser.role === "ADMIN") {
+          const buildingSelect = document.getElementById("inviteBuilding");
+          const buildingId = buildingSelect.value;
+          const buildingName = buildingSelect.options[buildingSelect.selectedIndex]?.text || "";
+          invitationData.buildingId = buildingId;
+          invitationData.buildingName = buildingName;
+        }
 
         try {
           const response = await apiRequest("/auth/generate-invitation", {
@@ -982,20 +1355,24 @@
 
       async function toggleEmployeeStatus(employeeId, active) {
         if (!active) {
-            if (!confirm("Are you sure you want to deactivate this employee?")) return;
-            try {
-                 await apiRequest(`/employees/${employeeId}/delete`, {
-                     method: "DELETE"
-                 });
-                showAlert("Employee deactivated successfully!", "success");
-                await loadEmployees();
-                filterEmployees();
-            } catch (error) {
-                showAlert("Failed to deactivate employee", "error");
-            }
+          if (!confirm("Are you sure you want to deactivate this employee?"))
+            return;
+          try {
+            await apiRequest(`/employees/${employeeId}/delete`, {
+              method: "DELETE",
+            });
+            showAlert("Employee deactivated successfully!", "success");
+            await loadEmployees();
+            filterEmployees();
+          } catch (error) {
+            showAlert("Failed to deactivate employee", "error");
+          }
         } else {
-            // Optionally implement activation endpoint in backend, or show error
-            showAlert("Activation is not supported. Please contact admin.", "error");
+          // Optionally implement activation endpoint in backend, or show error
+          showAlert(
+            "Activation is not supported. Please contact admin.",
+            "error"
+          );
         }
       }
 
@@ -1023,15 +1400,16 @@
       }
 
       async function revokeInvitation(invitationId) {
-        if (!confirm("Are you sure you want to revoke this invitation?")) return;
+        if (!confirm("Are you sure you want to revoke this invitation?"))
+          return;
         try {
-            await apiRequest(`/auth/delete-invitation/${invitationId}`, {
-                method: "DELETE",
-            });
-            showAlert("Invitation revoked successfully!", "success");
-            loadPendingInvitations();
+          await apiRequest(`/auth/delete-invitation/${invitationId}`, {
+            method: "DELETE",
+          });
+          showAlert("Invitation revoked successfully!", "success");
+          loadPendingInvitations();
         } catch (error) {
-            showAlert("Failed to revoke invitation", "error");
+          showAlert("Failed to revoke invitation", "error");
         }
       }
 
@@ -1044,26 +1422,100 @@
             </div>
         `;
         setTimeout(() => {
-            alertContainer.innerHTML = "";
+          alertContainer.innerHTML = "";
         }, 5000);
-    }
+      }
 
-    function formatDate(dateString) {
-      if (!dateString) return "N/A";
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return dateString;
-      return date.toLocaleDateString() + " " + date.toLocaleTimeString();
-    }
+      function formatDate(dateString) {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+      }
 
-    function canManageEmployees() {
-      return currentUser && (currentUser.role === "MANAGER" || currentUser.role === "ADMIN");
-    }
+      function canManageEmployees() {
+        return (
+          currentUser &&
+          (currentUser.role === "MANAGER" || currentUser.role === "ADMIN")
+        );
+      }
 
-    // Bulk Import Modal
-    // Placed at the end of body for correct scope
-    // Only one instance will be appended
-    if (!document.getElementById('bulkImportModal')) {
-      const modalHtml = `
+      // Bulk Import Modal
+      // Building Creation Modal
+      if (!document.getElementById("createBuildingModal")) {
+        const buildingModalHtml = `
+        <div id="createBuildingModal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">Add New Building</h3>
+              <button class="close" onclick="closeCreateBuildingModal()">&times;</button>
+            </div>
+            <form id="createBuildingForm">
+              <div class="form-group">
+                <label for="buildingName">Building Name</label>
+                <input type="text" id="buildingName" name="buildingName" required />
+              </div>
+              <div class="action-buttons">
+                <button type="submit" class="btn btn-primary">🏢 Create Building</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCreateBuildingModal()">❌ Cancel</button>
+              </div>
+            </form>
+            <div id="createBuildingResult" style="margin-top:1em;"></div>
+          </div>
+        </div>
+        `;
+        document.body.insertAdjacentHTML("beforeend", buildingModalHtml);
+      }
+
+      window.openCreateBuildingModal = function () {
+        document.getElementById("createBuildingForm").reset();
+        document.getElementById("createBuildingResult").innerHTML = "";
+        document.getElementById("createBuildingModal").style.display = "block";
+      };
+      window.closeCreateBuildingModal = function () {
+        document.getElementById("createBuildingModal").style.display = "none";
+      };
+      document.getElementById("createBuildingForm")?.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const name = document.getElementById("buildingName").value.trim();
+        if (!name) {
+          document.getElementById("createBuildingResult").innerHTML = `<div class='alert alert-error'>Building name is required.</div>`;
+          return;
+        }
+        const token = localStorage.getItem("authToken");
+        try {
+          const response = await fetch(`${API_BASE_URL}/buildings`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name }),
+          });
+          const resultDiv = document.getElementById("createBuildingResult");
+          if (response.status === 409) {
+            // Duplicate building name
+            const text = await response.text();
+            resultDiv.innerHTML = `<div class='alert alert-error'>${text}</div>`;
+            return;
+          }
+          if (!response.ok) {
+            const text = await response.text();
+            resultDiv.innerHTML = `<div class='alert alert-error'>Building creation failed: ${text}</div>`;
+            return;
+          }
+          const data = await response.json();
+          resultDiv.innerHTML = `<div class='alert alert-success'>Building created! Name: ${data.name}, ID: ${data.id}</div>`;
+          closeCreateBuildingModal();
+          await loadBuildingsByAdmin();
+        } catch (err) {
+          document.getElementById("createBuildingResult").innerHTML = `<div class='alert alert-error'>Building creation failed. Please try again.</div>`;
+        }
+      });
+      // Placed at the end of body for correct scope
+      // Only one instance will be appended
+      if (!document.getElementById("bulkImportModal")) {
+        const modalHtml = `
         <div id="bulkImportModal" class="modal">
           <div class="modal-content">
             <div class="modal-header">
@@ -1087,54 +1539,61 @@
           </div>
         </div>
       `;
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-
-    // Bulk Import Modal JS
-    window.openBulkImportModal = function() {
-      document.getElementById('bulkImportForm').reset();
-      document.getElementById('bulkImportResult').innerHTML = '';
-      document.getElementById('bulkImportModal').style.display = 'block';
-    }
-    window.closeBulkImportModal = function() {
-      document.getElementById('bulkImportModal').style.display = 'none';
-    }
-    document.getElementById('bulkImportForm')?.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const fileInput = document.getElementById('bulkFile');
-      if (!fileInput.files.length) return;
-      const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append('file', file);
-      const token = localStorage.getItem('authToken');
-      try {
-        const response = await fetch(`${API_BASE_URL}/employees/bulk-import`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData
-        });
-        const resultDiv = document.getElementById('bulkImportResult');
-        if (!response.ok) {
-          const text = await response.text();
-          resultDiv.innerHTML = `<div class='alert alert-error'>Import failed: ${text}</div>`;
-          return;
-        }
-        const data = await response.json();
-        let html = `<div class='alert alert-success'>${data.successCount} employees imported.`;
-        if (data.failures && data.failures.length > 0) {
-          html += `<br>Failures:<ul>`;
-          data.failures.forEach(f => {
-            html += `<li>${f.row}: ${f.reason}</li>`;
-          });
-          html += `</ul>`;
-        }
-        html += `</div>`;
-        resultDiv.innerHTML = html;
-        loadEmployees();
-      } catch (err) {
-        document.getElementById('bulkImportResult').innerHTML = `<div class='alert alert-error'>Import failed. Please try again.</div>`;
+        document.body.insertAdjacentHTML("beforeend", modalHtml);
       }
-    });
+
+      // Bulk Import Modal JS
+      window.openBulkImportModal = function () {
+        document.getElementById("bulkImportForm").reset();
+        document.getElementById("bulkImportResult").innerHTML = "";
+        document.getElementById("bulkImportModal").style.display = "block";
+      };
+      window.closeBulkImportModal = function () {
+        document.getElementById("bulkImportModal").style.display = "none";
+      };
+      document
+        .getElementById("bulkImportForm")
+        ?.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const fileInput = document.getElementById("bulkFile");
+          if (!fileInput.files.length) return;
+          const file = fileInput.files[0];
+          const formData = new FormData();
+          formData.append("file", file);
+          const token = localStorage.getItem("authToken");
+          try {
+            const response = await fetch(
+              `${API_BASE_URL}/employees/bulk-import`,
+              {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+              }
+            );
+            const resultDiv = document.getElementById("bulkImportResult");
+            if (!response.ok) {
+              const text = await response.text();
+              resultDiv.innerHTML = `<div class='alert alert-error'>Import failed: ${text}</div>`;
+              return;
+            }
+            const data = await response.json();
+            let html = `<div class='alert alert-success'>${data.successCount} employees imported.`;
+            if (data.failures && data.failures.length > 0) {
+              html += `<br>Failures:<ul>`;
+              data.failures.forEach((f) => {
+                html += `<li>${f.row}: ${f.reason}</li>`;
+              });
+              html += `</ul>`;
+            }
+            html += `</div>`;
+            resultDiv.innerHTML = html;
+            loadEmployees();
+          } catch (err) {
+            document.getElementById(
+              "bulkImportResult"
+            ).innerHTML = `<div class='alert alert-error'>Import failed. Please try again.</div>`;
+          }
+        });
     </script>
   </body>
 </html>

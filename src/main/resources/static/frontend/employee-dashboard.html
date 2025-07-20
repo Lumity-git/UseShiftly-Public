@@ -140,11 +140,11 @@
 
         async function checkAuth() {
             const token = localStorage.getItem('authToken');
-            if (!token) {
+            const userInfo = localStorage.getItem('userInfo');
+            if (!token || !userInfo) {
                 window.location.href = 'login.html';
                 return false;
             }
-            
             try {
                 const response = await fetch(`${API_BASE_URL}/auth/validate`, {
                     method: 'GET',
@@ -153,14 +153,40 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
-                if (!response.ok) {
+                if (response.status === 401) {
+                    // Try to refresh token if backend supports
+                    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (refreshResponse.ok) {
+                        const data = await refreshResponse.json();
+                        if (data.token) {
+                            localStorage.setItem('authToken', data.token);
+                            if (data.userInfo) {
+                                localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                            }
+                            return true;
+                        }
+                    }
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('userInfo');
                     window.location.href = 'login.html';
                     return false;
                 }
-                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                }
+                if (data.userInfo) {
+                    localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                }
                 return true;
             } catch (error) {
                 console.error('Auth validation failed:', error);
@@ -175,7 +201,14 @@
             const userInfo = localStorage.getItem('userInfo');
             if (userInfo) {
                 currentUser = JSON.parse(userInfo);
-                document.getElementById('userName').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+                let display = `${currentUser.firstName} ${currentUser.lastName}`;
+                if (currentUser.role === 'ADMIN' && currentUser.departmentName) {
+                    display += ` (${currentUser.departmentName})`;
+                }
+                if (currentUser.buildingName) {
+                    display += ` - ${currentUser.buildingName}`;
+                }
+                document.getElementById('userName').textContent = display;
             }
         }
 

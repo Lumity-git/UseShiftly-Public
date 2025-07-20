@@ -25,6 +25,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     
     boolean existsByEmail(String email);
 
+    // Find all employees by building
+    List<Employee> findByBuildingId(Long buildingId);
+
     /**
      * Returns an employee by ID, eagerly fetching the associated department.
      * @param id Employee ID

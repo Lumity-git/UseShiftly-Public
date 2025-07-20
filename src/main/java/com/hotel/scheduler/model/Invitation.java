@@ -40,4 +40,11 @@ public class Invitation {
 
     @Column(nullable = false)
     private boolean used = false;
+
+    // Building assignment for invitation
+    @Column(nullable = true)
+    private Long buildingId;
+
+    @Column(nullable = true)
+    private String buildingName;
 }
