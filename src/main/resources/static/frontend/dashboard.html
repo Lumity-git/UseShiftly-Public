@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hotel Scheduler - Dashboard</title>
+    <title>Shiftly Scheduler - Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
@@ -99,7 +99,7 @@
         }
 
         .card {
-            background: #fff;
+            background: linear-gradient(135deg, #e3f0ff 0%, #fff 100%);
             border-radius: 18px;
             padding: 32px;
             box-shadow: 0 8px 32px rgba(102,126,234,0.10);
@@ -282,7 +282,7 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <div class="logo">🏨 Hotel Scheduler</div>
+            <div class="logo">🏨 Shitly Scheduler</div>
             <div class="user-info">
                 <div class="user-details">
                     <div class="user-name" id="userName">Loading...</div>
@@ -339,7 +339,7 @@
             <!-- Administrative Features (Only for Managers/Admins) -->
             <div class="card admin-only" id="adminCard1" style="display: none;">
                 <h3>➕ Invite Employee</h3>
-                <p>Generate invitation links for new employees to register and join your hotel team.</p>
+                <p>Generate invitation links for new employees to register and join your team.</p>
                 <button class="card-btn" onclick="createEmployeeInvitation()">Create Invitation</button>
             </div>
 
@@ -425,6 +425,14 @@
                 let trades = tradesRes.ok ? await tradesRes.json() : [];
                 let notifications = notificationsRes.ok ? await notificationsRes.json() : [];
 
+                // For managers/admins, show trades pending approval
+                let pendingApprovalCount = 0;
+                const userInfo = localStorage.getItem('userInfo');
+                const user = userInfo ? JSON.parse(userInfo) : null;
+                if (user && (user.role === 'MANAGER' || user.role === 'ADMIN')) {
+                    pendingApprovalCount = trades.filter(t => t.status === 'PENDING_APPROVAL').length;
+                }
+
                 statsGrid.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-icon" style="color: #3498db;">📅</div>
@@ -438,7 +446,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="color: #f39c12;">🔄</div>
-                        <div class="stat-number" style="color: #f39c12;">${trades.filter(t => t.status === 'PENDING').length}</div>
+                        <div class="stat-number" style="color: #f39c12;">${pendingApprovalCount}</div>
                         <div class="stat-label">Pending Trades</div>
                     </div>
                     <div class="stat-card">

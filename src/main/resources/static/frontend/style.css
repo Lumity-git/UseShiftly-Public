@@ -2282,3 +2282,12 @@ body {
         justify-content: center;
     }
 }
+
+/* Employee Filters Gradient Background */
+.filters {
+  background: linear-gradient(135deg, #e3f0ff 0%, #f6f8fa 100%);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(102,126,234,0.10);
+  padding: 28px 24px 18px 24px;
+  margin-bottom: 32px;
+}

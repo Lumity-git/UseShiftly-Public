@@ -123,7 +123,7 @@ public class ShiftController {
     public ResponseEntity<?> cancelPostedShift(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.cancelPostedShift(id, currentUser);
-            userActionLogService.logAction("CANCELLED_POSTED_SHIFT", currentUser);
+            userActionLogService.logAction("CANCELLED_POSTED_SHIFT", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Shift post cancelled successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
@@ -158,7 +158,7 @@ public class ShiftController {
     public ResponseEntity<?> acceptTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.acceptTrade(id, currentUser); // Implement this in service
-            userActionLogService.logAction("ACCEPTED_TRADE", currentUser);
+            userActionLogService.logAction("ACCEPTED_TRADE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Trade accepted and pending manager approval"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -175,7 +175,7 @@ public class ShiftController {
     public ResponseEntity<?> declineTrade(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.declineTrade(id, currentUser); // Implement this in service
-            userActionLogService.logAction("DECLINED_TRADE", currentUser);
+            userActionLogService.logAction("DECLINED_TRADE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Trade declined"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -282,7 +282,7 @@ public class ShiftController {
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
             ShiftResponse shift = shiftService.createShift(request, currentUser);
-            userActionLogService.logAction("CREATED_SHIFT", currentUser);
+            userActionLogService.logAction("CREATED_SHIFT", currentUser.getId());
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -300,7 +300,7 @@ public class ShiftController {
                                         @AuthenticationPrincipal Employee currentUser) {
         try {
             ShiftResponse shift = shiftService.updateShift(id, request, currentUser);
-            userActionLogService.logAction("UPDATED_SHIFT", currentUser);
+            userActionLogService.logAction("UPDATED_SHIFT", currentUser.getId());
             return ResponseEntity.ok(shift);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -332,7 +332,7 @@ public class ShiftController {
                                           @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.makeShiftAvailableForPickup(id, currentUser, request.getReason());
-            userActionLogService.logAction("GAVE_AWAY_SHIFT", currentUser);
+            userActionLogService.logAction("GAVE_AWAY_SHIFT", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Shift is now available for pickup"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -367,7 +367,7 @@ public class ShiftController {
             }
             log.debug("pickupShift: calling shiftService.pickupShift");
             shiftService.pickupShift(id, currentUser);
-            userActionLogService.logAction("PICKED_UP_SHIFT", currentUser);
+            userActionLogService.logAction("PICKED_UP_SHIFT", currentUser.getId());
             log.info("pickupShift: Shift {} picked up by user {}", id, currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Shift picked up successfully"));
         } catch (Exception e) {
@@ -445,7 +445,7 @@ public class ShiftController {
             }
             // Delegate to service to approve
             shiftService.approveTrade(id, currentUser);
-            userActionLogService.logAction("APPROVED_TRADE", currentUser);
+            userActionLogService.logAction("APPROVED_TRADE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Trade approved successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -476,7 +476,7 @@ public class ShiftController {
             }
             // Delegate to service to reject
             shiftService.rejectTrade(id, currentUser, reason);
-            userActionLogService.logAction("REJECTED_TRADE", currentUser);
+            userActionLogService.logAction("REJECTED_TRADE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Trade rejected"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -613,7 +613,7 @@ public class ShiftController {
                 return ResponseEntity.badRequest().body(new MessageResponse("Missing targetEmployeeId"));
             }
             shiftService.offerShiftToEmployee(id, currentUser, targetEmployeeId);
-            userActionLogService.logAction("OFFERED_SHIFT_TO_EMPLOYEE", currentUser);
+            userActionLogService.logAction("OFFERED_SHIFT_TO_EMPLOYEE", currentUser.getId());
             log.info("tradeShiftToEmployee: Shift {} offered from user {} to user {}", id, currentUser.getId(), targetEmployeeId);
             return ResponseEntity.ok(new MessageResponse("Shift offer sent to employee."));
         } catch (Exception e) {
@@ -627,7 +627,7 @@ public class ShiftController {
                                                  @AuthenticationPrincipal Employee currentUser) {
         try {
             shiftService.postShiftToEveryone(id, currentUser);
-            userActionLogService.logAction("POSTED_SHIFT_TO_EVERYONE", currentUser);
+            userActionLogService.logAction("POSTED_SHIFT_TO_EVERYONE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Shift posted to everyone."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));

@@ -19,10 +19,12 @@ import java.util.Optional;
 /**
  * Service layer for managing Employee entities and related business logic.
  * <p>
- * Handles employee CRUD operations, authentication integration, and shift trade queries.
+ * Handles employee CRUD operations, authentication integration, and shift trade
+ * queries.
  * Implements {@link UserDetailsService} for Spring Security authentication.
  * <p>
- * <b>Usage:</b> Injected into controllers and other services for employee-related operations.
+ * <b>Usage:</b> Injected into controllers and other services for
+ * employee-related operations.
  */
 
 @Service
@@ -30,14 +32,16 @@ import java.util.Optional;
 @Transactional
 public class EmployeeService implements UserDetailsService {
     private final com.hotel.scheduler.repository.BuildingRepository buildingRepository;
+
     /**
      * Assigns a single employee to a building.
-     * @param employee the employee entity
+     * 
+     * @param employee   the employee entity
      * @param buildingId the building ID
      */
     public void assignEmployeeToBuilding(Employee employee, Long buildingId) {
         var building = buildingRepository.findById(buildingId)
-            .orElseThrow(() -> new RuntimeException("Building not found"));
+                .orElseThrow(() -> new RuntimeException("Building not found"));
         employee.setBuilding(building);
         employeeRepository.save(employee);
     }
@@ -59,6 +63,7 @@ public class EmployeeService implements UserDetailsService {
 
     /**
      * Returns all employees assigned to a specific building.
+     * 
      * @param buildingId the building ID
      * @return list of employees in the building
      */
@@ -94,27 +99,29 @@ public class EmployeeService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
         return employee;
     }
-    
+
     /**
      * Assigns a single employee to a department.
-     * @param employee the employee entity
+     * 
+     * @param employee     the employee entity
      * @param departmentId the department ID
      */
     public void assignEmployeeToDepartment(Employee employee, Long departmentId) {
         var department = departmentRepository.findById(departmentId)
-            .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new RuntimeException("Department not found"));
         employee.setDepartment(department);
         employeeRepository.save(employee);
     }
 
     /**
      * Assigns multiple employees to a department.
-     * @param employeeIds list of employee IDs
+     * 
+     * @param employeeIds  list of employee IDs
      * @param departmentId the department ID
      */
     public void assignEmployeesToDepartment(List<Long> employeeIds, Long departmentId) {
         var department = departmentRepository.findById(departmentId)
-            .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new RuntimeException("Department not found"));
         var employees = employeeRepository.findAllById(employeeIds);
         for (Employee employee : employees) {
             employee.setDepartment(department);
@@ -123,7 +130,8 @@ public class EmployeeService implements UserDetailsService {
     }
 
     /**
-     * Creates a new employee, encoding the password and checking for duplicate emails.
+     * Creates a new employee, encoding the password and checking for duplicate
+     * emails.
      *
      * @param employee the employee to create
      * @return the saved Employee
@@ -132,9 +140,12 @@ public class EmployeeService implements UserDetailsService {
     private final NotificationService notificationService;
 
     /**
-     * Creates a new employee, generates a temp password, sets mustChangePassword, and sends registration email if created by admin/manager.
-     * @param employee the employee to create
-     * @param createdByAdminOrManager true if created by admin/manager, false if self-registration
+     * Creates a new employee, generates a temp password, sets mustChangePassword,
+     * and sends registration email if created by admin/manager.
+     * 
+     * @param employee                the employee to create
+     * @param createdByAdminOrManager true if created by admin/manager, false if
+     *                                self-registration
      * @return the saved Employee
      */
     public Employee createEmployee(Employee employee, boolean createdByAdminOrManager) {
@@ -220,6 +231,7 @@ public class EmployeeService implements UserDetailsService {
 
     /**
      * Permanently deletes an employee by ID.
+     * 
      * @param id Employee ID
      */
     public void deleteEmployee(Long id) {
@@ -252,7 +264,8 @@ public class EmployeeService implements UserDetailsService {
     }
 
     /**
-     * Retrieves incoming shift trades for an employee (where pickedUpBy == employeeId).
+     * Retrieves incoming shift trades for an employee (where pickedUpBy ==
+     * employeeId).
      *
      * @param employeeId the employee's ID
      * @return list of incoming shift trades as DTOs
@@ -263,7 +276,11 @@ public class EmployeeService implements UserDetailsService {
         var trades = shiftTradeRepository.findByPickupEmployeeId(employeeId);
         // Map entities to DTOs using the static fromEntity method
         return trades.stream()
-            .map(ShiftTradeResponse::fromEntity)
-            .toList();
+                .map(ShiftTradeResponse::fromEntity)
+                .toList();
+    }
+
+    public Optional<Employee> getEmployeeWithBuilding(Long id) {
+        return employeeRepository.findByIdWithBuilding(id);
     }
 }

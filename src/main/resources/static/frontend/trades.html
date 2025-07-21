@@ -3,28 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shift Trading - Hotel Scheduler</title>
+    <title>Shift Trading - Shiftly Scheduler</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="dashboard.html" class="logo">
-                <i class="fas fa-hotel"></i> Hotel Scheduler
-            </a>
-            <div class="nav-links" id="navigation">
-                <!-- Navigation will be populated based on user role -->
-            </div>
-            <div class="user-info">
-                <span id="userName">Loading...</span>
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </div>
-    </nav>
-
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("trades.html");
+            initTradesPage();
+          });
+      });
+    </script>
     <div class="container">
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('my-trades')">
@@ -142,11 +138,11 @@
         let departments = [];
         let myShifts = [];
 
-        // Check authentication and load data
-        document.addEventListener('DOMContentLoaded', async function() {
+        // Check authentication and load data after header loads
+        async function initTradesPage() {
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) return;
-        });
+        }
 
         async function checkAuth() {
             const token = localStorage.getItem('authToken');
@@ -199,7 +195,7 @@
                             }
                             currentUser = userObj;
                             document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
-                            setupNavigation(currentUser.role);
+    
                             loadData();
                             return true;
                         }
@@ -230,7 +226,6 @@
                 }
                 currentUser = userObj;
                 document.getElementById('userName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
-                setupNavigation(currentUser.role);
                 loadData();
                 return true;
             } catch (error) {
@@ -242,25 +237,6 @@
             }
         }
 
-        function setupNavigation(userRole) {
-            const navigation = document.getElementById('navigation');
-            let navLinks = '';
-            
-            // Common links for all users
-            navLinks += '<a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>';
-            navLinks += '<a href="shifts.html"><i class="fas fa-calendar-alt"></i> Shifts</a>';
-            navLinks += '<a href="trades.html" class="active"><i class="fas fa-exchange-alt"></i> Trades</a>';
-            navLinks += '<a href="notifications.html"><i class="fas fa-bell"></i> Notifications</a>';
-            
-            // Manager and Admin only links
-            if (userRole === 'MANAGER' || userRole === 'ADMIN') {
-                navLinks += '<a href="employees.html"><i class="fas fa-users"></i> Employees</a>';
-                navLinks += '<a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>';
-                navLinks += '<a href="departments.html"><i class="fas fa-building"></i> Departments</a>';
-            }
-            
-            navigation.innerHTML = navLinks;
-        }
 
         async function loadData() {
             await Promise.all([
@@ -635,14 +611,15 @@
         function populateShiftSelect() {
             const select = document.getElementById('shiftSelect');
             const today = new Date();
-            
+
             // Filter future shifts that don't already have trade requests
             const availableShifts = myShifts.filter(shift => {
                 const shiftDate = new Date(shift.date);
-                const hasActiveTrade = myTrades.some(trade => 
-                    trade.shift.id === shift.id && 
-                    (trade.status === 'PENDING' || trade.status === 'APPROVED')
-                );
+                const hasActiveTrade = myTrades.some(trade => {
+                    // Defensive: check trade.shift and shift.id
+                    if (!trade || typeof trade.shiftId === 'undefined') return false;
+                    return trade.shiftId === shift.id && (trade.status === 'PENDING' || trade.status === 'APPROVED');
+                });
                 return shiftDate >= today && !hasActiveTrade;
             });
 

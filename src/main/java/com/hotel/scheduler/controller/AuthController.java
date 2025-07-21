@@ -64,7 +64,7 @@ public class AuthController {
             Employee invitedEmployee = employeeOpt.get();
             employeeService.updatePassword(invitedEmployee, newPassword);
             invitationService.markInvitationUsed(code); // Mark/reset link as used
-            userActionLogService.logAction("CHANGE_PASSWORD_BY_LINK", invitedEmployee);
+            userActionLogService.logAction("CHANGE_PASSWORD_BY_LINK", invitedEmployee.getId());
             return ResponseEntity.ok(new MessageResponse("Password changed successfully! The reset link is now invalid."));
         }
         // Otherwise, require authentication for normal password change
@@ -72,7 +72,7 @@ public class AuthController {
             return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
         }
         employeeService.updatePassword(employee, newPassword);
-        userActionLogService.logAction("CHANGE_PASSWORD", employee);
+        userActionLogService.logAction("CHANGE_PASSWORD", employee.getId());
         return ResponseEntity.ok(new MessageResponse("Password changed successfully!"));
     }
     private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
@@ -155,7 +155,7 @@ public class AuthController {
                 buildingId == null ? "null" : buildingId.toString(),
                 buildingName == null ? "null" : String.format("\"%s\"", buildingName)
             );
-            userActionLogService.logAction("LOGIN_SUCCESS", employee);
+            userActionLogService.logAction("LOGIN_SUCCESS", employee.getId());
             return ResponseEntity.ok()
                     .header("Content-Type", "application/json")
                     .body(responseJson);
@@ -215,7 +215,7 @@ public class AuthController {
             }
             employeeService.createEmployee(employee, false);
             invitationService.markInvitationUsed(code);
-            userActionLogService.logAction("REGISTER_SUCCESS", employee);
+            userActionLogService.logAction("REGISTER_SUCCESS", employee.getId());
             return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
         } catch (Exception e) {
             userActionLogService.logAction("REGISTER_FAILED", null);
@@ -270,6 +270,21 @@ public class AuthController {
 
             Long buildingId = null;
             String buildingName = null;
+            String type = request.get("type") != null ? request.get("type").toString() : null;
+
+            // Defensive: log incoming request for debugging
+            log.info("generateInvitation request: type={}, payload={}", type, request);
+
+            // Defensive: check required fields for PASSWORD_RESET
+            if ("PASSWORD_RESET".equals(type)) {
+                String email = (String) request.get("email");
+                if (email == null || email.trim().isEmpty()) {
+                    log.warn("Password reset invitation missing email");
+                    return ResponseEntity.badRequest().body(new MessageResponse("Email is required for password reset invitation."));
+                }
+                // Optionally check employeeId if needed
+            }
+
             // Manager: assign their building automatically
             if (currentUser.getRole().name().equals("MANAGER")) {
                 if (currentUser.getBuilding() == null) {
@@ -280,37 +295,58 @@ public class AuthController {
             }
             // Admin: require buildingId/buildingName in request, validate ownership
             else if (currentUser.getRole().name().equals("ADMIN")) {
-                if (request.get("buildingId") == null || request.get("buildingName") == null) {
-                    return ResponseEntity.badRequest().body(new MessageResponse("Admin must select a building to assign."));
+                // Only require building for non-password-reset invitations
+                if (!"PASSWORD_RESET".equals(type)) {
+                    if (request.get("buildingId") == null || request.get("buildingName") == null) {
+                        return ResponseEntity.badRequest().body(new MessageResponse("Admin must select a building to assign."));
+                    }
+                    buildingId = Long.valueOf(request.get("buildingId").toString());
+                    buildingName = request.get("buildingName").toString();
+                    // TODO: Optionally validate admin owns this building
                 }
-                buildingId = Long.valueOf(request.get("buildingId").toString());
-                buildingName = request.get("buildingName").toString();
-                // TODO: Optionally validate admin owns this building
+            }
+
+            // Defensive: ensure all required fields are present for invitation
+            String email = (String) request.getOrDefault("email", "");
+            String role = (String) request.getOrDefault("role", "EMPLOYEE");
+            String departmentName = (String) request.getOrDefault("departmentName", "");
+            String invitedBy = currentUser.getFirstName() + " " + currentUser.getLastName();
+
+            if (email == null || email.trim().isEmpty()) {
+                log.warn("Invitation creation failed: missing email");
+                return ResponseEntity.badRequest().body(new MessageResponse("Email is required."));
             }
 
             Invitation invitation = Invitation.builder()
                 .code(invitationCode)
                 .token(invitationToken)
-                .email((String) request.getOrDefault("email", ""))
-                .role((String) request.getOrDefault("role", "EMPLOYEE"))
-                .departmentName((String) request.getOrDefault("departmentName", ""))
-                .invitedBy(currentUser.getFirstName() + " " + currentUser.getLastName())
+                .email(email)
+                .role(role)
+                .departmentName(departmentName)
+                .invitedBy(invitedBy)
                 .buildingId(buildingId)
                 .buildingName(buildingName)
                 .build();
-            invitationService.createInvitation(invitation);
-            userActionLogService.logAction("GENERATED_INVITATION", currentUser);
-            return ResponseEntity.ok(java.util.Map.of(
-                "invitationCode", invitationCode,
-                "invitationToken", invitationToken,
-                "expiresIn", "7 days",
-                "departmentId", departmentId,
-                "buildingId", buildingId,
-                "buildingName", buildingName,
-                "createdBy", currentUser.getFirstName() + " " + currentUser.getLastName()
-            ));
+            try {
+                invitationService.createInvitation(invitation);
+            } catch (Exception ex) {
+                log.error("Error creating invitation: {}", ex.getMessage(), ex);
+                return ResponseEntity.badRequest().body(new MessageResponse("Failed to create invitation: " + ex.getMessage()));
+            }
+            userActionLogService.logAction("GENERATED_INVITATION", currentUser.getId());
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("invitationCode", invitationCode);
+            response.put("invitationToken", invitationToken);
+            response.put("expiresIn", "7 days");
+            response.put("createdBy", invitedBy);
+            // Only add departmentId, buildingId, buildingName if not null
+            if (departmentId != null) response.put("departmentId", departmentId);
+            if (buildingId != null) response.put("buildingId", buildingId);
+            if (buildingName != null) response.put("buildingName", buildingName);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_GENERATE_INVITATION", currentUser);
+            log.error("Exception in generateInvitation: {}", e.getMessage(), e);
+            userActionLogService.logAction("FAILED_GENERATE_INVITATION", currentUser.getId());
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: " + e.getMessage()));
         }
@@ -375,14 +411,14 @@ public class AuthController {
         try {
             boolean deleted = invitationService.deleteInvitationByCode(code);
             if (deleted) {
-                userActionLogService.logAction("DELETED_INVITATION", currentUser);
+                userActionLogService.logAction("DELETED_INVITATION", currentUser.getId());
                 return ResponseEntity.ok(new MessageResponse("Invitation deleted successfully."));
             } else {
-                userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser);
+                userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser.getId());
                 return ResponseEntity.status(404).body(new MessageResponse("Invitation not found or already used/expired."));
             }
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser);
+            userActionLogService.logAction("FAILED_DELETE_INVITATION", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }

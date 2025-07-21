@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile - Hotel Scheduler</title>
+    <title>My Profile - Shiftly Scheduler</title>
     <link rel="stylesheet" href="style.css">
     <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -12,24 +12,19 @@
     </script>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">🏨 Hotel Scheduler</div>
-            
-            <div class="nav-links">
-                <a href="employee-dashboard.html" class="nav-link">Dashboard</a>
-                <a href="employee-shifts.html" class="nav-link">My Shifts</a>
-                <a href="employee-trades.html" class="nav-link">Shift Trades</a>
-                <a href="employee-profile.html" class="nav-link active">My Profile</a>
-            </div>
-
-            <div class="user-info">
-                <span id="userName">Loading...</span>
-                <span class="role-badge" id="userRole">Employee</span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
-        </div>
-    </div>
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("employee-profile.html");
+            initEmployeeProfilePage();
+          });
+      });
+    </script>
 
     <div class="container">
         <div id="loading" class="loading">
@@ -139,15 +134,20 @@
     <script>
         const API_BASE_URL = window.location.origin + '/api';
 
-
-        // Initialize page
-        async function init() {
+        // Initialize page after header loads
+        async function initEmployeeProfilePage() {
             const isAuthenticated = await checkAuth('EMPLOYEE');
             if (!isAuthenticated) return;
 
             const userInfo = authManager.getUserInfo();
-            document.getElementById('userName').textContent = `${userInfo.firstName} ${userInfo.lastName}`;
-            document.getElementById('userRole').textContent = userInfo.role || 'Employee';
+            const userNameSpan = document.getElementById('userName');
+            if (userNameSpan) {
+                userNameSpan.textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+            }
+            const userRoleSpan = document.getElementById('userRole');
+            if (userRoleSpan) {
+                userRoleSpan.textContent = userInfo.role || 'Employee';
+            }
             loadProfile();
         }
 
@@ -276,7 +276,7 @@
             window.location.href = 'login.html';
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        // ...existing code...
     </script>
 </body>
 </html>

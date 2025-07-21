@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications - Hotel Scheduler</title>
+    <title>Notifications - Shiftly Scheduler</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="auth-manager.js"></script>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="dashboard.html" class="logo">
-                <i class="fas fa-hotel"></i> Hotel Scheduler
-            </a>
-            <div class="nav-links" id="navigation">
-                <!-- Navigation will be populated based on user role -->
-            </div>
-            <div class="user-info">
-                <span id="userName">Loading...</span>
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-        </div>
-    </nav>
-
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("notifications.html");
+            initNotificationsPage();
+          });
+      });
+    </script>
     <div class="container">
 
         <div class="notification-controls">
@@ -128,15 +125,19 @@
             systemAnnouncements: true
         };
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        // ...existing code...
+
+        async function initNotificationsPage() {
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) return;
             const userInfo = authManager.getUserInfo();
-            document.getElementById('userName').textContent = `${userInfo.firstName} ${userInfo.lastName}`;
-            setupNavigation(userInfo.role);
+            const userNameSpan = document.getElementById('userName');
+            if (userNameSpan) {
+                userNameSpan.textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+            }
             loadNotifications();
             loadSettings();
-        });
+        }
 
         async function checkAuth() {
             const token = localStorage.getItem('authToken');
@@ -196,27 +197,6 @@
                 return false;
             }
         }
-
-        function setupNavigation(userRole) {
-            const navigation = document.getElementById('navigation');
-            let navLinks = '';
-            
-            // Common links for all users
-            navLinks += '<a href="frontend/dashboard.html"><i class="fas fa-home"></i> Dashboard</a>';
-            navLinks += '<a href="shifts.html"><i class="fas fa-calendar-alt"></i> Shifts</a>';
-            navLinks += '<a href="trades.html"><i class="fas fa-exchange-alt"></i> Trades</a>';
-            navLinks += '<a href="notifications.html" class="active"><i class="fas fa-bell"></i> Notifications</a>';
-            
-            // Manager and Admin only links
-            if (userRole === 'MANAGER' || userRole === 'ADMIN') {
-                navLinks += '<a href="employees.html"><i class="fas fa-users"></i> Employees</a>';
-                navLinks += '<a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>';
-                navLinks += '<a href="departments.html"><i class="fas fa-building"></i> Departments</a>';
-            }
-            
-            navigation.innerHTML = navLinks;
-        }
-
         // Configuration
         const API_BASE_URL = window.location.origin + '/api';
 
@@ -452,7 +432,5 @@
             window.location.href = '/frontend/login.html';
         }
     </script>
-    <script src="auto-logout.js"></script>
-    <script src="auth-manager.js"></script>
 </body>
 </html>

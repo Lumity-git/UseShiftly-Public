@@ -5,112 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Directory - Shiftly Scheduler</title>
     <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="header">
-      <div class="header-content">
-        <div class="logo">🏨 Shiftly Scheduler</div>
-        <nav class="nav-links" id="navigation">
-          <!-- Navigation will be populated based on user role -->
-        </nav>
-        <div class="user-info">
-          <span id="userName">Loading...</span>
-          <button class="btn btn-danger btn-small" onclick="logout()">
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="container">
-      <!-- ...existing code... -->
-    </div>
-
-    <!-- Only include each script once, in the head -->
-    <script>
-// Generate change password link for selected employee
-function generateChangePasswordLink() {
-  const employeeId = editingEmployeeId;
-  const employeeEmail = document.getElementById('email')?.value;
-  if (!employeeId || !employeeEmail) {
-    alert('Employee ID or email missing.');
-    return;
-  }
-  // Generate a link with userId and a dummy token (could be replaced with a real token if needed)
-  const token = btoa(employeeEmail + ':' + Date.now()); // Simple base64 token for demo
-  const link = `${window.location.origin}/change-password.html?userId=${employeeId}&token=${token}`;
-  const linkInput = document.getElementById('changePasswordLink');
-  const linkContainer = document.getElementById('changePasswordLinkContainer');
-  if (linkInput && linkContainer) {
-    linkInput.value = link;
-    linkContainer.style.display = '';
-  }
-}
-
-function copyChangePasswordLink() {
-  const linkInput = document.getElementById('changePasswordLink');
-  if (linkInput && linkInput.value) {
-    navigator.clipboard.writeText(linkInput.value).then(() => {
-      showAlert('Change password link copied to clipboard!', 'success');
-    }, () => {
-      prompt('Copy this link:', linkInput.value);
-    });
-  }
-}
-
-// Show the button only for admin/manager
-function showGeneratePasswordLinkBtn(userRole) {
-  const btn = document.getElementById('generatePasswordLinkBtn');
-  if (btn) {
-    btn.style.display = (userRole === 'ADMIN' || userRole === 'MANAGER') ? '' : 'none';
-  }
-}
-// Call this when opening the modal
-// showGeneratePasswordLinkBtn(currentUserRole);
-      // Navigation setup function
-      function setupNavigation(userRole) {
-        const navigation = document.getElementById("navigation");
-        let navLinks = "";
-        navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
-        navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
-        navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
-        navLinks += '<a href="notifications.html" class="nav-link">Notifications</a>';
-        if (userRole === "MANAGER" || userRole === "ADMIN") {
-          navLinks += '<a href="employees.html" class="nav-link active">Employees</a>';
-          navLinks += '<a href="reports.html" class="nav-link">Reports</a>';
-          navLinks += '<a href="departments.html" class="nav-link">Departments</a>';
-        }
-        navigation.innerHTML = navLinks;
+    <style>
+      /* Make all modal and input edges rounded */
+      .modal-content {
+        border-radius: 16px !important;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
       }
-
-      // ...existing code...
-
-      // Ensure all functions are properly defined and scoped
-      // ...existing code...
-    </script>
-  </body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Employee Directory - Hotel Scheduler</title>
-    <link rel="stylesheet" href="style.css" />
+      .modal-header, .modal-title, .form-group input, .form-group select, .form-group textarea, .form-row, .form-group, .action-buttons button {
+        border-radius: 12px !important;
+      }
+      .form-group input, .form-group select, .form-group textarea {
+        border: 1px solid #ccc;
+        padding: 0.5em;
+      }
+      .modal-header {
+        position: relative;
+      }
+      /* Move X button outside modal header for Edit Employee */
+      #employeeModal .close {
+        position: absolute;
+        top: -18px;
+        right: -18px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        border: 1px solid #ccc;
+        width: 36px;
+        height: 36px;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+      }
+      #employeeModal .modal-header {
+        border-radius: 16px 16px 0 0 !important;
+      }
+      #employeeModal .modal-content {
+        border-radius: 16px !important;
+      }
+    </style>
   </head>
   <body>
+    <div id="headerContainer">
+      <script>
+          // Use nav-manager.js to load header and navigation
+          document.addEventListener("DOMContentLoaded", function() {
+            fetch("header.html")
+              .then(res => res.text())
+              .then(html => {
+                document.getElementById("headerContainer").innerHTML = html;
+                if (window.renderNavLinks) {
+                  renderNavLinks("employees.html");
+                }
+                if (window.highlightCurrentNavLink) {
+                  highlightCurrentNavLink("employees.html");
+                }
+                initEmployeesPage();
+              });
+          });
+      </script>
+    </div>
     <div class="container">
       <div class="filters">
-        <div
-          class="filter-row"
-          style="
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: flex-end;
-            gap: 1em;
-            overflow-x: auto;
-          "
-        >
+        <div class="filter-row">
           <div class="filter-group" style="min-width: 180px">
             <label for="searchTerm">Search Employee</label>
             <input
@@ -172,27 +131,7 @@ function showGeneratePasswordLinkBtn(userRole) {
         </div>
       </div>
 
-      <!-- Employee Registration Invitation Section (Admin/Manager only) -->
-      <div
-        id="invitationSection"
-        class="invitation-section"
-        style="display: none"
-      >
-        <h3 class="invitation-title">📧 Employee Registration Invitations</h3>
-        <p>
-          Create secure invitation links for new employees to register with
-          proper documentation.
-        </p>
 
-        <button class="btn btn-primary" onclick="openInvitationModal()">
-          ➕ Create Invitation Link
-        </button>
-
-        <div id="pendingInvitations" class="pending-invitations">
-          <!-- Pending invitations will be loaded here -->
-        </div>
-      </div>
-    </div>
 
     <!-- Employee Modal -->
     <div id="employeeModal" class="modal">
@@ -275,7 +214,7 @@ function showGeneratePasswordLinkBtn(userRole) {
                 <option value="">Select Department</option>
               </select>
             </div>
-            <div class="form-group" id="buildingGroup" style="display:none;">
+            <div class="form-group" id="buildingGroup" style="display: none">
               <label for="employeeBuilding">Building</label>
               <select id="employeeBuilding" name="buildingId">
                 <option value="">Select Building</option>
@@ -300,20 +239,6 @@ function showGeneratePasswordLinkBtn(userRole) {
             >
               ✖ Cancel
             </button>
-            <button
-              type="button"
-              class="btn btn-warning"
-              id="generatePasswordLinkBtn"
-              style="display:none;"
-              onclick="generateChangePasswordLink()"
-            >
-              🔗 Generate Change Password Link
-            </button>
-            <div id="changePasswordLinkContainer" style="display:none; margin-top:1em;">
-              <label for="changePasswordLink">Change Password Link:</label>
-              <input type="text" id="changePasswordLink" readonly style="width:80%;" />
-              <button type="button" class="btn btn-info" onclick="copyChangePasswordLink()">📋 Copy</button>
-            </div>
           </div>
         </form>
       </div>
@@ -404,7 +329,68 @@ function showGeneratePasswordLinkBtn(userRole) {
 
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
+    <script src="nav-manager.js"></script>
     <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("employees.html");
+            // Page initialization after header loads
+            // Use the same init function name as notifications.html for consistency
+            if (typeof initEmployeesPage === "function") {
+              initEmployeesPage();
+            }
+          });
+      });
+    </script>
+    <script>
+
+
+
+
+      // Password reset invitation link generation for employees
+      async function generateChangePasswordLinkFor(employeeId, employeeEmail) {
+        try {
+        // Prepare invitation data for password reset
+        const invitationData = {
+          email: employeeEmail,
+          employeeId: employeeId,
+          type: "PASSWORD_RESET"
+        };
+        const response = await apiRequest("/auth/generate-invitation", {
+          method: "POST",
+          body: JSON.stringify(invitationData)
+        });
+        // Build the reset link
+        const resetUrl = `${window.location.origin}/change-password.html?code=${response.invitationCode}&token=${response.invitationToken}`;
+        // Show and set the link in the input for copy
+        const linkInput = document.getElementById(`changePasswordLink_${employeeId}`);
+        linkInput.value = resetUrl;
+        linkInput.style.display = "inline-block";
+        linkInput.style.width = "80%";
+        // Show the copy button
+        const copyBtn = document.getElementById(`copyChangePasswordBtn_${employeeId}`);
+        copyBtn.style.display = "inline-block";
+        showAlert("Password reset link generated! Click copy to copy the link.", "success");
+      } catch (error) {
+        showAlert("Failed to generate password reset link.", "error");
+      }
+      }
+
+      function copyChangePasswordLinkFor(employeeId) {
+        const linkInput = document.getElementById(`changePasswordLink_${employeeId}`);
+        if (linkInput && linkInput.value) {
+          navigator.clipboard.writeText(linkInput.value)
+            .then(() => {
+              showAlert("Password reset link copied to clipboard!", "success");
+            })
+            .catch(() => {
+              prompt("Copy this password reset link:", linkInput.value);
+            });
+        }
+      }
       let currentUser = null;
       const API_BASE_URL = window.location.origin + "/api";
 
@@ -418,18 +404,16 @@ function showGeneratePasswordLinkBtn(userRole) {
         if (currentUser && currentUser.id && !isNaN(Number(currentUser.id))) {
           await loadBuildingsByAdmin();
         } else {
-          console.warn("Skipping loadBuildingsByAdmin: currentUser.id is missing or invalid.");
+          console.warn(
+            "Skipping loadBuildingsByAdmin: currentUser.id is missing or invalid."
+          );
         }
         await loadDepartments();
         await loadEmployees();
         setupEventListeners();
         setupActionButtons();
 
-        // Load invitations if user is admin/manager
-        if (canManageEmployees()) {
-          await loadPendingInvitations();
-          document.getElementById("invitationSection").style.display = "block";
-        }
+        // ...existing code...
       });
       let buildings = [];
 
@@ -441,11 +425,15 @@ function showGeneratePasswordLinkBtn(userRole) {
           let buildingsResult = [];
           // Defensive: ensure user.id is a valid number
           if (!user.id || isNaN(Number(user.id))) {
-            console.error("User ID is missing or invalid, cannot load buildings.");
+            console.error(
+              "User ID is missing or invalid, cannot load buildings."
+            );
             return;
           }
           if (user.role === "ADMIN" || user.role === "MANAGER") {
-            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
+            buildingsResult = await apiRequest(
+              `/buildings/by-admin/${user.id}`
+            );
           }
           buildings = buildingsResult;
           populateBuildingSelect();
@@ -675,13 +663,16 @@ function showGeneratePasswordLinkBtn(userRole) {
           });
           if (response.status === 401) {
             // Try to refresh token if backend supports
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            });
+            const refreshResponse = await fetch(
+              `${API_BASE_URL}/auth/refresh`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
             if (refreshResponse.ok) {
               const data = await refreshResponse.json();
               if (data.token) {
@@ -734,7 +725,9 @@ function showGeneratePasswordLinkBtn(userRole) {
           // Defensive: force logout if id is missing or invalid
           if (!currentUser.id || isNaN(Number(currentUser.id))) {
             showAlert("Your session is invalid. Please log in again.", "error");
-            setTimeout(() => { logout(); }, 1200);
+            setTimeout(() => {
+              logout();
+            }, 1200);
             return;
           }
           // Optionally display building info in header or elsewhere
@@ -742,8 +735,10 @@ function showGeneratePasswordLinkBtn(userRole) {
           if (currentUser.buildingName && currentUser.buildingName !== "null") {
             userDisplay += ` (${currentUser.buildingName})`;
           }
-          document.getElementById("userName").textContent = userDisplay;
-          setupNavigation(currentUser.role);
+          const userNameElem = document.getElementById("userName");
+          if (userNameElem) {
+            userNameElem.textContent = userDisplay;
+          }
           // Optionally, handle mustChangePassword flag
           if (
             currentUser.mustChangePassword === true ||
@@ -761,22 +756,50 @@ function showGeneratePasswordLinkBtn(userRole) {
         }
       }
 
+      // Navigation is now handled by header.html; remove old nav link code
+
+      // Page initialization after header loads
+      function initEmployeesPage() {
+        // Authentication and user info
+        checkAuth().then(isAuthenticated => {
+          if (!isAuthenticated) return;
+          loadUserInfo();
+          if (currentUser && currentUser.id && !isNaN(Number(currentUser.id))) {
+            loadBuildingsByAdmin();
+          }
+          loadDepartments();
+          loadEmployees();
+          setupEventListeners();
+          setupActionButtons();
+        });
+      }
+
       async function loadBuildingsByAdmin() {
         try {
           const userInfo = localStorage.getItem("userInfo");
           if (!userInfo) return;
-          const user = JSON.parse(userInfo);
+          let user = JSON.parse(userInfo);
           let buildingsResult = [];
           // Strict check for valid user.id
           if (!user.id || isNaN(Number(user.id))) {
-            console.error("User ID is missing or invalid, cannot load buildings.");
+            console.error(
+              "User ID is missing or invalid, cannot load buildings."
+            );
             return;
           }
           // Use buildingId from userInfo if available
           if (user.buildingId && user.buildingId !== "null") {
-            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
-          } else if ((user.role === "ADMIN" || user.role === "MANAGER") && user.id && !isNaN(Number(user.id))) {
-            buildingsResult = await apiRequest(`/buildings/by-admin/${user.id}`);
+            buildingsResult = await apiRequest(
+              `/buildings/by-admin/${user.id}`
+            );
+          } else if (
+            (user.role === "ADMIN" || user.role === "MANAGER") &&
+            user.id &&
+            !isNaN(Number(user.id))
+          ) {
+            buildingsResult = await apiRequest(
+              `/buildings/by-admin/${user.id}`
+            );
           }
           buildings = buildingsResult;
           populateBuildingSelect();
@@ -851,6 +874,8 @@ function showGeneratePasswordLinkBtn(userRole) {
         }
       }
 
+      let employees = [];
+
       async function loadEmployees() {
         try {
           let buildingId = "";
@@ -861,7 +886,11 @@ function showGeneratePasswordLinkBtn(userRole) {
           let endpoint = "/employees";
           if (buildingId) {
             endpoint = `/employees/by-building/${buildingId}`;
-          } else if (currentUser && currentUser.role === "MANAGER" && buildings.length > 0) {
+          } else if (
+            currentUser &&
+            currentUser.role === "MANAGER" &&
+            buildings.length > 0
+          ) {
             endpoint = `/employees/by-building/${buildings[0].id}`;
           }
           employees = await apiRequest(endpoint);
@@ -1010,6 +1039,22 @@ function showGeneratePasswordLinkBtn(userRole) {
                 (employee.active ? "⏸️ Deactivate" : "▶️ Activate") +
                 "</button>";
             }
+            html +=
+              '<button class="btn btn-warning btn-small" onclick="generateChangePasswordLinkFor(' +
+              employee.id +
+              ", '" +
+              employee.email +
+              "')\">🔒 Change Password</button>";
+            html +=
+              '<button class="btn btn-info btn-small" id="copyChangePasswordBtn_' +
+              employee.id +
+              '" style="margin-left:4px;display:none;" onclick="copyChangePasswordLinkFor(' +
+              employee.id +
+              ')">📋 Copy</button>';
+            html +=
+              '<input type="text" id="changePasswordLink_' +
+              employee.id +
+              '" style="display:none;width:0;" readonly />';
             html += "</div>";
             html += "</div>";
             return html;
@@ -1047,53 +1092,7 @@ function showGeneratePasswordLinkBtn(userRole) {
       };
 
       function renderPendingInvitations(invitations) {
-        const container = document.getElementById("pendingInvitations");
-
-        if (invitations.length === 0) {
-          container.innerHTML = "<p>No pending invitations.</p>";
-          return;
-        }
-
-        const invitationsHtml = invitations
-          .map(function (invitation) {
-            let html = '<div class="invitation-card">';
-            html +=
-              '<div class="employee-detail"><strong>Name:</strong> <span>' +
-              invitation.firstName +
-              " " +
-              invitation.lastName +
-              "</span></div>";
-            html +=
-              '<div class="employee-detail"><strong>Email:</strong> <span>' +
-              invitation.email +
-              "</span></div>";
-            html +=
-              '<div class="employee-detail"><strong>Role:</strong> <span>' +
-              invitation.role +
-              "</span></div>";
-            html +=
-              '<div class="employee-detail"><strong>Expires:</strong> <span>' +
-              formatDate(invitation.expiresAt) +
-              "</span></div>";
-            html += '<div class="invitation-actions">';
-            html +=
-              '<button class="btn btn-primary btn-small" onclick="copyInvitationLink(\'' +
-              invitation.token +
-              "')\">📋 Copy Link</button>";
-            html +=
-              '<button class="btn btn-secondary btn-small" onclick="resendInvitation(\'' +
-              invitation.id +
-              "')\">📧 Resend</button>";
-            html +=
-              '<button class="btn btn-danger btn-small" onclick="revokeInvitation(\'' +
-              invitation.id +
-              "')\">🗑️ Revoke</button>";
-            html += "</div>";
-            html += "</div>";
-            return html;
-          })
-          .join("");
-        container.innerHTML = invitationsHtml;
+        // Removed, not needed
       }
 
       // Filter employees
@@ -1146,7 +1145,8 @@ function showGeneratePasswordLinkBtn(userRole) {
         document.getElementById("invitationModal").style.display = "block";
         // Show building select for admins only
         if (currentUser && currentUser.role === "ADMIN") {
-          document.getElementById("inviteBuildingGroup").style.display = "block";
+          document.getElementById("inviteBuildingGroup").style.display =
+            "block";
           populateInviteBuildings();
         } else {
           document.getElementById("inviteBuildingGroup").style.display = "none";
@@ -1161,26 +1161,34 @@ function showGeneratePasswordLinkBtn(userRole) {
         try {
           const employee = await apiRequest(`/employees/${employeeId}`);
           editingEmployeeId = employeeId;
-          document.getElementById("employeeModalTitle").textContent = "Edit Employee";
+          document.getElementById("employeeModalTitle").textContent =
+            "Edit Employee";
           document.getElementById("firstName").value = employee.firstName;
           document.getElementById("lastName").value = employee.lastName;
           document.getElementById("email").value = employee.email;
-          document.getElementById("phoneNumber").value = employee.phoneNumber || "";
-          document.getElementById("dateOfBirth").value = employee.dateOfBirth || "";
+          document.getElementById("phoneNumber").value =
+            employee.phoneNumber || "";
+          document.getElementById("dateOfBirth").value =
+            employee.dateOfBirth || "";
           document.getElementById("address").value = employee.address || "";
-          document.getElementById("emergencyContactName").value = employee.emergencyContactName || "";
-          document.getElementById("emergencyContactRelation").value = employee.emergencyContactRelation || "";
-          document.getElementById("emergencyContactPhone").value = employee.emergencyContactPhone || "";
+          document.getElementById("emergencyContactName").value =
+            employee.emergencyContactName || "";
+          document.getElementById("emergencyContactRelation").value =
+            employee.emergencyContactRelation || "";
+          document.getElementById("emergencyContactPhone").value =
+            employee.emergencyContactPhone || "";
           document.getElementById("role").value = employee.role;
-          document.getElementById("department").value = employee.departmentId || "";
+          document.getElementById("department").value =
+            employee.departmentId || "";
           document.getElementById("active").value = employee.active.toString();
           // Show building dropdown for admins
           const buildingGroup = document.getElementById("buildingGroup");
           const buildingSelect = document.getElementById("employeeBuilding");
           if (currentUser && currentUser.role === "ADMIN") {
             buildingGroup.style.display = "block";
-            buildingSelect.innerHTML = '<option value="">Select Building</option>';
-            buildings.forEach(b => {
+            buildingSelect.innerHTML =
+              '<option value="">Select Building</option>';
+            buildings.forEach((b) => {
               const option = document.createElement("option");
               option.value = b.id;
               option.textContent = b.name;
@@ -1192,14 +1200,20 @@ function showGeneratePasswordLinkBtn(userRole) {
           }
           document.getElementById("employeeModal").style.display = "block";
           // Show the Generate Change Password Link button for admins/managers
-          const generatePasswordLinkBtn = document.getElementById("generatePasswordLinkBtn");
-          if (currentUser && (currentUser.role === "ADMIN" || currentUser.role === "MANAGER")) {
+          const generatePasswordLinkBtn = document.getElementById(
+            "generatePasswordLinkBtn"
+          );
+          if (
+            currentUser &&
+            (currentUser.role === "ADMIN" || currentUser.role === "MANAGER")
+          ) {
             generatePasswordLinkBtn.style.display = "inline-block";
           } else {
             generatePasswordLinkBtn.style.display = "none";
           }
           // Hide the link container by default
-          document.getElementById("changePasswordLinkContainer").style.display = "none";
+          document.getElementById("changePasswordLinkContainer").style.display =
+            "none";
         } catch (error) {
           showAlert("Failed to load employee details", "error");
         }
@@ -1217,7 +1231,10 @@ function showGeneratePasswordLinkBtn(userRole) {
           return trimmed === "" ? null : trimmed;
         }
         // Debug: log all form values
-        console.debug("handleEmployeeSubmit: formData", Object.fromEntries(formData.entries()));
+        console.debug(
+          "handleEmployeeSubmit: formData",
+          Object.fromEntries(formData.entries())
+        );
         // Validate required fields
         const firstName = cleanField(formData.get("firstName"));
         const lastName = cleanField(formData.get("lastName"));
@@ -1226,17 +1243,34 @@ function showGeneratePasswordLinkBtn(userRole) {
         if (!role) role = "EMPLOYEE";
         const validRoles = ["EMPLOYEE", "MANAGER", "ADMIN"];
         if (!firstName || !lastName || !email || !validRoles.includes(role)) {
-          console.debug("Validation failed", { firstName, lastName, email, role });
-          showAlert("Please fill all required fields and select a valid role.", "error");
+          console.debug("Validation failed", {
+            firstName,
+            lastName,
+            email,
+            role,
+          });
+          showAlert(
+            "Please fill all required fields and select a valid role.",
+            "error"
+          );
           return;
         }
         let departmentIdRaw = formData.get("departmentId");
         let departmentId = null;
-        if (departmentIdRaw && departmentIdRaw !== "" && !isNaN(departmentIdRaw)) {
+        if (
+          departmentIdRaw &&
+          departmentIdRaw !== "" &&
+          !isNaN(departmentIdRaw)
+        ) {
           departmentId = parseInt(departmentIdRaw);
         }
         // Debug: log departmentId
-        console.debug("departmentIdRaw", departmentIdRaw, "departmentId", departmentId);
+        console.debug(
+          "departmentIdRaw",
+          departmentIdRaw,
+          "departmentId",
+          departmentId
+        );
         // Ensure current admin/manager/employee has valid user ID
         const userInfo = localStorage.getItem("userInfo");
         let user = null;
@@ -1248,9 +1282,24 @@ function showGeneratePasswordLinkBtn(userRole) {
           }
         }
         // Debug: log user and user.id
-        console.debug("userInfo", userInfo, "user", user, "user.id", user && user.id);
-        if (!user || typeof user.id === "undefined" || user.id === null || isNaN(Number(user.id))) {
-          showAlert("Your account is missing an employee ID. Please log out and log in again.", "error");
+        console.debug(
+          "userInfo",
+          userInfo,
+          "user",
+          user,
+          "user.id",
+          user && user.id
+        );
+        if (
+          !user ||
+          typeof user.id === "undefined" ||
+          user.id === null ||
+          isNaN(Number(user.id))
+        ) {
+          showAlert(
+            "Your account is missing an employee ID. Please log out and log in again.",
+            "error"
+          );
           console.error("User validation failed: missing or invalid id", user);
           return;
         }
@@ -1264,20 +1313,32 @@ function showGeneratePasswordLinkBtn(userRole) {
           phoneNumber: cleanField(formData.get("phoneNumber")),
           dateOfBirth: cleanField(formData.get("dateOfBirth")),
           address: cleanField(formData.get("address")),
-          emergencyContactName: cleanField(formData.get("emergencyContactName")),
-          emergencyContactRelation: cleanField(formData.get("emergencyContactRelation")),
-          emergencyContactPhone: cleanField(formData.get("emergencyContactPhone")),
+          emergencyContactName: cleanField(
+            formData.get("emergencyContactName")
+          ),
+          emergencyContactRelation: cleanField(
+            formData.get("emergencyContactRelation")
+          ),
+          emergencyContactPhone: cleanField(
+            formData.get("emergencyContactPhone")
+          ),
           role,
           departmentId,
           // Optionally send admin/manager id for backend auditing
           adminId: user.id,
           // For admins, update buildingId/buildingName
-          ...(currentUser && currentUser.role === "ADMIN" ? (() => {
-            const buildingSelect = document.getElementById("employeeBuilding");
-            const buildingId = buildingSelect ? buildingSelect.value : null;
-            const buildingName = buildingSelect ? (buildingSelect.options[buildingSelect.selectedIndex]?.text || "") : "";
-            return { buildingId, buildingName };
-          })() : {})
+          ...(currentUser && currentUser.role === "ADMIN"
+            ? (() => {
+                const buildingSelect =
+                  document.getElementById("employeeBuilding");
+                const buildingId = buildingSelect ? buildingSelect.value : null;
+                const buildingName = buildingSelect
+                  ? buildingSelect.options[buildingSelect.selectedIndex]
+                      ?.text || ""
+                  : "";
+                return { buildingId, buildingName };
+              })()
+            : {}),
         };
         // Debug: log employeeData and adminId
         console.debug("employeeData", employeeData, "adminId", user.id);
@@ -1305,7 +1366,10 @@ function showGeneratePasswordLinkBtn(userRole) {
           await loadEmployees();
         } catch (error) {
           console.error("Failed to save employee", error);
-          showAlert("Failed to save employee. Please check required fields, role, and email uniqueness.", "error");
+          showAlert(
+            "Failed to save employee. Please check required fields, role, and email uniqueness.",
+            "error"
+          );
         }
       }
 
@@ -1327,7 +1391,8 @@ function showGeneratePasswordLinkBtn(userRole) {
         if (currentUser && currentUser.role === "ADMIN") {
           const buildingSelect = document.getElementById("inviteBuilding");
           const buildingId = buildingSelect.value;
-          const buildingName = buildingSelect.options[buildingSelect.selectedIndex]?.text || "";
+          const buildingName =
+            buildingSelect.options[buildingSelect.selectedIndex]?.text || "";
           invitationData.buildingId = buildingId;
           invitationData.buildingName = buildingName;
         }
@@ -1475,43 +1540,49 @@ function showGeneratePasswordLinkBtn(userRole) {
       window.closeCreateBuildingModal = function () {
         document.getElementById("createBuildingModal").style.display = "none";
       };
-      document.getElementById("createBuildingForm")?.addEventListener("submit", async function (e) {
-        e.preventDefault();
-        const name = document.getElementById("buildingName").value.trim();
-        if (!name) {
-          document.getElementById("createBuildingResult").innerHTML = `<div class='alert alert-error'>Building name is required.</div>`;
-          return;
-        }
-        const token = localStorage.getItem("authToken");
-        try {
-          const response = await fetch(`${API_BASE_URL}/buildings`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ name }),
-          });
-          const resultDiv = document.getElementById("createBuildingResult");
-          if (response.status === 409) {
-            // Duplicate building name
-            const text = await response.text();
-            resultDiv.innerHTML = `<div class='alert alert-error'>${text}</div>`;
+      document
+        .getElementById("createBuildingForm")
+        ?.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const name = document.getElementById("buildingName").value.trim();
+          if (!name) {
+            document.getElementById(
+              "createBuildingResult"
+            ).innerHTML = `<div class='alert alert-error'>Building name is required.</div>`;
             return;
           }
-          if (!response.ok) {
-            const text = await response.text();
-            resultDiv.innerHTML = `<div class='alert alert-error'>Building creation failed: ${text}</div>`;
-            return;
+          const token = localStorage.getItem("authToken");
+          try {
+            const response = await fetch(`${API_BASE_URL}/buildings`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ name }),
+            });
+            const resultDiv = document.getElementById("createBuildingResult");
+            if (response.status === 409) {
+              // Duplicate building name
+              const text = await response.text();
+              resultDiv.innerHTML = `<div class='alert alert-error'>${text}</div>`;
+              return;
+            }
+            if (!response.ok) {
+              const text = await response.text();
+              resultDiv.innerHTML = `<div class='alert alert-error'>Building creation failed: ${text}</div>`;
+              return;
+            }
+            const data = await response.json();
+            resultDiv.innerHTML = `<div class='alert alert-success'>Building created! Name: ${data.name}, ID: ${data.id}</div>`;
+            closeCreateBuildingModal();
+            await loadBuildingsByAdmin();
+          } catch (err) {
+            document.getElementById(
+              "createBuildingResult"
+            ).innerHTML = `<div class='alert alert-error'>Building creation failed. Please try again.</div>`;
           }
-          const data = await response.json();
-          resultDiv.innerHTML = `<div class='alert alert-success'>Building created! Name: ${data.name}, ID: ${data.id}</div>`;
-          closeCreateBuildingModal();
-          await loadBuildingsByAdmin();
-        } catch (err) {
-          document.getElementById("createBuildingResult").innerHTML = `<div class='alert alert-error'>Building creation failed. Please try again.</div>`;
-        }
-      });
+        });
       // Placed at the end of body for correct scope
       // Only one instance will be appended
       if (!document.getElementById("bulkImportModal")) {

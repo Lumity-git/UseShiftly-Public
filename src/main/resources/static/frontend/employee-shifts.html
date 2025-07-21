@@ -39,7 +39,7 @@
         .view-btn:hover:not(.active) {
             background: #e9ecef;
         }scale=1.0">
-    <title>My Shifts - Hotel Scheduler</title>
+    <title>My Shifts - Shiftly Scheduler</title>
     <link rel="stylesheet" href="style.css">
     <script>
       document.addEventListener('DOMContentLoaded', function() {
@@ -48,22 +48,19 @@
     </script>
 </head>
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">🏨 Hotel Scheduler</div>
-            <nav class="nav-links">
-                <a href="employee-dashboard.html" class="nav-link">My Dashboard</a>
-                <a href="employee-shifts.html" class="nav-link active">My Shifts</a>
-                <a href="employee-trades.html" class="nav-link">Shift Trades</a>
-                <a href="employee-notifications.html" class="nav-link">Notifications</a>
-            </nav>
-            <div class="user-info">
-                <span class="role-badge">Employee</span>
-                <span id="userName">Loading...</span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
-        </div>
-    </div>
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("employee-shifts.html");
+            initEmployeeShiftsPage();
+          });
+      });
+    </script>
 
     <div class="container">
         <div class="calendar-container">
@@ -98,7 +95,7 @@
         let currentDate = new Date();
         let currentWeekStart = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        async function initEmployeeShiftsPage() {
             const isAuthenticated = await checkAuth('EMPLOYEE');
             if (!isAuthenticated) return;
 
@@ -108,7 +105,7 @@
             currentWeekStart = new Date(today);
             currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of current week
             await loadMyShifts();
-        });
+        }
 
         async function checkAuth(role) {
             const token = localStorage.getItem('authToken');

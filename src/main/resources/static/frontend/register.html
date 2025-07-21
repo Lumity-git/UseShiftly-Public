@@ -3,17 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Registration - Hotel Scheduler</title>
+    <title>Employee Registration - Shiftly Scheduler</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo"><i class="fas fa-hotel"></i> Hotel Scheduler</div>
-            <div class="subtitle">Employee Registration</div>
-        </div>
-    </header>
     <main class="container registration-container">
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
@@ -21,7 +15,7 @@
         <div id="alertContainer"></div>
         <section class="invitation-info card" id="invitationInfo" style="display: none;">
             <h3><i class="fas fa-envelope-open"></i> Invitation Details</h3>
-            <p>You've been invited to join <strong id="hotelName">Grand Hotel</strong> as a <strong id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong> department.</p>
+            <p>You've been invited to join <strong id="buildingName">Grand Hotel</strong> as a <strong id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong> department.</p>
             <p>Invited by: <strong id="invitedBy">Manager Name</strong> on <strong id="invitationDate">March 15, 2024</strong></p>
         </section>
         <form id="registrationForm" class="card form-card">
@@ -241,7 +235,7 @@
     }
 }
         function displayInvitationInfo() {
-            document.getElementById('hotelName').textContent = invitationData.hotelName;
+            document.getElementById('buildingName').textContent = invitationData.buildingName;
             document.getElementById('invitedRole').textContent = invitationData.role;
             document.getElementById('invitedDepartment').textContent = invitationData.departmentName;
             document.getElementById('invitedBy').textContent = invitationData.invitedBy;

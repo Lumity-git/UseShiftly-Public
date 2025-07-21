@@ -123,23 +123,6 @@ public class BulkEmployeeImportController {
         return ResponseEntity.ok(new BulkEmployeeImportResult(total, success, total - success, errors));
     }
 
-    // Basic sanitization: trim, remove dangerous chars, limit length
-    // Secure password generator for imports
-    private String generateSecurePassword() {
-        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lower = "abcdefghijklmnopqrstuvwxyz";
-        String digits = "0123456789";
-        String specials = "!@#$%^&*()-_";
-        String all = upper + lower + digits + specials;
-        java.security.SecureRandom rnd = new java.security.SecureRandom();
-        StringBuilder sb = new StringBuilder();
-        sb.append(upper.charAt(rnd.nextInt(upper.length())));
-        sb.append(lower.charAt(rnd.nextInt(lower.length())));
-        sb.append(digits.charAt(rnd.nextInt(digits.length())));
-        sb.append(specials.charAt(rnd.nextInt(specials.length())));
-        for (int i = 4; i < 12; i++) sb.append(all.charAt(rnd.nextInt(all.length())));
-        return sb.toString();
-    }
     private String sanitize(String input) {
         if (input == null) return null;
         // Remove < > " ' ` ;

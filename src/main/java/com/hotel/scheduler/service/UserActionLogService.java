@@ -16,25 +16,21 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserActionLogService {
     private final UserActionLogRepository userActionLogRepository;
+    private final com.hotel.scheduler.repository.EmployeeRepository employeeRepository;
 
     /**
      * Logs a user action with associated employee and building information.
      *
      * @param action   the action performed (e.g., "LOGIN", "SHIFT_CREATED")
-     * @param employee the employee performing the action
+     * @param employeeId the ID of the employee performing the action
      */
-    public void logAction(String action, Employee employee) {
+    public void logAction(String action, Long employeeId) {
+        if (employeeId == null) return;
+        Employee employee = employeeRepository.findByIdWithBuilding(employeeId)
+            .orElse(null);
         if (employee == null || employee.getBuilding() == null) return;
-        Long buildingId = null;
-        String buildingName = null;
-        try {
-            buildingId = employee.getBuilding().getId();
-            buildingName = employee.getBuilding().getName();
-        } catch (Exception e) {
-            // Avoid LazyInitializationException
-            buildingId = employee.getBuilding().getId();
-            buildingName = "Unknown";
-        }
+        Long buildingId = employee.getBuilding().getId();
+        String buildingName = employee.getBuilding().getName();
         UserActionLog log = UserActionLog.builder()
                 .action(action)
                 .userUuid(employee.getUuid())

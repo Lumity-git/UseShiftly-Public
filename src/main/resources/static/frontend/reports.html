@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reports & Analytics - Hotel Scheduler</title>
+    <title>Reports & Analytics - Shiftly Scheduler</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
@@ -12,22 +13,37 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <nav class="navbar">
-      <div class="nav-container">
-        <a href="dashboard.html" class="logo">
-          <i class="fas fa-hotel"></i> Hotel Scheduler
-        </a>
-        <div class="nav-links" id="navigation">
-          <!-- Navigation will be populated based on user role -->
-        </div>
-        <div class="user-info">
-          <span id="userName">Loading...</span>
-          <button class="logout-btn" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </button>
-        </div>
-      </div>
-    </nav>
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        fetch("header.html")
+          .then(res => res.text())
+          .then(html => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("reports.html");
+            initReportsPage();
+          });
+      });
+
+      async function initReportsPage() {
+        const isAuthenticated = await checkAuth(["MANAGER", "ADMIN"]);
+        if (!isAuthenticated) return;
+
+        // Load user info and set up navigation (only after header is loaded)
+        const user = localStorage.getItem("userInfo");
+        if (user) {
+          const userObj = JSON.parse(user);
+          const userNameSpan = document.getElementById("userName");
+          if (userNameSpan) {
+            userNameSpan.textContent = userObj.firstName + " " + userObj.lastName;
+          }
+        }
+
+        initializeDateFilters();
+        generateReports();
+      }
+    </script>
 
     <div class="container">
       <div class="report-filters">
@@ -132,25 +148,7 @@
       let currentUser = null;
       let reportData = {};
       let charts = {};
-
-      document.addEventListener("DOMContentLoaded", async function () {
-        const isAuthenticated = await checkAuth(["MANAGER", "ADMIN"]);
-        if (!isAuthenticated) return;
-
-        // Load user info and set up navigation
-        const user = localStorage.getItem("userInfo");
-        let userRole = "";
-        if (user) {
-          const userObj = JSON.parse(user);
-          document.getElementById("userName").textContent =
-            userObj.firstName + " " + userObj.lastName;
-          userRole = userObj.role;
-        }
-        setupNavigation(userRole);
-
-        initializeDateFilters();
-        generateReports();
-      });
+      // ...existing code...
 
       async function checkAuth(roles) {
         const token = localStorage.getItem("authToken");
@@ -280,29 +278,10 @@
         currentUser = JSON.parse(user);
         document.getElementById("userName").textContent =
           currentUser.firstName + " " + currentUser.lastName;
-        setupNavigation(currentUser.role);
 
         loadInitialData();
         return true;
       }
-
-      function setupNavigation(userRole) {
-        const navigation = document.getElementById("navigation");
-        let navLinks = "";
-        // Common links for all users
-        navLinks += '<a href="dashboard.html" class="nav-link">Dashboard</a>';
-        navLinks += '<a href="shifts.html" class="nav-link">Shifts</a>';
-        navLinks += '<a href="trades.html" class="nav-link">Trades</a>';
-        navLinks += '<a href="notifications.html" class="nav-link">Notifications</a>';
-        // Manager and Admin only links
-        if (userRole === "MANAGER" || userRole === "ADMIN") {
-          navLinks += '<a href="employees.html" class="nav-link">Employees</a>';
-          navLinks += '<a href="reports.html" class="nav-link active">Reports</a>';
-          navLinks += '<a href="departments.html" class="nav-link">Departments</a>';
-        }
-        navigation.innerHTML = navLinks;
-      }
-
       function initializeDateFilters() {
         const today = new Date();
         const thirtyDaysAgo = new Date(
@@ -1025,7 +1004,7 @@
                         <!-- Styles moved to style.css -->
                     </head>
                     <body>
-                        <h1>Hotel Employee Directory</h1>
+                        <h1>Employee Directory</h1>
                         <div class="export-date">Generated on: ${new Date().toLocaleDateString()}</div>
                         <table>
                             <thead>

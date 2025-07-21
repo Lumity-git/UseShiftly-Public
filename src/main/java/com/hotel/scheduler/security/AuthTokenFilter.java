@@ -18,15 +18,21 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * JWT authentication filter for processing and validating JWT tokens in incoming HTTP requests.
+ * JWT authentication filter for processing and validating JWT tokens in
+ * incoming HTTP requests.
  * <p>
- * This filter intercepts all requests except static resources and public authentication endpoints.
- * It extracts the JWT from the Authorization header, validates it, and sets the authentication context for the user.
- * If the token is invalid or missing, it returns a 401 Unauthorized response with a JSON error message.
+ * This filter intercepts all requests except static resources and public
+ * authentication endpoints.
+ * It extracts the JWT from the Authorization header, validates it, and sets the
+ * authentication context for the user.
+ * If the token is invalid or missing, it returns a 401 Unauthorized response
+ * with a JSON error message.
  * <p>
- * <b>Usage:</b> Registered as a Spring bean and automatically applied by Spring Security.
+ * <b>Usage:</b> Registered as a Spring bean and automatically applied by Spring
+ * Security.
  * <p>
- * <b>Related:</b> Works with {@link JwtUtils} for token operations and AuthEntryPointJwt for handling unauthorized errors.
+ * <b>Related:</b> Works with {@link JwtUtils} for token operations and
+ * AuthEntryPointJwt for handling unauthorized errors.
  */
 @Component
 @RequiredArgsConstructor
@@ -46,31 +52,32 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     /**
      * Filters incoming requests to authenticate users based on JWT tokens.
      * <ul>
-     *   <li>Skips static resources and public auth endpoints.</li>
-     *   <li>Extracts and validates JWT from Authorization header.</li>
-     *   <li>Sets authentication in SecurityContext if valid.</li>
-     *   <li>Returns 401 JSON error if token is invalid or missing.</li>
+     * <li>Skips static resources and public auth endpoints.</li>
+     * <li>Extracts and validates JWT from Authorization header.</li>
+     * <li>Sets authentication in SecurityContext if valid.</li>
+     * <li>Returns 401 JSON error if token is invalid or missing.</li>
      * </ul>
      *
-     * @param request      the HTTP request
-     * @param response     the HTTP response
-     * @param filterChain  the filter chain
+     * @param request     the HTTP request
+     * @param response    the HTTP response
+     * @param filterChain the filter chain
      * @throws ServletException if a servlet error occurs
      * @throws IOException      if an I/O error occurs
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
         // Skip filter for static resources, frontend files, public endpoints
         if (path.startsWith("/frontend/") ||
-            path.startsWith("/static/") ||
-            path.startsWith("/public/") ||
-            path.startsWith("/api/public/") ||
-            path.matches(".*\\.(html|css|js|png|jpg|ico)$") ||
-            path.equals("/api/auth/login") ||
-            path.equals("/api/auth/register") ||
-            path.equals("/api/auth/validate-invitation")) {
+                path.startsWith("/static/") ||
+                path.startsWith("/public/") ||
+                path.startsWith("/api/public/") ||
+                path.matches(".*\\.(html|css|js|png|jpg|ico)$") || 
+                path.matches("^/frontend/[a-zA-Z0-9_-]+$") ||
+                path.equals("/api/auth/login") ||
+                path.equals("/api/auth/register") ||
+                path.equals("/api/auth/validate-invitation")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -84,10 +91,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                     String username = jwtUtils.getUserNameFromJwtToken(jwt);
                     log.debug("AuthTokenFilter: JWT valid, username: {}", username);
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username, userDetails.getAuthorities());
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userDetails, null,
-                                    userDetails.getAuthorities());
+                    log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username,
+                            userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null,
+                            userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     log.debug("AuthTokenFilter: Authentication set for {}", username);

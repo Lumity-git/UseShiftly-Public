@@ -3,38 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shift Trades - Hotel Scheduler</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Shift Trades - Shiftly Scheduler</title>
+    <link rel="stylesheet" href="style.css" />
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        document.body.classList.add('employee-trades');
+      document.addEventListener("DOMContentLoaded", function () {
+        document.body.classList.add("employee-trades");
       });
     </script>
   </head>
   <body>
-    <div class="header">
-      <div class="header-content">
-        <div class="logo">🏨 Hotel Scheduler</div>
-
-        <div class="nav-links">
-          <a href="employee-dashboard.html" class="nav-link">Dashboard</a>
-          <a href="employee-shifts.html" class="nav-link">My Shifts</a>
-          <a href="employee-trades.html" class="nav-link active"
-            >Shift Trades</a
-          >
-          <a href="employee-profile.html" class="nav-link">My Profile</a>
-        </div>
-
-        <div class="user-info">
-          <span id="userName">Loading...</span>
-          <span class="role-badge" id="userRole">Employee</span>
-          <button class="logout-btn" onclick="logout()">Logout</button>
-        </div>
-      </div>
-    </div>
+    <div id="headerContainer"></div>
+    <script src="nav-manager.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("header.html")
+          .then((res) => res.text())
+          .then((html) => {
+            document.getElementById("headerContainer").innerHTML = html;
+            renderNavLinks("employee-trades.html");
+            initEmployeeTradesPage();
+          });
+      });
+    </script>
 
     <div class="container">
-
       <div class="tabs">
         <button class="tab-btn active" onclick="showTab('available')">
           Available Shifts
@@ -119,28 +111,35 @@
     <script src="auth-manager.js"></script>
     <script>
       // Pick up available shift
-      window.pickupShift = async function(shiftId) {
+      window.pickupShift = async function (shiftId) {
         if (!confirm("Are you sure you want to pick up this shift?")) return;
         const token = localStorage.getItem("authToken");
         const container = document.getElementById("availableShiftsContainer");
         let pickedShift = null;
         if (window._lastAvailableShifts) {
-          pickedShift = window._lastAvailableShifts.find(s => s.id === shiftId);
+          pickedShift = window._lastAvailableShifts.find(
+            (s) => s.id === shiftId
+          );
         }
         try {
-          const response = await fetch(`${API_BASE_URL}/shifts/${shiftId}/pick-up`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json"
+          const response = await fetch(
+            `${API_BASE_URL}/shifts/${shiftId}/pick-up`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             }
-          });
+          );
           if (response.ok) {
             // Update status to PENDING_APPROVAL and remove card from UI
             if (pickedShift) {
               pickedShift.status = "PENDING_APPROVAL";
               // Remove from available shifts
-              window._lastAvailableShifts = window._lastAvailableShifts.filter(s => s.id !== shiftId);
+              window._lastAvailableShifts = window._lastAvailableShifts.filter(
+                (s) => s.id !== shiftId
+              );
               displayAvailableShifts(window._lastAvailableShifts);
               // Optionally, show a temporary card or message before removal (not required)
             }
@@ -155,14 +154,17 @@
               pickupEmployeeId: userInfo.id,
               pickupEmployee: userInfo,
               pickupEmployeeName: userInfo.firstName + " " + userInfo.lastName,
-              shiftId: pickedShift ? pickedShift.id : shiftId
+              shiftId: pickedShift ? pickedShift.id : shiftId,
             };
             if (!window._myTrades) window._myTrades = [];
             window._myTrades.unshift(pendingTrade);
             displayMyTrades(window._myTrades);
             alert("Shift pickup request submitted! Pending manager approval.");
             // Reload from backend after short delay to ensure sync
-            setTimeout(() => { loadAvailableShifts(); loadMyTrades(); }, 1200);
+            setTimeout(() => {
+              loadAvailableShifts();
+              loadMyTrades();
+            }, 1200);
           } else {
             const error = await response.json();
             alert(error.message || "Failed to pick up shift");
@@ -171,54 +173,62 @@
           alert("Error picking up shift. Please try again.");
         }
       };
-      const API_BASE_URL = window.location.origin + '/api';
+      const API_BASE_URL = window.location.origin + "/api";
       let authToken = localStorage.getItem("authToken");
       let userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
 
       // Check authentication and role
       async function checkAuth(role) {
-        const token = localStorage.getItem('authToken');
-        const userInfo = localStorage.getItem('userInfo');
+        const token = localStorage.getItem("authToken");
+        const userInfo = localStorage.getItem("userInfo");
         if (!token || !userInfo) {
-          window.location.href = 'login.html';
+          window.location.href = "login.html";
           return false;
         }
         try {
           const response = await fetch(`${API_BASE_URL}/auth/validate`, {
-            method: 'GET',
+            method: "GET",
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           });
           if (response.status === 401) {
             // Try to refresh token if backend supports
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+            const refreshResponse = await fetch(
+              `${API_BASE_URL}/auth/refresh`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
               }
-            });
+            );
             if (refreshResponse.ok) {
               const data = await refreshResponse.json();
               if (data.token) {
-                localStorage.setItem('authToken', data.token);
+                localStorage.setItem("authToken", data.token);
                 if (data.userInfo) {
-                  localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+                  localStorage.setItem(
+                    "userInfo",
+                    JSON.stringify(data.userInfo)
+                  );
                 }
                 // Check role after refresh
-                const refreshedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+                const refreshedUser =
+                  data.userInfo ||
+                  JSON.parse(localStorage.getItem("userInfo") || "{}");
                 if (refreshedUser.role !== role) {
-                  window.location.href = 'login.html';
+                  window.location.href = "login.html";
                   return false;
                 }
                 return true;
               }
             }
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userInfo');
-            window.location.href = 'login.html';
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userInfo");
+            window.location.href = "login.html";
             return false;
           }
           if (!response.ok) {
@@ -226,41 +236,49 @@
           }
           const data = await response.json();
           if (data.token) {
-            localStorage.setItem('authToken', data.token);
+            localStorage.setItem("authToken", data.token);
           }
           if (data.userInfo) {
-            localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+            localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
           }
           // Check role
-          const validatedUser = data.userInfo || JSON.parse(localStorage.getItem('userInfo') || '{}');
+          const validatedUser =
+            data.userInfo ||
+            JSON.parse(localStorage.getItem("userInfo") || "{}");
           if (validatedUser.role !== role) {
-            window.location.href = 'login.html';
+            window.location.href = "login.html";
             return false;
           }
           return true;
         } catch (error) {
-          console.error('Auth validation failed:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userInfo');
-          window.location.href = 'login.html';
+          console.error("Auth validation failed:", error);
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("userInfo");
+          window.location.href = "login.html";
           return false;
         }
       }
 
       // Initialize page
-      async function init() {
-        const isAuthenticated = await checkAuth('EMPLOYEE');
+      async function initEmployeeTradesPage() {
+        const isAuthenticated = await checkAuth("EMPLOYEE");
         if (!isAuthenticated) return;
 
         const userInfo = authManager.getUserInfo();
-        document.getElementById("userName").textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+        document.getElementById(
+          "userName"
+        ).textContent = `${userInfo.firstName} ${userInfo.lastName}`;
 
         // Ensure only the available tab is visible on load
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.getElementById('available-tab').classList.add('active');
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.tab-btn.active')?.classList.remove('active');
-        document.querySelector('.tab-btn').classList.add('active');
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((tab) => tab.classList.remove("active"));
+        document.getElementById("available-tab").classList.add("active");
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        document.querySelector(".tab-btn.active")?.classList.remove("active");
+        document.querySelector(".tab-btn").classList.add("active");
 
         loadAvailableShifts();
       }
@@ -311,9 +329,12 @@
           // Filter for trades where the current user is the requesting employee (robust for both id field types)
           const userInfo = authManager.getUserInfo();
           const myTrades = Array.isArray(allTrades)
-            ? allTrades.filter(trade =>
-                (trade.requestingEmployeeId && trade.requestingEmployeeId === userInfo.id) ||
-                (trade.requestingEmployee && trade.requestingEmployee.id === userInfo.id)
+            ? allTrades.filter(
+                (trade) =>
+                  (trade.requestingEmployeeId &&
+                    trade.requestingEmployeeId === userInfo.id) ||
+                  (trade.requestingEmployee &&
+                    trade.requestingEmployee.id === userInfo.id)
               )
             : [];
           displayMyTrades(myTrades);
@@ -328,7 +349,6 @@
       function displayAvailableShifts(shifts) {
         window._lastAvailableShifts = Array.isArray(shifts) ? [...shifts] : [];
         document.getElementById("availableLoading").style.display = "none";
-
 
         if (!Array.isArray(shifts) || shifts.length === 0) {
           document.getElementById("noAvailableShifts").style.display = "block";
@@ -346,12 +366,17 @@
             const end = new Date(shift.endTime);
             const formattedTimes = `${start.toLocaleString()} - ${end.toLocaleString()}`;
             const department =
-              shift.departmentName || (shift.department && shift.department.name) || "No Deplook wartment";
+              shift.departmentName ||
+              (shift.department && shift.department.name) ||
+              "No Deplook wartment";
             const position = shift.position || "General Staff";
             // Use shift.employeeName or shift.createdByName for poster name
-            const posterName = shift.employeeName || shift.createdByName || "Unknown";
+            const posterName =
+              shift.employeeName || shift.createdByName || "Unknown";
             return `
-                    <div class="trade-card" data-shift-id="${shift.id}" data-shift-json='${shiftJson}'>
+                    <div class="trade-card" data-shift-id="${
+                      shift.id
+                    }" data-shift-json='${shiftJson}'>
                         <div class="trade-header">
                             <div class="trade-title">${start.toLocaleDateString(
                               "en-US",
@@ -368,7 +393,11 @@
                             <div class="detail-item">
                                 <div class="detail-icon">🕐</div>
                                 <div class="detail-text">${formattedTimes}</div>
-                            ${status === "PENDING_APPROVAL" ? `<div style="margin-top: 8px;">${cancelPickupBtn}</div>` : ""}
+                            ${
+                              status === "PENDING_APPROVAL"
+                                ? `<div style="margin-top: 8px;">${cancelPickupBtn}</div>`
+                                : ""
+                            }
                             <div class="detail-item">
                                 <div class="detail-icon">🏢</div>
                                 <div class="detail-text">${department}</div>
@@ -383,7 +412,9 @@
                             </div>
                         </div>
                         <div class="trade-actions">
-                            <button class="action-btn btn-success" onclick="pickupShift(${shift.id})">
+                            <button class="action-btn btn-success" onclick="pickupShift(${
+                              shift.id
+                            })">
                                 Pick Up This Shift
                             </button>
                         </div>
@@ -411,7 +442,9 @@
           .map((trade) => {
             // User-friendly status label
             let statusLabel = trade.status;
-            let statusClass = `status-${trade.status ? trade.status.toLowerCase() : 'pending'}`;
+            let statusClass = `status-${
+              trade.status ? trade.status.toLowerCase() : "pending"
+            }`;
             if (trade.status === "PENDING_APPROVAL") {
               statusLabel = "Pending Manager Approval";
               statusClass = "status-pending";
@@ -440,41 +473,61 @@
             return `
                 <div class=\"trade-card\">
                     <div class=\"trade-header\">
-                        <div class=\"trade-title\">${formatDate(trade.shift.shiftDate)}</div>
+                        <div class=\"trade-title\">${formatDate(
+                          trade.shift.shiftDate
+                        )}</div>
                         <div class=\"trade-status ${statusClass}\">${statusLabel}</div>
                     </div>
                     <div class=\"trade-details\">
                         <div class=\"detail-item\">
                             <div class=\"detail-icon\">🕐</div>
-                            <div class=\"detail-text\">${trade.shift.startTime} - ${trade.shift.endTime}</div>
+                            <div class=\"detail-text\">${
+                              trade.shift.startTime
+                            } - ${trade.shift.endTime}</div>
                         </div>
                         <div class=\"detail-item\">
                             <div class=\"detail-icon\">🏢</div>
-                            <div class=\"detail-text\">${trade.shift.department?.name || "No Department"}</div>
+                            <div class=\"detail-text\">${
+                              trade.shift.department?.name || "No Department"
+                            }</div>
                         </div>
                         <div class=\"detail-item\">
                             <div class=\"detail-icon\">📍</div>
-                            <div class=\"detail-text\">${trade.shift.position || "General Staff"}</div>
+                            <div class=\"detail-text\">${
+                              trade.shift.position || "General Staff"
+                            }</div>
                         </div>
                         ${recipientInfo}
-                        ${trade.pickedUpBy ? `
+                        ${
+                          trade.pickedUpBy
+                            ? `
                         <div class=\"detail-item\">
                             <div class=\"detail-icon\">👤</div>
                             <div class=\"detail-text\">Picked up by: ${trade.pickedUpBy.firstName} ${trade.pickedUpBy.lastName}</div>
                         </div>
-                        ` : ""}
+                        `
+                            : ""
+                        }
                     </div>
                     <div class=\"trade-actions\">
-                        ${trade.status === "PENDING" ? `
+                        ${
+                          trade.status === "PENDING"
+                            ? `
                             <button class=\"action-btn btn-danger\" onclick=\"cancelTrade(${trade.id})\">
                                 Cancel Request
                             </button>
-                        ` : ""}
-                        ${trade.status === "PENDING_APPROVAL" ? `
+                        `
+                            : ""
+                        }
+                        ${
+                          trade.status === "PENDING_APPROVAL"
+                            ? `
                             <button class=\"action-btn btn-danger oval-cancel\" style=\"background: #e74c3c; color: #fff; border-radius: 20px; padding: 6px 18px; font-weight: bold;\" onclick=\"cancelPickup(${trade.id})\">
                                 Cancel Pickup
                             </button>
-                        ` : ""}
+                        `
+                            : ""
+                        }
                     </div>
                 </div>
             `;
@@ -501,7 +554,8 @@
         // Hide loading spinner
         document.getElementById("incomingTradesLoading").style.display = "none";
         // Hide both containers initially
-        document.getElementById("incomingTradesContainer").style.display = "none";
+        document.getElementById("incomingTradesContainer").style.display =
+          "none";
         document.getElementById("noIncomingTrades").style.display = "none";
 
         if (!Array.isArray(trades) || trades.length === 0) {
@@ -510,7 +564,9 @@
           return;
         }
         // Filter out trades with status CANCELLED or REJECTED
-        const visibleTrades = trades.filter(trade => trade.status !== "CANCELLED" && trade.status !== "REJECTED");
+        const visibleTrades = trades.filter(
+          (trade) => trade.status !== "CANCELLED" && trade.status !== "REJECTED"
+        );
         const container = document.getElementById("incomingTradesContainer");
         container.style.display = "grid";
         container.innerHTML = visibleTrades
@@ -535,68 +591,90 @@
             let showActions = true;
             let cancelPickupBtn = "";
             if (status === "PENDING_APPROVAL") {
-                statusLabel = "Pending Manager Approval";
-                // Show Cancel Pickup button for PENDING_APPROVAL trades
-                cancelPickupBtn = `<button class=\"action-btn btn-danger oval-cancel\" style=\"background: #e74c3c; color: #fff; border-radius: 20px; padding: 6px 18px; font-weight: bold;\" onclick=\"cancelPickup(${trade.id})\">Cancel Pickup</button>`;
-                showActions = false;
+              statusLabel = "Pending Manager Approval";
+              // Show Cancel Pickup button for PENDING_APPROVAL trades
+              cancelPickupBtn = `<button class=\"action-btn btn-danger oval-cancel\" style=\"background: #e74c3c; color: #fff; border-radius: 20px; padding: 6px 18px; font-weight: bold;\" onclick=\"cancelPickup(${trade.id})\">Cancel Pickup</button>`;
+              showActions = false;
             } else if (status === "APPROVED") {
-                statusLabel = "Approved";
-                showActions = false;
+              statusLabel = "Approved";
+              showActions = false;
             } else if (status === "REJECTED" || status === "CANCELLED") {
-                // Should not display, already filtered out
-                return "";
+              // Should not display, already filtered out
+              return "";
             }
             return `
-                <div class=\"trade-card\">\n                    <div class=\"trade-header\">\n                        <div class=\"trade-title\">${start.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>\n                        <div class=\"trade-status status-${status.toLowerCase()}\">${statusLabel}</div>\n                    </div>\n                    <div class=\"trade-details\">\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">🕐</div>\n                            <div class=\"detail-text\">${formattedTimes}</div>\n                        </div>\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">🏢</div>\n                            <div class=\"detail-text\">${department}</div>\n                        </div>\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">📍</div>\n                            <div class=\"detail-text\">${position}</div>\n                        </div>\n                        <div class=\"detail-item\" style=\"display: flex; align-items: center; justify-content: space-between;\">\n                            <div style=\"display: flex; align-items: center;\">\n                                <div class=\"detail-icon\">👤</div>\n                                <div class=\"detail-text\">Sent by: ${senderName}</div>\n                            </div>\n                            ${status === "PENDING_APPROVAL" ? cancelPickupBtn : ""}\n                        </div>\n                    </div>\n                    <div class=\"trade-actions\">\n                        ${showActions ? `<button class=\"action-btn btn-success\" onclick=\"acceptTrade(${trade.id})\">Accept</button>\n                        <button class=\"action-btn btn-danger\" onclick=\"rejectTrade(${trade.id})\">Decline</button>` : ""}\n                    </div>\n                </div>\n            `;
+                <div class=\"trade-card\">\n                    <div class=\"trade-header\">\n                        <div class=\"trade-title\">${start.toLocaleDateString(
+                  "en-US",
+                  {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  }
+                )}</div>\n                        <div class=\"trade-status status-${status.toLowerCase()}\">${statusLabel}</div>\n                    </div>\n                    <div class=\"trade-details\">\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">🕐</div>\n                            <div class=\"detail-text\">${formattedTimes}</div>\n                        </div>\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">🏢</div>\n                            <div class=\"detail-text\">${department}</div>\n                        </div>\n                        <div class=\"detail-item\">\n                            <div class=\"detail-icon\">📍</div>\n                            <div class=\"detail-text\">${position}</div>\n                        </div>\n                        <div class=\"detail-item\" style=\"display: flex; align-items: center; justify-content: space-between;\">\n                            <div style=\"display: flex; align-items: center;\">\n                                <div class=\"detail-icon\">👤</div>\n                                <div class=\"detail-text\">Sent by: ${senderName}</div>\n                            </div>\n                            ${
+              status === "PENDING_APPROVAL" ? cancelPickupBtn : ""
+            }\n                        </div>\n                    </div>\n                    <div class=\"trade-actions\">\n                        ${
+              showActions
+                ? `<button class=\"action-btn btn-success\" onclick=\"acceptTrade(${trade.id})\">Accept</button>\n                        <button class=\"action-btn btn-danger\" onclick=\"rejectTrade(${trade.id})\">Decline</button>`
+                : ""
+            }\n                    </div>\n                </div>\n            `;
           })
           .join("");
       }
       window.acceptTrade = async function (tradeId) {
-    if (!confirm("Are you sure you want to accept this shift trade?")) return;
-    const token = localStorage.getItem("authToken");
-    try {
-        const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/accept`, {
-            method: "POST",
-            headers: {
+        if (!confirm("Are you sure you want to accept this shift trade?"))
+          return;
+        const token = localStorage.getItem("authToken");
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/shifts/trades/${tradeId}/accept`,
+            {
+              method: "POST",
+              headers: {
                 Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json"
-            },
-        });
-        if (response.ok) {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (response.ok) {
             alert("Trade accepted! Pending manager approval.");
             loadAvailableShifts();
             loadIncomingTrades(); // Will update card to show pending approval and remove buttons
-        } else {
+          } else {
             const error = await response.json();
             alert(error.message || "Failed to accept trade");
+          }
+        } catch (error) {
+          alert("Error accepting trade. Please try again.");
         }
-    } catch (error) {
-        alert("Error accepting trade. Please try again.");
-    }
-};
-window.rejectTrade = async function (tradeId) {
-    if (!confirm("Are you sure you want to reject this shift trade?")) return;
-    const token = localStorage.getItem("authToken");
-    try {
-        const response = await fetch(`${API_BASE_URL}/shifts/trades/${tradeId}/decline`, {
-            method: "POST",
-            headers: {
+      };
+      window.rejectTrade = async function (tradeId) {
+        if (!confirm("Are you sure you want to reject this shift trade?"))
+          return;
+        const token = localStorage.getItem("authToken");
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/shifts/trades/${tradeId}/decline`,
+            {
+              method: "POST",
+              headers: {
                 Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json"
-            },
-        });
-        if (response.ok) {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (response.ok) {
             alert("Trade declined.");
             loadAvailableShifts();
             loadIncomingTrades(); // Will remove the card from the list
-        } else {
+          } else {
             const error = await response.json();
             alert(error.message || "Failed to reject trade");
+          }
+        } catch (error) {
+          alert("Error rejecting trade. Please try again.");
         }
-    } catch (error) {
-        alert("Error rejecting trade. Please try again.");
-    }
-};
+      };
 
       // Format date for display
       function formatDate(dateString) {
@@ -610,8 +688,9 @@ window.rejectTrade = async function (tradeId) {
       }
 
       // Cancel trade request
-      window.cancelTrade = async function(tradeId) {
-        if (!confirm("Are you sure you want to cancel this trade request?")) return;
+      window.cancelTrade = async function (tradeId) {
+        if (!confirm("Are you sure you want to cancel this trade request?"))
+          return;
         const token = localStorage.getItem("authToken");
         try {
           const response = await fetch(
@@ -645,10 +724,10 @@ window.rejectTrade = async function (tradeId) {
           alert("Error cancelling trade request. Please try again.");
           setTimeout(loadMyTrades, 1000);
         }
-      }
+      };
 
       // Cancel pickup (for PENDING_APPROVAL)
-      window.cancelPickup = async function(tradeId) {
+      window.cancelPickup = async function (tradeId) {
         if (!confirm("Are you sure you want to cancel this pickup?")) return;
         const token = localStorage.getItem("authToken");
         try {
@@ -671,11 +750,15 @@ window.rejectTrade = async function (tradeId) {
           if (response.ok) {
             // Optimistically update UI: set status back to SCHEDULED and remove from trade lists
             if (window._myTrades) {
-              window._myTrades = window._myTrades.filter(trade => trade.id !== tradeId);
+              window._myTrades = window._myTrades.filter(
+                (trade) => trade.id !== tradeId
+              );
               displayMyTrades(window._myTrades);
             }
             if (window._incomingTrades) {
-              window._incomingTrades = window._incomingTrades.filter(trade => trade.id !== tradeId);
+              window._incomingTrades = window._incomingTrades.filter(
+                (trade) => trade.id !== tradeId
+              );
               displayIncomingTrades(window._incomingTrades);
             }
             alert("Pickup cancelled. Shift returned to scheduled status.");
@@ -696,7 +779,7 @@ window.rejectTrade = async function (tradeId) {
           alert("Error cancelling pickup. Please try again.");
           setTimeout(loadMyTrades, 1000);
         }
-      }
+      };
 
       // Logout function
       function logout() {
@@ -705,8 +788,8 @@ window.rejectTrade = async function (tradeId) {
         window.location.href = "login.html";
       }
 
-      // Initialize when page loads
-      document.addEventListener("DOMContentLoaded", init);
+      // Initialize when page loads, after header is loaded
+      // ...existing code...
     </script>
   </body>
 </html>

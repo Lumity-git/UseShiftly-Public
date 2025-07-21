@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -27,10 +28,10 @@ public class EmployeeController {
     public ResponseEntity<?> deleteEmployee(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             employeeService.deleteEmployee(id);
-            userActionLogService.logAction("DELETED_EMPLOYEE", currentUser);
+            userActionLogService.logAction("DELETED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Employee deleted permanently"));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_DELETE_EMPLOYEE", currentUser);
+            userActionLogService.logAction("FAILED_DELETE_EMPLOYEE", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -54,10 +55,10 @@ public class EmployeeController {
             boolean active = Boolean.parseBoolean(statusUpdate.get("active").toString());
             employee.setActive(active);
             Employee updated = employeeService.updateEmployee(employee);
-            userActionLogService.logAction(active ? "ACTIVATED_EMPLOYEE" : "DEACTIVATED_EMPLOYEE", currentUser);
+            userActionLogService.logAction(active ? "ACTIVATED_EMPLOYEE" : "DEACTIVATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_STATUS", currentUser);
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_STATUS", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -143,10 +144,10 @@ public class EmployeeController {
                 employee.setActive(Boolean.valueOf(employeeUpdate.get("active").toString()));
             }
             Employee updated = employeeService.updateEmployee(employee);
-            userActionLogService.logAction("UPDATED_EMPLOYEE", currentUser);
+            userActionLogService.logAction("UPDATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE", currentUser);
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -170,7 +171,7 @@ public class EmployeeController {
                 .append(e.getDepartment() != null ? e.getDepartment().getName() : "Unassigned").append(",")
                 .append(e.getActive() ? "Active" : "Inactive").append("\n");
         }
-        userActionLogService.logAction("EXPORTED_EMPLOYEES", currentUser);
+        userActionLogService.logAction("EXPORTED_EMPLOYEES", currentUser.getId());
         return ResponseEntity.ok()
                 .header("Content-Type", "text/csv")
                 .body(csv.toString());
@@ -255,7 +256,11 @@ public class EmployeeController {
     
     @GetMapping("/profile")
     public ResponseEntity<EmployeeDTO> getEmployeeProfile(@AuthenticationPrincipal Employee currentUser) {
-        return ResponseEntity.ok(EmployeeDTO.fromEntity(currentUser));
+        Optional<Employee> employeeOpt = employeeService.getEmployeeWithBuilding(currentUser.getId());
+        if (employeeOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+        return ResponseEntity.ok(EmployeeDTO.fromEntity(employeeOpt.get()));
     }
     
     @PutMapping("/me")
@@ -295,10 +300,10 @@ public class EmployeeController {
     public ResponseEntity<?> deactivateEmployee(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             employeeService.deactivateEmployee(id);
-            userActionLogService.logAction("DEACTIVATED_EMPLOYEE", currentUser);
+            userActionLogService.logAction("DEACTIVATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Employee deactivated successfully"));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_DEACTIVATE_EMPLOYEE", currentUser);
+            userActionLogService.logAction("FAILED_DEACTIVATE_EMPLOYEE", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -319,10 +324,10 @@ public class EmployeeController {
             employee.setRole(Employee.Role.valueOf(newRole));
             Employee updated = employeeService.updateEmployee(employee);
             
-            userActionLogService.logAction("UPDATED_EMPLOYEE_ROLE", currentUser);
+            userActionLogService.logAction("UPDATED_EMPLOYEE_ROLE", currentUser.getId());
             return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_ROLE", currentUser);
+            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_ROLE", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -361,10 +366,10 @@ public class EmployeeController {
                 Long buildingId = Long.valueOf(employeeData.get("buildingId").toString());
                 employeeService.assignEmployeeToBuilding(saved, buildingId);
             }
-            userActionLogService.logAction("CREATED_EMPLOYEE", currentUser);
+            userActionLogService.logAction("CREATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(EmployeeDTO.fromEntity(saved));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_CREATE_EMPLOYEE", currentUser);
+            userActionLogService.logAction("FAILED_CREATE_EMPLOYEE", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
@@ -380,10 +385,10 @@ public class EmployeeController {
                 return ResponseEntity.badRequest().body(new MessageResponse("No employee IDs provided"));
             }
             employeeService.assignEmployeesToDepartment(employeeIds, departmentId);
-            userActionLogService.logAction("ASSIGNED_EMPLOYEES_TO_DEPARTMENT", currentUser);
+            userActionLogService.logAction("ASSIGNED_EMPLOYEES_TO_DEPARTMENT", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Employees assigned to department successfully"));
         } catch (Exception e) {
-            userActionLogService.logAction("FAILED_ASSIGN_EMPLOYEES_TO_DEPARTMENT", currentUser);
+            userActionLogService.logAction("FAILED_ASSIGN_EMPLOYEES_TO_DEPARTMENT", currentUser.getId());
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
         }
     }
