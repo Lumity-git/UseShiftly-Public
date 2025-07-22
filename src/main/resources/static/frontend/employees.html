@@ -327,10 +327,153 @@
       </div>
     </div>
 
+    <!-- Add modal for updating availability -->
+    <div id="updateAvailabilityModal" class="modal">
+      <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Update Employee Availability</h3>
+          <button class="close" onclick="closeUpdateAvailabilityModal()">&times;</button>
+        </div>
+        <form id="updateAvailabilityForm">
+          <div id="availabilityDays" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
+            <!-- Days and time inputs will be generated here -->
+          </div>
+          <div id="availabilitySummary" style="background:#f8f9fa;border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#007bff;font-size:15px;display:none;"></div>
+          <div class="action-buttons" style="display:flex;gap:10px;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">💾 Save Availability</button>
+            <button type="button" class="btn btn-secondary" onclick="closeUpdateAvailabilityModal()">❌ Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script src="nav-manager.js"></script>
     <script>
+      // Modernize availability modal: generate day/time selectors and summary
+      const daysOfWeek = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+      function openUpdateAvailabilityModal(employeeId) {
+        document.getElementById("updateAvailabilityModal").style.display = "block";
+        document.getElementById("availabilitySummary").style.display = "none";
+        generateAvailabilityInputs();
+        fetchAvailabilityForEmployee(employeeId);
+        document.getElementById("updateAvailabilityForm").onsubmit = function(e) {
+          e.preventDefault();
+          saveAvailabilityForEmployee(employeeId);
+        };
+      }
+      function closeUpdateAvailabilityModal() {
+        document.getElementById("updateAvailabilityModal").style.display = "none";
+      }
+      function generateAvailabilityInputs() {
+        const container = document.getElementById("availabilityDays");
+        container.innerHTML = "";
+        daysOfWeek.forEach(day => {
+          const row = document.createElement("div");
+          row.className = "availability-row";
+          row.style.display = "flex";
+          row.style.alignItems = "center";
+          row.style.gap = "10px";
+          row.innerHTML = `
+            <label style='min-width:90px;'>${day}</label>
+            <input type="time" class="avail-start" data-day="${day}" placeholder="Start" style="width:90px;">
+            <span style="font-size:18px;">-</span>
+            <input type="time" class="avail-end" data-day="${day}" placeholder="End" style="width:90px;">
+            <input type="checkbox" class="avail-enable" data-day="${day}" style="margin-left:10px;">
+            <span style="font-size:13px;color:#888;">Enable</span>
+          `;
+          container.appendChild(row);
+        });
+      }
+      async function fetchAvailabilityForEmployee(employeeId) {
+        try {
+          const token = localStorage.getItem("authToken");
+          const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/availability`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+          if (!response.ok) return;
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            data.forEach(a => {
+              const startInput = document.querySelector(`.avail-start[data-day='${a.dayOfWeek}']`);
+              const endInput = document.querySelector(`.avail-end[data-day='${a.dayOfWeek}']`);
+              const enableInput = document.querySelector(`.avail-enable[data-day='${a.dayOfWeek}']`);
+              if (startInput && endInput && enableInput) {
+                startInput.value = a.startTime;
+                endInput.value = a.endTime;
+                enableInput.checked = true;
+              }
+            });
+            showAvailabilitySummary(data);
+          }
+        } catch {}
+      }
+      function showAvailabilitySummary(data) {
+        const summaryDiv = document.getElementById("availabilitySummary");
+        if (!data || !data.length) {
+          summaryDiv.style.display = "none";
+          return;
+        }
+        summaryDiv.innerHTML = `<strong>Current Availability:</strong><ul style='margin:0;padding-left:18px;'>${data.map(a => `<li>${a.dayOfWeek}: ${a.startTime} - ${a.endTime}</li>`).join('')}</ul>`;
+        summaryDiv.style.display = "block";
+      }
+      async function saveAvailabilityForEmployee(employeeId) {
+        const availabilities = [];
+        daysOfWeek.forEach(day => {
+          const startInput = document.querySelector(`.avail-start[data-day='${day}']`);
+          const endInput = document.querySelector(`.avail-end[data-day='${day}']`);
+          const enableInput = document.querySelector(`.avail-enable[data-day='${day}']`);
+          if (enableInput.checked && startInput.value && endInput.value) {
+            availabilities.push({
+              dayOfWeek: day,
+              startTime: startInput.value,
+              endTime: endInput.value
+            });
+          }
+        });
+        try {
+          const token = localStorage.getItem("authToken");
+          const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/availability`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(availabilities)
+          });
+          if (!response.ok) throw new Error("Failed to save availability");
+          closeUpdateAvailabilityModal();
+          showToast("Availability saved!");
+        } catch (error) {
+          showAlert("Failed to save availability.", "error");
+        }
+
+      // Toast function for success message
+      function showToast(message) {
+        let toast = document.createElement("div");
+        toast.className = "toast-success";
+        toast.textContent = message;
+        toast.style.position = "fixed";
+        toast.style.bottom = "32px";
+        toast.style.right = "32px";
+        toast.style.background = "#28a745";
+        toast.style.color = "#fff";
+        toast.style.padding = "12px 24px";
+        toast.style.borderRadius = "8px";
+        toast.style.fontSize = "16px";
+        toast.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+        toast.style.zIndex = "9999";
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.remove();
+        }, 1800);
+      }
+      }
       document.addEventListener("DOMContentLoaded", function() {
         fetch("header.html")
           .then(res => res.text())
@@ -1038,6 +1181,10 @@
                 ')">' +
                 (employee.active ? "⏸️ Deactivate" : "▶️ Activate") +
                 "</button>";
+              html +=
+                '<button class="btn btn-info btn-small" onclick="openUpdateAvailabilityModal(' +
+                employee.id +
+                ')">🕒 Update Availability</button>';
             }
             html +=
               '<button class="btn btn-warning btn-small" onclick="generateChangePasswordLinkFor(' +
@@ -1665,6 +1812,69 @@
             ).innerHTML = `<div class='alert alert-error'>Import failed. Please try again.</div>`;
           }
         });
+      // Update Availability Modal JS
+      let editingAvailabilityEmployeeId = null;
+      function openUpdateAvailabilityModal(employeeId) {
+        editingAvailabilityEmployeeId = employeeId;
+        document.getElementById('updateAvailabilityModal').style.display = 'block';
+        // Generate day/time inputs
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        let html = '';
+        days.forEach(day => {
+          html += `<div class="form-row">
+            <label style="min-width:90px">${day}</label>
+            <input type="time" name="${day}_start" placeholder="Start" style="width:110px" />
+            <span style="margin:0 8px">to</span>
+            <input type="time" name="${day}_end" placeholder="End" style="width:110px" />
+          </div>`;
+        });
+        document.getElementById('availabilityDays').innerHTML = html;
+        // Optionally, fetch existing availability from backend and populate
+        fetchAvailabilityForEmployee(employeeId);
+      }
+      function closeUpdateAvailabilityModal() {
+        document.getElementById('updateAvailabilityModal').style.display = 'none';
+        editingAvailabilityEmployeeId = null;
+      }
+      async function fetchAvailabilityForEmployee(employeeId) {
+        try {
+          const data = await apiRequest(`/employees/${employeeId}/availability`);
+          if (data && Array.isArray(data)) {
+            data.forEach(avail => {
+              const startInput = document.querySelector(`[name='${avail.day}_start']`);
+              const endInput = document.querySelector(`[name='${avail.day}_end']`);
+              if (startInput) startInput.value = avail.startTime;
+              if (endInput) endInput.value = avail.endTime;
+            });
+          }
+        } catch (e) {
+          // Ignore errors for now
+        }
+      }
+      document.getElementById('updateAvailabilityForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        const availability = [];
+        days.forEach(day => {
+          const start = form[`${day}_start`].value;
+          const end = form[`${day}_end`].value;
+          if (start && end) {
+            availability.push({ day, startTime: start, endTime: end });
+          }
+        });
+        try {
+          await apiRequest(`/employees/${editingAvailabilityEmployeeId}/availability`, {
+            method: 'POST',
+            body: JSON.stringify(availability)
+          });
+          showAlert('Availability updated!', 'success');
+          closeUpdateAvailabilityModal();
+          // Optionally reload employees or update UI
+        } catch (error) {
+          showAlert('Failed to update availability.', 'error');
+        }
+      });
     </script>
   </body>
 </html>

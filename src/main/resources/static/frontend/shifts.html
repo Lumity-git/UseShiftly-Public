@@ -96,6 +96,8 @@
                     <input type="datetime-local" id="shiftEndTime" name="endTime" required>
                 </div>
                 <div class="form-group">
+                    <label for="employeeSearch">Search Employee</label>
+                    <input type="text" id="employeeSearch" placeholder="Type to search..." style="margin-bottom:6px;width:100%;font-size:14px;">
                     <label for="shiftEmployee">Employee</label>
                     <select id="shiftEmployee" name="employeeId" required>
                         <option value="">Select Employee</option>
@@ -147,6 +149,9 @@
         let editingShiftId = null;
         let tradeOrPostShiftId = null;
 
+        // Example employee availability data (replace with backend fetch if available)
+        // Remove static example, use backend fetch
+
         // Initialize page after header loads
         async function initShiftsPage() {
             const isAuthenticated = await checkAuth(['MANAGER', 'ADMIN']);
@@ -165,6 +170,7 @@
             document.getElementById('employeeFilter').addEventListener('change', loadShifts);
             document.getElementById('statusFilter').addEventListener('change', loadShifts);
             document.getElementById('shiftForm').addEventListener('submit', handleShiftSubmit);
+            document.getElementById('shiftEmployee').addEventListener('change', showSelectedEmployeeAvailability);
         }
 
         // Authentication
@@ -366,6 +372,74 @@
             });
         }
 
+        // Add JS to filter employee select options
+        function updateEmployeeOptionsCache() {
+            const select = document.getElementById('shiftEmployee');
+            if (select) {
+                allEmployeeOptions = Array.from(select.options).map(opt => ({value: opt.value, text: opt.textContent}));
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // After employees are loaded, cache all options
+            setTimeout(() => {
+                updateEmployeeOptionsCache();
+                const select = document.getElementById('shiftEmployee');
+                if (select) {
+                    select.addEventListener('change', function() {
+                        showSelectedEmployeeAvailability();
+                    });
+                }
+            }, 500);
+            const searchInput = document.getElementById('employeeSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const term = searchInput.value.toLowerCase();
+                    const select = document.getElementById('shiftEmployee');
+                    if (!select) return;
+                    // If search is empty, restore all options
+                    if (!term) {
+                        select.innerHTML = '';
+                        allEmployeeOptions.forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.text;
+                            select.appendChild(option);
+                        });
+                        closeAvailabilityMiniModal();
+                        return;
+                    }
+                    let filtered = allEmployeeOptions.filter(opt => opt.text.toLowerCase().includes(term));
+                    // If no match, restore all options
+                    if (filtered.length === 0) {
+                        select.innerHTML = '';
+                        allEmployeeOptions.forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.text;
+                            select.appendChild(option);
+                        });
+                        closeAvailabilityMiniModal();
+                        return;
+                    }
+                    select.innerHTML = '';
+                    filtered.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        select.appendChild(option);
+                    });
+                    // Auto-select if exact match
+                    const exact = filtered.find(opt => opt.text.toLowerCase() === term);
+                    if (exact) {
+                        select.value = exact.value;
+                        showSelectedEmployeeAvailability();
+                    } else {
+                        closeAvailabilityMiniModal();
+                    }
+                });
+            }
+        });
+        // Update cache after employees are loaded
         function populateEmployeeSelects() {
             const selects = ['employeeFilter', 'shiftEmployee'];
             selects.forEach(selectId => {
@@ -375,7 +449,6 @@
                 } else {
                     select.innerHTML = '<option value="">Select Employee</option>';
                 }
-                
                 employees.forEach(emp => {
                     const option = document.createElement('option');
                     option.value = emp.id;
@@ -383,6 +456,7 @@
                     select.appendChild(option);
                 });
             });
+            updateEmployeeOptionsCache();
         }
 
         // Render shifts
@@ -468,11 +542,128 @@
             document.getElementById('shiftModalTitle').textContent = 'Create New Shift';
             document.getElementById('shiftForm').reset();
             document.getElementById('shiftModal').style.display = 'block';
+            // If an employee is selected, show their availability
+            setTimeout(() => {
+                const select = document.getElementById('shiftEmployee');
+                if (select && select.value) {
+                    showSelectedEmployeeAvailability();
+                }
+            }, 10);
+        }
+
+        // Show selected employee's availability in modal
+        async function showSelectedEmployeeAvailability() {
+            const select = document.getElementById('shiftEmployee');
+            const employeeId = select.value;
+            // Hide modal if no employee selected
+            if (!employeeId) {
+                closeAvailabilityMiniModal();
+                return;
+            }
+            // Auto-select department for selected employee
+            const emp = employees.find(e => String(e.id) === String(employeeId));
+            if (emp && emp.departmentId) {
+                const deptSelect = document.getElementById('shiftDepartment');
+                if (deptSelect) {
+                    deptSelect.value = String(emp.departmentId);
+                }
+            }
+            // Fetch and display availability modal
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/employees/${employeeId}/availability`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+                if (!response.ok) {
+                    closeAvailabilityMiniModal();
+                    return;
+                }
+                const data = await response.json();
+                showAvailabilityMiniModal(data, emp);
+            } catch (error) {
+                closeAvailabilityMiniModal();
+            }
+        }
+
+        // Mini modal for employee availability
+        function showAvailabilityMiniModal(availability, employee) {
+            let modal = document.getElementById('availabilityMiniModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'availabilityMiniModal';
+                modal.className = 'modal mini-modal';
+                modal.style.position = 'fixed';
+                // Use previous fixed position for reliability
+                modal.style.left = 'calc(50vw - 520px)';
+                modal.style.top = 'calc(50vh - 180px)';
+                modal.style.zIndex = '1002';
+                modal.style.width = '220px';
+                modal.style.background = '#fff';
+                modal.style.border = 'none';
+                modal.style.boxShadow = '0 4px 16px rgba(0,0,0,0.13)';
+                modal.style.borderRadius = '12px';
+                modal.style.padding = '0';
+                modal.innerHTML = `
+                    <div id="availabilityModalInner" style="padding:14px 14px 10px 14px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <h4 id="availabilityModalTitle" style="margin:0;font-size:15px;font-weight:600;color:#2a2a2a;">${employee ? employee.firstName + ' ' + employee.lastName : 'Employee'} Availability</h4>
+                            <button onclick="closeAvailabilityMiniModal()" style="background:none;border:none;font-size:18px;line-height:1;color:#888;cursor:pointer;">&times;</button>
+                        </div>
+                        <div id="availabilityContent"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                modal.style.display = 'block';
+                // Update position in case window size changes
+                modal.style.left = 'calc(50vw - 520px)';
+                modal.style.top = 'calc(50vh - 180px)';
+                modal.style.width = '220px';
+                // Update the name/title on every call
+                const title = modal.querySelector('#availabilityModalTitle');
+                if (title) {
+                    title.textContent = `${employee ? employee.firstName + ' ' + employee.lastName : 'Employee'} Availability`;
+                }
+            }
+            // Fill content
+            const content = modal.querySelector('#availabilityContent');
+            if (!availability || availability.length === 0) {
+                content.innerHTML = '<div style="margin-top:10px;color:#888;font-size:13px;">No availability set for this employee.</div>';
+            } else {
+                content.innerHTML = `
+                    <table style="width:100%;margin-top:10px;font-size:13px;border-collapse:separate;border-spacing:0 4px;">
+                        <thead>
+                            <tr style="background:#f7f7f7;color:#444;font-weight:500;">
+                                <th style="padding:4px 6px;border-radius:6px 0 0 6px;text-align:left;">Day</th>
+                                <th style="padding:4px 6px;text-align:left;">Start</th>
+                                <th style="padding:4px 6px;border-radius:0 6px 6px 0;text-align:left;">End</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${availability.map(a => `<tr style="background:#fff;"><td style="padding:4px 6px;">${a.day}</td><td style="padding:4px 6px;">${a.startTime}</td><td style="padding:4px 6px;">${a.endTime}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+
+        function closeAvailabilityMiniModal() {
+            const modal = document.getElementById('availabilityMiniModal');
+            if (modal) modal.style.display = 'none';
         }
 
         function closeShiftModal() {
             document.getElementById('shiftModal').style.display = 'none';
             editingShiftId = null;
+            closeAvailabilityMiniModal();
         }
 
         async function editShift(shiftId) {
@@ -652,7 +843,7 @@
                 }
                 if (response.ok) {
                     showAlert('Shift deleted successfully!', 'success');
-                    loadShifts();
+                    setTimeout(() => { loadShifts(); }, 100);
                 } else {
                     let errorMsg = 'Failed to delete shift';
                     try {
@@ -709,6 +900,35 @@
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
             document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
         }
+
+        // Ensure all filter controls trigger loadShifts and preserve selections
+        document.getElementById('startDate').addEventListener('change', function() {
+            loadShifts();
+        });
+        document.getElementById('endDate').addEventListener('change', function() {
+            loadShifts();
+        });
+        document.getElementById('departmentFilter').addEventListener('change', function() {
+            loadShifts();
+        });
+        document.getElementById('employeeFilter').addEventListener('change', function() {
+            loadShifts();
+        });
+        document.getElementById('statusFilter').addEventListener('change', function() {
+            loadShifts();
+        });
+        // On page load, set default dates and load selections
+        function setDefaultDatesAndSelections() {
+            const today = new Date();
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            document.getElementById('startDate').value = today.toISOString().split('T')[0];
+            document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            setDefaultDatesAndSelections();
+            loadShifts();
+        });
 
         function formatDateTime(dateTime) {
             return new Date(dateTime).toLocaleString('en-US', {
@@ -804,6 +1024,92 @@
             if (event.target === tradePostModal) {
                 closeTradePostModal();
             }
+        }
+ 
+        function updateEmployeeOptionsCache() {
+            const select = document.getElementById('shiftEmployee');
+            if (select) {
+                allEmployeeOptions = Array.from(select.options).map(opt => ({value: opt.value, text: opt.textContent}));
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // After employees are loaded, cache all options
+            setTimeout(() => {
+                updateEmployeeOptionsCache();
+                const select = document.getElementById('shiftEmployee');
+                if (select) {
+                    select.addEventListener('change', function() {
+                        showSelectedEmployeeAvailability();
+                    });
+                }
+            }, 500);
+            const searchInput = document.getElementById('employeeSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const term = searchInput.value.toLowerCase();
+                    const select = document.getElementById('shiftEmployee');
+                    if (!select) return;
+                    // If search is empty, restore all options
+                    if (!term) {
+                        select.innerHTML = '';
+                        allEmployeeOptions.forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.text;
+                            select.appendChild(option);
+                        });
+                        closeAvailabilityMiniModal();
+                        return;
+                    }
+                    let filtered = allEmployeeOptions.filter(opt => opt.text.toLowerCase().includes(term));
+                    // If no match, restore all options
+                    if (filtered.length === 0) {
+                        select.innerHTML = '';
+                        allEmployeeOptions.forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt.value;
+                            option.textContent = opt.text;
+                            select.appendChild(option);
+                        });
+                        closeAvailabilityMiniModal();
+                        return;
+                    }
+                    select.innerHTML = '';
+                    filtered.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        select.appendChild(option);
+                    });
+                    // Auto-select if exact match
+                    const exact = filtered.find(opt => opt.text.toLowerCase() === term);
+                    if (exact) {
+                        select.value = exact.value;
+                        showSelectedEmployeeAvailability();
+                    } else {
+                        closeAvailabilityMiniModal();
+                    }
+                });
+            }
+        });
+        // Update cache after employees are loaded
+        function populateEmployeeSelects() {
+            const selects = ['employeeFilter', 'shiftEmployee'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (selectId === 'employeeFilter') {
+                    select.innerHTML = '<option value="">All Employees</option>';
+                } else {
+                    select.innerHTML = '<option value="">Select Employee</option>';
+                }
+                employees.forEach(emp => {
+                    const option = document.createElement('option');
+                    option.value = emp.id;
+                    option.textContent = `${emp.firstName} ${emp.lastName}`;
+                    select.appendChild(option);
+                });
+            });
+            updateEmployeeOptionsCache();
         }
     </script>
 </body>
