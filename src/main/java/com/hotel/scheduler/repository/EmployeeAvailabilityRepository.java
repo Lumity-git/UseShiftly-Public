@@ -10,4 +10,5 @@ import java.util.List;
 public interface EmployeeAvailabilityRepository extends JpaRepository<EmployeeAvailability, Long> {
     List<EmployeeAvailability> findByEmployeeId(Long employeeId);
     void deleteByEmployeeId(Long employeeId);
+    List<EmployeeAvailability> findByEmployeeIdIn(List<Long> employeeIds);
 }

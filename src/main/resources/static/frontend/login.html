@@ -25,6 +25,7 @@
         <div id="alert" class="alert"></div>
 
         <form id="loginForm">
+
           <div class="form-group">
             <label for="email">Email Address</label>
             <input
@@ -45,6 +46,11 @@
               required
               placeholder="Enter your password"
             />
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <button type="button" class="login-btn" style="background:#2a7be4;margin-right:8px;" onclick="fillCredentials('admin@hotel.com', '')">Admin Demo</button>
+            <button type="button" class="login-btn" style="background:#4caf50;" onclick="fillCredentials('noeg752@gmail.com', '')">User Demo</button>
           </div>
 
           <button type="submit" class="login-btn" id="loginBtn">Sign In</button>

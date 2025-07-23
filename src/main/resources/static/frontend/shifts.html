@@ -158,10 +158,10 @@
             if (!isAuthenticated) return;
             
             loadUserInfo();
-            loadDepartments();
-            loadEmployees();
-            loadShifts();
             setDefaultDates();
+            await loadDepartments();
+            await loadEmployees();
+            await loadShifts();
             
             // Add event listeners
             document.getElementById('startDate').addEventListener('change', loadShifts);
@@ -334,13 +334,12 @@
 
                 let endpoint = '/shifts?';
                 const params = new URLSearchParams();
-                
                 if (startDate) params.append('startDate', startDate);
                 if (endDate) params.append('endDate', endDate);
                 if (departmentId) params.append('departmentId', departmentId);
-                if (employeeId) params.append('employeeId', employeeId);
+                // Only filter by employeeId if one is selected
+                if (employeeId && employeeId !== '') params.append('employeeId', employeeId);
                 if (status) params.append('status', status);
-
                 endpoint += params.toString();
 
                 shifts = await apiRequest(endpoint);
@@ -538,17 +537,23 @@
 
         // Modal functions
         function openCreateShiftModal() {
-            editingShiftId = null;
-            document.getElementById('shiftModalTitle').textContent = 'Create New Shift';
-            document.getElementById('shiftForm').reset();
-            document.getElementById('shiftModal').style.display = 'block';
-            // If an employee is selected, show their availability
-            setTimeout(() => {
-                const select = document.getElementById('shiftEmployee');
-                if (select && select.value) {
-                    showSelectedEmployeeAvailability();
-                }
-            }, 10);
+        editingShiftId = null;
+        document.getElementById('shiftModalTitle').textContent = 'Create New Shift';
+        document.getElementById('shiftForm').reset();
+        document.getElementById('shiftModal').style.display = 'block';
+        // Attach submit event listener robustly
+        const shiftForm = document.getElementById('shiftForm');
+        if (shiftForm) {
+            shiftForm.removeEventListener('submit', handleShiftSubmit); // Remove previous to avoid duplicates
+            shiftForm.addEventListener('submit', handleShiftSubmit);
+        }
+        // If an employee is selected, show their availability
+        setTimeout(() => {
+            const select = document.getElementById('shiftEmployee');
+            if (select && select.value) {
+                showSelectedEmployeeAvailability();
+            }
+        }, 10);
         }
 
         // Show selected employee's availability in modal
@@ -678,7 +683,13 @@
                 document.getElementById('shiftDepartment').value = shift.departmentId;
                 document.getElementById('shiftNotes').value = shift.notes || '';
                 
-                document.getElementById('shiftModal').style.display = 'block';
+            document.getElementById('shiftModal').style.display = 'block';
+            // Attach submit event listener robustly
+            const shiftForm = document.getElementById('shiftForm');
+            if (shiftForm) {
+                shiftForm.removeEventListener('submit', handleShiftSubmit);
+                shiftForm.addEventListener('submit', handleShiftSubmit);
+            }
             } catch (error) {
                 showAlert('Failed to load shift details', 'error');
             }
@@ -780,6 +791,7 @@
         }
 
         async function handleShiftSubmit(e) {
+            console.log('handleShiftSubmit fired');
             e.preventDefault();
             const formData = new FormData(e.target);
             function toCSTISOString(localDateTimeStr) {
