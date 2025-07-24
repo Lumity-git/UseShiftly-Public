@@ -30,4 +30,26 @@ Enable managers/admins to auto-generate shift schedules for departments based on
 - UI for managers to review/edit auto-generated schedules before publishing.
 
 ---
-This feature is advanced and will require careful design and testing. See this file for future implementation details.
+
+---
+
+## [2025-07-23] Department Shift Templates for Auto-Scheduling
+
+### Problem
+Currently, auto-scheduled shifts are created at default times (e.g., 4:00 AM) because there is no way to define department-specific shift start/end times. This does not reflect real-world needs (e.g., store opens at 11:00, cooks start at 8:30, etc.).
+
+### Solution Plan
+1. Allow admins/managers to define default shift templates for each department (name, start time, end time, etc.)
+2. Store these templates in the database (new table: shift_templates)
+3. Backend endpoints to CRUD shift templates
+4. Frontend UI for managing shift templates (button/modal in shifts.html)
+5. Update auto-scheduling logic to use templates for each department
+
+### Progress Tracking
+- [ ] 1. Add `shift_templates` table to database
+- [ ] 2. Backend: Model, Repository, Service, Controller for shift templates
+- [ ] 3. Frontend: UI for managing templates (CRUD)
+- [ ] 4. Update auto-scheduling logic to use templates
+- [ ] 5. Testing and validation
+
+**Next step:** Implement database migration and backend model for `shift_templates`.

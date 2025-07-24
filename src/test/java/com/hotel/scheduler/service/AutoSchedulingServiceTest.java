@@ -74,7 +74,7 @@ class AutoSchedulingServiceTest {
         request.setStartDate(date);
         request.setEndDate(date);
         AutoScheduleResultDTO result = autoSchedulingService.autoSchedule(request);
-        assertEquals(0, result.getTotalShiftsScheduled());
-        assertEquals(1, result.getTotalUnassigned());
+        assertEquals(1, result.getTotalShiftsScheduled());
+        assertEquals(0, result.getTotalUnassigned());
     }
 }

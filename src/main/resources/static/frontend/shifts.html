@@ -56,17 +56,154 @@
                     </select>
                 </div>
             </div>
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="openCreateShiftModal()">
-                    ➕ Create New Shift
-                </button>
-                <button class="btn btn-secondary" onclick="loadShifts()">
-                    🔄 Refresh
-                </button>
-                <button class="btn btn-success" onclick="exportShifts()">
-                    📊 Export
-                </button>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="openCreateShiftModal()">
+                ➕ Create New Shift
+            </button>
+            <button class="btn btn-secondary" onclick="loadShifts()">
+                🔄 Refresh
+            </button>
+            <button class="btn btn-success" onclick="exportShifts()">
+                📊 Export
+            </button>
+            <button class="btn btn-warning" onclick="openAutoScheduleModal()">
+                🤖 Auto-Schedule
+            </button>
+            <!-- Shift Templates button removed -->
+    <!-- Shift Templates Modal removed -->
+    <!-- Shift Templates JS removed -->
+        </div>
+    <!-- Auto-Schedule Modal -->
+    <div id="autoScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Auto-Schedule Shifts</h3>
+                <button class="close" onclick="closeAutoScheduleModal()">&times;</button>
             </div>
+            <form id="autoScheduleForm">
+                <div class="form-group">
+                    <label for="autoScheduleDepartment">Department</label>
+                    <select id="autoScheduleDepartment" name="departmentId" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="autoScheduleStart">Start Date</label>
+                    <input type="date" id="autoScheduleStart" name="startDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="autoScheduleEnd">End Date</label>
+                    <input type="date" id="autoScheduleEnd" name="endDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="autoScheduleShiftStartTime">Shift Start Time</label>
+                    <input type="time" id="autoScheduleShiftStartTime" name="shiftStartTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="autoScheduleShiftEndTime">Shift End Time</label>
+                    <input type="time" id="autoScheduleShiftEndTime" name="shiftEndTime" required>
+                </div>
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-warning">🤖 Run Auto-Schedule</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAutoScheduleModal()">Cancel</button>
+                </div>
+            </form>
+            <div id="autoScheduleResult"></div>
+        </div>
+    </div>
+    <script>
+    // Auto-Schedule Modal logic
+    function openAutoScheduleModal() {
+        const modal = document.getElementById('autoScheduleModal');
+        if (!modal) return;
+        // Populate department select
+        const deptSelect = document.getElementById('autoScheduleDepartment');
+        deptSelect.innerHTML = '';
+        departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.id;
+            option.textContent = dept.name;
+            deptSelect.appendChild(option);
+        });
+        // Set default dates
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        document.getElementById('autoScheduleStart').value = start;
+        document.getElementById('autoScheduleEnd').value = end;
+        document.getElementById('autoScheduleResult').innerHTML = '';
+        modal.style.display = 'block';
+        // Attach submit event robustly (remove previous, add new)
+        const form = document.getElementById('autoScheduleForm');
+        if (form) {
+            form.removeEventListener('submit', handleAutoScheduleSubmit);
+            form.addEventListener('submit', handleAutoScheduleSubmit);
+        }
+    }
+
+    function closeAutoScheduleModal() {
+        const modal = document.getElementById('autoScheduleModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function handleAutoScheduleSubmit(e) {
+        e.preventDefault();
+        console.log('handleAutoScheduleSubmit fired');
+        const deptId = document.getElementById('autoScheduleDepartment').value;
+        const startDate = document.getElementById('autoScheduleStart').value;
+        const endDate = document.getElementById('autoScheduleEnd').value;
+        const shiftStartTime = document.getElementById('autoScheduleShiftStartTime').value;
+        const shiftEndTime = document.getElementById('autoScheduleShiftEndTime').value;
+        console.log('Auto-schedule params:', { deptId, startDate, endDate, shiftStartTime, shiftEndTime, API_BASE_URL });
+        if (!deptId || !startDate || !endDate || !shiftStartTime || !shiftEndTime) {
+            showAlert('Please fill out all fields for auto-scheduling.', 'error');
+            return;
+        }
+        try {
+            const resultDiv = document.getElementById('autoScheduleResult');
+            resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running auto-scheduling...</div>';
+            const token = localStorage.getItem('authToken');
+            const url = `${API_BASE_URL}/auto-scheduling`;
+            console.log('POSTing to:', url);
+            const body = {
+                departmentId: parseInt(deptId),
+                startDate,
+                endDate,
+                shiftStartTime,
+                shiftEndTime
+            };
+            console.log('Request body:', body);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+            console.log('Response status:', response.status);
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
+            if (!response.ok) {
+                let errorText = '';
+                try {
+                    errorText = await response.text();
+                } catch (e) {}
+                console.error('Auto-scheduling failed:', response.status, errorText);
+                resultDiv.innerHTML = `<div class="alert alert-error">Auto-scheduling failed (${response.status}). ${errorText ? errorText : 'Please try again.'}</div>`;
+                return;
+            }
+            const data = await response.json();
+            console.log('Auto-schedule result:', data);
+            resultDiv.innerHTML = `<div class="alert alert-success">Auto-scheduling complete!<br>
+                Shifts scheduled: <b>${data.totalShiftsScheduled}</b><br>
+                Unassigned shifts: <b>${data.totalUnassigned}</b></div>`;
+            loadShifts();
+        } catch (error) {
+            console.error('Auto-scheduling JS error:', error);
+            document.getElementById('autoScheduleResult').innerHTML = `<div class="alert alert-error">Auto-scheduling failed. ${error && error.message ? error.message : ''}</div>`;
+        }
+    }
+    </script>
         </div>
 
         <div id="alertContainer"></div>
@@ -794,15 +931,28 @@
             console.log('handleShiftSubmit fired');
             e.preventDefault();
             const formData = new FormData(e.target);
-            function toCSTISOString(localDateTimeStr) {
-                const localDate = new Date(localDateTimeStr);
-                return localDate.toISOString();
+            // Convert local datetime-local input (which is in CST) to UTC ISO string for backend
+            function cstLocalToUTCISOString(localDateTimeStr) {
+                // Parse as if input is CST, then convert to UTC ISO string
+                // localDateTimeStr: 'YYYY-MM-DDTHH:mm'
+                const [date, time] = localDateTimeStr.split('T');
+                const [year, month, day] = date.split('-').map(Number);
+                const [hour, minute] = time.split(':').map(Number);
+                // Create a Date object in CST
+                const dt = new Date(Date.UTC(year, month - 1, day, hour, minute));
+                // Offset between UTC and CST (America/Chicago) at that date
+                const tzDate = new Date(dt.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+                const offset = dt.getTime() - tzDate.getTime();
+                // Adjust to UTC
+                const utcDate = new Date(dt.getTime() - offset);
+                return utcDate.toISOString();
             }
 
             const startTimeStr = formData.get('startTime');
             const endTimeStr = formData.get('endTime');
-            const startTime = new Date(startTimeStr);
-            const endTime = new Date(endTimeStr);
+            // For duration calculation, treat as CST
+            const startTime = new Date(new Date(startTimeStr + ':00').toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+            const endTime = new Date(new Date(endTimeStr + ':00').toLocaleString('en-US', { timeZone: 'America/Chicago' }));
             const durationHours = (endTime - startTime) / (1000 * 60 * 60);
             if (isNaN(durationHours) || durationHours <= 0) {
                 showAlert('End time must be after start time. Duration cannot be negative or zero.', 'error');
@@ -810,8 +960,8 @@
             }
 
             const shiftData = {
-                startTime: toCSTISOString(startTimeStr),
-                endTime: toCSTISOString(endTimeStr),
+                startTime: cstLocalToUTCISOString(startTimeStr),
+                endTime: cstLocalToUTCISOString(endTimeStr),
                 employeeId: formData.get('employeeId') || null,
                 departmentId: parseInt(formData.get('departmentId')),
                 notes: formData.get('notes') || null
@@ -943,25 +1093,40 @@
         });
 
         function formatDateTime(dateTime) {
+            // Always display in CST (America/Chicago)
             return new Date(dateTime).toLocaleString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 hour: 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: 'America/Chicago'
             });
         }
 
         function formatTime(dateTime) {
+            // Always display in CST (America/Chicago)
             return new Date(dateTime).toLocaleString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: 'America/Chicago'
             });
         }
 
         function formatForInput(dateTime) {
-            return new Date(dateTime).toISOString().slice(0, 16);
+            // Convert UTC string to CST datetime-local input value (YYYY-MM-DDTHH:MM)
+            const dt = new Date(dateTime);
+            // Get CST offset using America/Chicago
+            const options = { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(dt);
+            const get = (type) => parts.find(p => p.type === type)?.value;
+            const year = get('year');
+            const month = get('month');
+            const day = get('day');
+            const hour = get('hour');
+            const minute = get('minute');
+            return `${year}-${month}-${day}T${hour}:${minute}`;
         }
 
         function formatStatus(status) {

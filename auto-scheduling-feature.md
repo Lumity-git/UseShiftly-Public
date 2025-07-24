@@ -57,7 +57,7 @@ For further updates, these suggestions can be incorporated as the system matures
 
 - [x] Employee Availability Model
 - [x] Shift/ShiftRequirement Model (entity, migration, repository, service, controller)
-- [ ] DTOs for input and scheduling requests
+- [x] DTOs for input and scheduling requests
 - [ ] Service logic for auto-scheduling
 - [ ] Controller endpoint for triggering scheduling
 - [ ] Validation (conflicts, coverage)
