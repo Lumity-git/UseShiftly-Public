@@ -189,13 +189,24 @@ public class AuthController {
                 return ResponseEntity.badRequest()
                         .body(new MessageResponse("Error: Email is already taken!"));
             }
+            // Enforce multi-tenant: invited user must be assigned to a department/building owned by the inviting admin
+            Department department = null;
+            if (signUpRequest.getDepartmentId() != null) {
+                department = departmentRepository.findById(signUpRequest.getDepartmentId()).orElse(null);
+                if (department == null) {
+                    return ResponseEntity.badRequest().body(new MessageResponse("Invalid department for registration."));
+                }
+                // Check that the department's building admin matches the invitation's admin (if present)
+                if (invitation.getAdminId() != null && !department.getBuilding().getAdmin().getId().equals(invitation.getAdminId())) {
+                    return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Department does not belong to inviting admin."));
+                }
+            }
             // Create new employee
             Employee employee = new Employee();
             employee.setEmail(signUpRequest.getEmail());
             employee.setPassword(signUpRequest.getPassword());
             employee.setFirstName(signUpRequest.getFirstName());
             employee.setLastName(signUpRequest.getLastName());
-            // Ensure phone number is saved
             employee.setPhoneNumber(signUpRequest.getPhoneNumber() != null ? signUpRequest.getPhoneNumber().trim() : null);
             employee.setRole(Employee.Role.valueOf(invitation.getRole()));
             employee.setDateOfBirth(signUpRequest.getDateOfBirth());
@@ -203,15 +214,8 @@ public class AuthController {
             employee.setEmergencyContactName(signUpRequest.getEmergencyContactName());
             employee.setEmergencyContactRelation(signUpRequest.getEmergencyContactRelation());
             employee.setEmergencyContactPhone(signUpRequest.getEmergencyContactPhone());
-            // Set department if provided and valid
-            if (signUpRequest.getDepartmentId() != null) {
-                Department department = departmentRepository.findById(signUpRequest.getDepartmentId())
-                    .orElse(null);
-                if (department != null) {
-                    employee.setDepartment(department);
-                } else {
-                    log.warn("Department not found for ID: " + signUpRequest.getDepartmentId());
-                }
+            if (department != null) {
+                employee.setDepartment(department);
             }
             employeeService.createEmployee(employee, false);
             invitationService.markInvitationUsed(code);

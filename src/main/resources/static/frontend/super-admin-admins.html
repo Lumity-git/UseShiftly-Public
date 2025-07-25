@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin - Admin Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; }
+    .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px #0001; }
+    h2 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ddd; padding: 0.7rem; text-align: left; }
+    th { background: #f0f0f0; }
+    tr:nth-child(even) { background: #fafafa; }
+    .actions button { margin-right: 0.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.3rem; }
+    input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 0.6rem 1.2rem; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .logout { float: right; background: #dc3545; }
+    .logout:hover { background: #a71d2a; }
+    .error { color: #c00; margin-bottom: 1rem; text-align: center; }
+    .success { color: #090; margin-bottom: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="logout" onclick="logout()">Logout</button>
+    <button style="float:right;margin-right:10px;background:#007bff;" onclick="window.location.href='super-admin-billing.html'">Billing Panel</button>
+    <h2>Admin Management</h2>
+    <div id="error" class="error" style="display:none;"></div>
+    <div id="success" class="success" style="display:none;"></div>
+    <h3>Create New Admin</h3>
+    <form id="createForm">
+      <div class="form-group">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" name="firstName" required>
+      </div>
+      <div class="form-group">
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" name="lastName" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit">Create Admin</button>
+    </form>
+    <h3>All Admins</h3>
+    <table id="adminsTable">
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Email</th><th>Active</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <script>
+    const token = localStorage.getItem('superAdminToken');
+    if (!token) window.location.href = '/frontend/super-admin-login.html';
+
+    function showError(msg) {
+      const e = document.getElementById('error');
+      e.textContent = msg; e.style.display = 'block';
+      setTimeout(() => { e.style.display = 'none'; }, 4000);
+    }
+    function showSuccess(msg) {
+      const s = document.getElementById('success');
+      s.textContent = msg; s.style.display = 'block';
+      setTimeout(() => { s.style.display = 'none'; }, 4000);
+    }
+    function logout() {
+      localStorage.removeItem('superAdminToken');
+      window.location.href = '/frontend/super-admin-login.html';
+    }
+    async function fetchAdmins() {
+      const res = await fetch('/api/super-admin/admins', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) return showError('Failed to load admins.');
+      const admins = await res.json();
+      const tbody = document.querySelector('#adminsTable tbody');
+      tbody.innerHTML = '';
+      admins.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${a.id}</td><td>${a.firstName} ${a.lastName}</td><td>${a.email}</td><td>${a.active ? 'Yes' : 'No'}</td><td class="actions">
+          <button onclick="deleteAdmin(${a.id})">Delete</button>
+        </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('createForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const firstName = document.getElementById('firstName').value;
+      const lastName = document.getElementById('lastName').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/api/super-admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ firstName, lastName, email, password })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showError(data.message || 'Failed to create admin.');
+        return;
+      }
+      showSuccess('Admin created!');
+      document.getElementById('createForm').reset();
+      fetchAdmins();
+    });
+    async function deleteAdmin(id) {
+      if (!confirm('Delete this admin?')) return;
+      const res = await fetch(`/api/super-admin/admins/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showError(data.message || 'Failed to delete admin.');
+        return;
+      }
+      showSuccess('Admin deleted.');
+      fetchAdmins();
+    }
+    fetchAdmins();
+  </script>
+</body>
+</html>

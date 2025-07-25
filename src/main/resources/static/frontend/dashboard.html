@@ -791,7 +791,8 @@
                     }
                     // For admins, fetch buildings and show dropdown
                     if (userInfo.role === 'ADMIN') {
-                        const buildingResponse = await fetch(`${API_BASE_URL}/buildings/by-admin/${userInfo.id}`, {
+                        // Use correct endpoint for admin buildings
+                        const buildingResponse = await fetch(`${API_BASE_URL}/buildings/my-buildings`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
                                 'Content-Type': 'application/json'

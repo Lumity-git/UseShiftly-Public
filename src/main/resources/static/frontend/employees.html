@@ -474,19 +474,158 @@
         }, 1800);
       }
       }
+      // --- AUTH & PAGE INIT CLEANUP START ---
+      // Unified, parameterized authentication check
+      // Usage: await checkAuth(["ADMIN", "MANAGER"])
+      async function checkAuth(allowedRoles = ["ADMIN", "MANAGER"]) {
+        const token = localStorage.getItem("authToken");
+        const userInfo = localStorage.getItem("userInfo");
+        if (!token || !userInfo) {
+          window.location.href = "login.html";
+          return false;
+        }
+        let user;
+        try {
+          user = JSON.parse(userInfo);
+        } catch {
+          window.location.href = "login.html";
+          return false;
+        }
+        if (!user.role || !allowedRoles.map(r => r.toUpperCase()).includes(String(user.role).toUpperCase())) {
+          window.location.href = "login.html";
+          return false;
+        }
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (response.status === 401) {
+            // Try to refresh token if backend supports
+            const refreshResponse = await fetch(
+              `${API_BASE_URL}/auth/refresh`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              if (data.token) {
+                localStorage.setItem("authToken", data.token);
+              }
+              if (data.userInfo) {
+                localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+                user = data.userInfo;
+              }
+              if (!user.role || !allowedRoles.map(r => r.toUpperCase()).includes(String(user.role).toUpperCase())) {
+                window.location.href = "login.html";
+                return false;
+              }
+              return true;
+            }
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userInfo");
+            window.location.href = "login.html";
+            return false;
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem("authToken", data.token);
+          }
+          if (data.userInfo) {
+            localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+            user = data.userInfo;
+          }
+          if (!user.role || !allowedRoles.map(r => r.toUpperCase()).includes(String(user.role).toUpperCase())) {
+            window.location.href = "login.html";
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error("Auth validation failed:", error);
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("userInfo");
+          window.location.href = "login.html";
+          return false;
+        }
+      }
+
+      // Page initialization after header loads
+      function initEmployeesPage() {
+        checkAuth(["ADMIN", "MANAGER"]).then(isAuthenticated => {
+          if (!isAuthenticated) return;
+          loadUserInfo();
+          if (currentUser && currentUser.id && !isNaN(Number(currentUser.id))) {
+            loadBuildingsByAdmin();
+          }
+          loadDepartments();
+          loadEmployees();
+          setupEventListeners();
+          setupActionButtons();
+        });
+      }
+      function loadUserInfo() {
+        const userInfo = localStorage.getItem("userInfo");
+        if (userInfo) {
+          currentUser = JSON.parse(userInfo);
+          // Defensive: force logout if id is missing or invalid
+          if (!currentUser.id || isNaN(Number(currentUser.id))) {
+            showAlert("Your session is invalid. Please log in again.", "error");
+            setTimeout(() => {
+              logout();
+            }, 1200);
+            return;
+          }
+          // Optionally display building info in header or elsewhere
+          let userDisplay = `${currentUser.firstName} ${currentUser.lastName}`;
+          if (currentUser.buildingName && currentUser.buildingName !== "null") {
+            userDisplay += ` (${currentUser.buildingName})`;
+          }
+          const userNameElem = document.getElementById("userName");
+          if (userNameElem) {
+            userNameElem.textContent = userDisplay;
+          }
+          // Optionally, handle mustChangePassword flag
+          if (
+            currentUser.mustChangePassword === true ||
+            currentUser.mustChangePassword === "true"
+          ) {
+            showAlert(
+              "You must change your password before continuing.",
+              "error"
+            );
+            setTimeout(() => {
+              window.location.href = "/frontend/change-password.html";
+            }, 1200);
+            return;
+          }
+        }
+      }
+      // Only one DOMContentLoaded handler: fetch header, then call initEmployeesPage
       document.addEventListener("DOMContentLoaded", function() {
         fetch("header.html")
           .then(res => res.text())
           .then(html => {
             document.getElementById("headerContainer").innerHTML = html;
-            renderNavLinks("employees.html");
-            // Page initialization after header loads
-            // Use the same init function name as notifications.html for consistency
+            if (window.renderNavLinks) {
+              renderNavLinks("employees.html");
+            }
             if (typeof initEmployeesPage === "function") {
               initEmployeesPage();
             }
           });
       });
+      // --- AUTH & PAGE INIT CLEANUP END ---
     </script>
     <script>
 
@@ -573,15 +712,29 @@
             );
             return;
           }
-          if (user.role === "ADMIN" || user.role === "MANAGER") {
-            buildingsResult = await apiRequest(
-              `/buildings/by-admin/${user.id}`
-            );
+          if (user.role === "ADMIN") {
+            buildingsResult = await apiRequest("/buildings/my-buildings");
+          } else if (user.role === "MANAGER") {
+            const result = await apiRequest("/buildings/my-building");
+            // API returns a single building or a message
+            if (result && typeof result === "object" && result.id) {
+              buildingsResult = [result];
+            } else {
+              buildingsResult = [];
+            }
+          }
+          if (!Array.isArray(buildingsResult)) {
+            buildingsResult = [];
           }
           buildings = buildingsResult;
           populateBuildingSelect();
         } catch (error) {
-          console.error("Failed to load buildings:", error);
+          if (error && error.status === 401) {
+            showAlert("Session expired. Please log in again.", "error");
+            setTimeout(() => logout(), 1200);
+          } else {
+            console.error("Failed to load buildings:", error);
+          }
         }
       }
 
@@ -589,12 +742,14 @@
         const select = document.getElementById("buildingFilter");
         if (!select) return;
         select.innerHTML = '<option value="">All Buildings</option>';
-        buildings.forEach((building) => {
-          const option = document.createElement("option");
-          option.value = building.id;
-          option.textContent = building.name;
-          select.appendChild(option);
-        });
+        if (Array.isArray(buildings)) {
+          buildings.forEach((building) => {
+            const option = document.createElement("option");
+            option.value = building.id;
+            option.textContent = building.name;
+            select.appendChild(option);
+          });
+        }
       }
 
       function setupEventListeners() {
@@ -782,174 +937,46 @@
         URL.revokeObjectURL(url);
       }
 
-      // Authentication
-      async function checkAuth() {
-        const token = localStorage.getItem("authToken");
-        const userInfo = localStorage.getItem("userInfo");
-        if (!token || !userInfo) {
-          window.location.href = "login.html";
-          return false;
-        }
-        let user = JSON.parse(userInfo);
-        // Only allow MANAGER and ADMIN
-        if (!["MANAGER", "ADMIN"].includes(user.role)) {
-          window.location.href = "login.html";
-          return false;
-        }
-        try {
-          const response = await fetch(`${API_BASE_URL}/auth/validate`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
-          if (response.status === 401) {
-            // Try to refresh token if backend supports
-            const refreshResponse = await fetch(
-              `${API_BASE_URL}/auth/refresh`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            if (refreshResponse.ok) {
-              const data = await refreshResponse.json();
-              if (data.token) {
-                localStorage.setItem("authToken", data.token);
-              }
-              if (data.userInfo) {
-                localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
-                user = data.userInfo;
-              }
-              if (!["MANAGER", "ADMIN"].includes(user.role)) {
-                window.location.href = "login.html";
-                return false;
-              }
-              return true;
-            }
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("userInfo");
-            window.location.href = "login.html";
-            return false;
-          }
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          if (data.token) {
-            localStorage.setItem("authToken", data.token);
-          }
-          if (data.userInfo) {
-            localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
-            user = data.userInfo;
-          }
-          if (!["MANAGER", "ADMIN"].includes(user.role)) {
-            window.location.href = "login.html";
-            return false;
-          }
-          return true;
-        } catch (error) {
-          console.error("Auth validation failed:", error);
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("userInfo");
-          window.location.href = "login.html";
-          return false;
-        }
-      }
 
-      function loadUserInfo() {
-        const userInfo = localStorage.getItem("userInfo");
-        if (userInfo) {
-          currentUser = JSON.parse(userInfo);
-          // Defensive: force logout if id is missing or invalid
-          if (!currentUser.id || isNaN(Number(currentUser.id))) {
-            showAlert("Your session is invalid. Please log in again.", "error");
-            setTimeout(() => {
-              logout();
-            }, 1200);
-            return;
-          }
-          // Optionally display building info in header or elsewhere
-          let userDisplay = `${currentUser.firstName} ${currentUser.lastName}`;
-          if (currentUser.buildingName && currentUser.buildingName !== "null") {
-            userDisplay += ` (${currentUser.buildingName})`;
-          }
-          const userNameElem = document.getElementById("userName");
-          if (userNameElem) {
-            userNameElem.textContent = userDisplay;
-          }
-          // Optionally, handle mustChangePassword flag
-          if (
-            currentUser.mustChangePassword === true ||
-            currentUser.mustChangePassword === "true"
-          ) {
-            showAlert(
-              "You must change your password before continuing.",
-              "error"
-            );
-            setTimeout(() => {
-              window.location.href = "/frontend/change-password.html";
-            }, 1200);
-            return;
-          }
-        }
-      }
-
-      // Navigation is now handled by header.html; remove old nav link code
-
-      // Page initialization after header loads
-      function initEmployeesPage() {
-        // Authentication and user info
-        checkAuth().then(isAuthenticated => {
-          if (!isAuthenticated) return;
-          loadUserInfo();
-          if (currentUser && currentUser.id && !isNaN(Number(currentUser.id))) {
-            loadBuildingsByAdmin();
-          }
-          loadDepartments();
-          loadEmployees();
-          setupEventListeners();
-          setupActionButtons();
-        });
-      }
+      // (loadUserInfo and all business logic remain unchanged)
 
       async function loadBuildingsByAdmin() {
         try {
           const userInfo = localStorage.getItem("userInfo");
           if (!userInfo) return;
-          let user = JSON.parse(userInfo);
+          const user = JSON.parse(userInfo);
           let buildingsResult = [];
-          // Strict check for valid user.id
+          // Defensive: ensure user.id is a valid number
           if (!user.id || isNaN(Number(user.id))) {
             console.error(
               "User ID is missing or invalid, cannot load buildings."
             );
             return;
           }
-          // Use buildingId from userInfo if available
-          if (user.buildingId && user.buildingId !== "null") {
-            buildingsResult = await apiRequest(
-              `/buildings/by-admin/${user.id}`
-            );
-          } else if (
-            (user.role === "ADMIN" || user.role === "MANAGER") &&
-            user.id &&
-            !isNaN(Number(user.id))
-          ) {
-            buildingsResult = await apiRequest(
-              `/buildings/by-admin/${user.id}`
-            );
+          if (user.role === "ADMIN") {
+            buildingsResult = await apiRequest("/buildings/my-buildings");
+          } else if (user.role === "MANAGER") {
+            const result = await apiRequest("/buildings/my-building");
+            // API returns a single building or a message
+            if (result && typeof result === "object" && result.id) {
+              buildingsResult = [result];
+            } else {
+              buildingsResult = [];
+            }
+          }
+          if (!Array.isArray(buildingsResult)) {
+            buildingsResult = [];
           }
           buildings = buildingsResult;
           populateBuildingSelect();
         } catch (error) {
-          console.error("Failed to load buildings:", error);
+          if (error && error.status === 401) {
+            showAlert("Session expired. Please log in again.", "error");
+            setTimeout(() => logout(), 1200);
+          } else {
+            console.error("Failed to load buildings:", error);
+          }
         }
-        // Removed stray navLinks code from loadBuildingsByAdmin
       }
 
       function logout() {
@@ -1009,9 +1036,17 @@
       async function loadDepartments() {
         try {
           departments = await apiRequest("/departments");
+          if (!Array.isArray(departments)) {
+            departments = [];
+          }
           populateDepartmentSelects();
         } catch (error) {
-          console.error("Failed to load departments:", error);
+          if (error && error.status === 401) {
+            showAlert("Session expired. Please log in again.", "error");
+            setTimeout(() => logout(), 1200);
+          } else {
+            console.error("Failed to load departments:", error);
+          }
           departments = [];
           populateDepartmentSelects();
         }
@@ -1070,12 +1105,14 @@
             select.innerHTML = '<option value="">Select Department</option>';
           }
 
-          departments.forEach((dept) => {
-            const option = document.createElement("option");
-            option.value = dept.id;
-            option.textContent = dept.name;
-            select.appendChild(option);
-          });
+          if (Array.isArray(departments)) {
+            departments.forEach((dept) => {
+              const option = document.createElement("option");
+              option.value = dept.id;
+              option.textContent = dept.name;
+              select.appendChild(option);
+            });
+          }
         });
       }
 
@@ -1402,22 +1439,12 @@
           );
           return;
         }
+        // Parse departmentId as number or null
         let departmentIdRaw = formData.get("departmentId");
         let departmentId = null;
-        if (
-          departmentIdRaw &&
-          departmentIdRaw !== "" &&
-          !isNaN(departmentIdRaw)
-        ) {
-          departmentId = parseInt(departmentIdRaw);
+        if (departmentIdRaw && departmentIdRaw !== "" && !isNaN(departmentIdRaw)) {
+          departmentId = Number(departmentIdRaw);
         }
-        // Debug: log departmentId
-        console.debug(
-          "departmentIdRaw",
-          departmentIdRaw,
-          "departmentId",
-          departmentId
-        );
         // Ensure current admin/manager/employee has valid user ID
         const userInfo = localStorage.getItem("userInfo");
         let user = null;
@@ -1428,21 +1455,7 @@
             user = null;
           }
         }
-        // Debug: log user and user.id
-        console.debug(
-          "userInfo",
-          userInfo,
-          "user",
-          user,
-          "user.id",
-          user && user.id
-        );
-        if (
-          !user ||
-          typeof user.id === "undefined" ||
-          user.id === null ||
-          isNaN(Number(user.id))
-        ) {
+        if (!user || typeof user.id === "undefined" || user.id === null || isNaN(Number(user.id))) {
           showAlert(
             "Your account is missing an employee ID. Please log out and log in again.",
             "error"
@@ -1450,8 +1463,19 @@
           console.error("User validation failed: missing or invalid id", user);
           return;
         }
-        // Always send departmentId as a number or null
-        if (departmentId !== null) departmentId = Number(departmentId);
+        // For admins, parse buildingId as number or null
+        let buildingId = null;
+        let buildingName = "";
+        if (currentUser && currentUser.role === "ADMIN") {
+          const buildingSelect = document.getElementById("employeeBuilding");
+          if (buildingSelect) {
+            const val = buildingSelect.value;
+            if (val && val !== "" && !isNaN(val)) {
+              buildingId = Number(val);
+            }
+            buildingName = buildingSelect.options[buildingSelect.selectedIndex]?.text || "";
+          }
+        }
         // Send all employee fields to backend, and include admin/manager id for auditing if needed
         const employeeData = {
           firstName,
@@ -1460,32 +1484,15 @@
           phoneNumber: cleanField(formData.get("phoneNumber")),
           dateOfBirth: cleanField(formData.get("dateOfBirth")),
           address: cleanField(formData.get("address")),
-          emergencyContactName: cleanField(
-            formData.get("emergencyContactName")
-          ),
-          emergencyContactRelation: cleanField(
-            formData.get("emergencyContactRelation")
-          ),
-          emergencyContactPhone: cleanField(
-            formData.get("emergencyContactPhone")
-          ),
+          emergencyContactName: cleanField(formData.get("emergencyContactName")),
+          emergencyContactRelation: cleanField(formData.get("emergencyContactRelation")),
+          emergencyContactPhone: cleanField(formData.get("emergencyContactPhone")),
           role,
           departmentId,
           // Optionally send admin/manager id for backend auditing
           adminId: user.id,
           // For admins, update buildingId/buildingName
-          ...(currentUser && currentUser.role === "ADMIN"
-            ? (() => {
-                const buildingSelect =
-                  document.getElementById("employeeBuilding");
-                const buildingId = buildingSelect ? buildingSelect.value : null;
-                const buildingName = buildingSelect
-                  ? buildingSelect.options[buildingSelect.selectedIndex]
-                      ?.text || ""
-                  : "";
-                return { buildingId, buildingName };
-              })()
-            : {}),
+          ...(currentUser && currentUser.role === "ADMIN" ? { buildingId, buildingName } : {}),
         };
         // Debug: log employeeData and adminId
         console.debug("employeeData", employeeData, "adminId", user.id);

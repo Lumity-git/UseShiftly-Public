@@ -12,7 +12,12 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
-@Table(name = "departments")
+@Table(
+    name = "departments",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"name", "building_id"})
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,7 +28,7 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String name;
 
     @Column
@@ -41,9 +46,14 @@ public class Department {
     @Column(name = "total_shifts")
     private Integer totalShifts;
 
+
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore  // Prevent circular reference during JSON serialization
     private List<Employee> employees;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "building_id", nullable = false)
+    private Building building;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

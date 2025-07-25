@@ -122,9 +122,11 @@ public class WebSecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/frontend/**").permitAll()
-                .requestMatchers("/frontend/*").permitAll() // <-- add here
+                .requestMatchers("/frontend/*").permitAll()
                 .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                .requestMatchers("/super-admin-login.html").permitAll()
                 .requestMatchers("/*.html", "/*.css", "/*.js", "/*.png", "/*.jpg", "/*.ico").permitAll()
+                .requestMatchers("/api/super-admin/auth/login").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/validate-invitation").permitAll()

@@ -485,6 +485,9 @@
           .then((html) => {
             document.getElementById("headerContainer").innerHTML = html;
             renderNavLinks("departments.html");
+            // Only after header/nav loaded, set up user info, event listeners, and page
+            loadUserInfo();
+            setupEventListeners();
             initDepartmentsPage();
           });
       });
@@ -505,7 +508,6 @@
         </div>
         <button
           class="btn btn-primary"
-          onclick="openCreateDepartmentModal()"
           id="createBtn"
           style="display: none"
         >
@@ -531,6 +533,12 @@
           </button>
         </div>
         <form id="departmentForm">
+          <div class="form-group" id="buildingSelectGroup" style="display:none;">
+            <label for="departmentBuilding">Building *</label>
+            <select id="departmentBuilding">
+              <option value="">Loading buildings...</option>
+            </select>
+          </div>
           <input type="hidden" id="departmentId" />
           <div class="form-group">
             <label for="departmentName">Department Name *</label>
@@ -629,8 +637,7 @@
           if (!valid) return;
 
           // Load user info and setup UI
-          loadUserInfo();
-          setupEventListeners();
+          // User info and event listeners are now handled after header loads
 
           // Load data
           await loadData();
@@ -644,6 +651,19 @@
         const token = localStorage.getItem("authToken");
         const userInfo = localStorage.getItem("userInfo");
         if (!token || !userInfo) {
+          window.location.href = "login.html";
+          return false;
+        }
+        let user;
+        try {
+          user = JSON.parse(userInfo);
+        } catch {
+          window.location.href = "login.html";
+          return false;
+        }
+        // Only allow ADMIN and MANAGER (case-insensitive)
+        const allowedRoles = ["ADMIN", "MANAGER"];
+        if (!user.role || !allowedRoles.includes(String(user.role).toUpperCase())) {
           window.location.href = "login.html";
           return false;
         }
@@ -671,22 +691,16 @@
               const data = await refreshResponse.json();
               if (data.token) {
                 localStorage.setItem("authToken", data.token);
-                if (data.userInfo) {
-                  localStorage.setItem(
-                    "userInfo",
-                    JSON.stringify(data.userInfo)
-                  );
-                }
-                // Check role after refresh
-                const refreshedUser =
-                  data.userInfo ||
-                  JSON.parse(localStorage.getItem("userInfo") || "{}");
-                if (!roles.includes(refreshedUser.role)) {
-                  window.location.href = "login.html";
-                  return false;
-                }
-                return true;
               }
+              if (data.userInfo) {
+                localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+                user = data.userInfo;
+              }
+              if (!user.role || !allowedRoles.includes(String(user.role).toUpperCase())) {
+                window.location.href = "login.html";
+                return false;
+              }
+              return true;
             }
             localStorage.removeItem("authToken");
             localStorage.removeItem("userInfo");
@@ -702,12 +716,9 @@
           }
           if (data.userInfo) {
             localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+            user = data.userInfo;
           }
-          // Check role
-          const validatedUser =
-            data.userInfo ||
-            JSON.parse(localStorage.getItem("userInfo") || "{}");
-          if (!roles.includes(validatedUser.role)) {
+          if (!user.role || !allowedRoles.includes(String(user.role).toUpperCase())) {
             window.location.href = "login.html";
             return false;
           }
@@ -725,22 +736,45 @@
         const userInfo = window.authManager.getUserInfo();
         if (userInfo) {
           currentUser = userInfo;
-          document.getElementById(
-            "userName"
-          ).textContent = `${userInfo.firstName} ${userInfo.lastName}`;
-          // Navigation is now handled by nav-manager.js
+          // Only set userName if it exists in the DOM
+          const userNameElem = document.getElementById("userName");
+          if (userNameElem) {
+            userNameElem.textContent = `${userInfo.firstName} ${userInfo.lastName}`;
+          }
           // Show create button for managers and admins
           if (userInfo.role === "MANAGER" || userInfo.role === "ADMIN") {
-            document.getElementById("createBtn").style.display = "inline-flex";
+            const createBtn = document.getElementById("createBtn");
+            if (createBtn) {
+              createBtn.style.display = "inline-flex";
+              createBtn.disabled = false;
+            }
           }
+        } else {
+          // If userInfo missing, show error and force logout
+          showAlert("Session error. Please log in again.", "error");
+          logout();
         }
       }
 
       function setupEventListeners() {
         // Search functionality
-        document
-          .getElementById("searchInput")
-          .addEventListener("input", filterDepartments);
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.addEventListener("input", filterDepartments);
+        }
+        // Add Department button
+        const createBtn = document.getElementById("createBtn");
+        if (createBtn) {
+          createBtn.onclick = async function () {
+            console.log("Add Department button clicked");
+            try {
+              await openCreateDepartmentModal();
+            } catch (err) {
+              console.error("Failed to open department modal:", err);
+              showAlert("Failed to open department modal.", "error");
+            }
+          };
+        }
       }
 
       // Navigation is now handled by header.html; remove old nav link code
@@ -749,38 +783,38 @@
       function initDepartmentsPage() {
         initializePage();
       }
-
+            // Wait for DOM and user info before setting up event listeners
+            setTimeout(setupEventListeners, 0);
       async function loadData() {
         await Promise.all([loadDepartments(), loadEmployees()]);
       }
 
       async function loadDepartments() {
+        const container = document.getElementById("departmentsContainer");
         try {
-          const departmentsData = await window.authManager.apiRequest(
-            "/departments"
-          );
+          container.innerHTML = `<div class="loading"><i class="fas fa-spinner"></i><p>Loading departments...</p></div>`;
+          const departmentsData = await window.authManager.apiRequest("/departments");
           departments = departmentsData || [];
-          // Enhance departments with employee data
           await enhanceDepartmentsWithEmployees();
           filteredDepartments = [...departments];
           renderDepartments();
         } catch (error) {
           console.error("Error loading departments:", error);
+          showAlert("Failed to load departments.", "error");
           departments = [];
           filteredDepartments = [];
-          renderDepartments();
+          container.innerHTML = `<div class='no-data'><i class='fas fa-building'></i><p>Failed to load departments.</p></div>`;
         }
       }
 
       async function loadEmployees() {
         try {
-          const employeesData = await window.authManager.apiRequest(
-            "/employees"
-          );
+          const employeesData = await window.authManager.apiRequest("/employees");
           employees = employeesData || [];
           populateManagerSelect();
         } catch (error) {
           console.error("Error loading employees:", error);
+          showAlert("Failed to load employees.", "error");
           employees = [];
           populateManagerSelect();
         }
@@ -805,23 +839,21 @@
 
       function renderDepartments() {
         const container = document.getElementById("departmentsContainer");
+        if (!container) return;
         if (filteredDepartments.length === 0) {
           container.innerHTML = `
-                    <div class="no-data">
-                        <i class="fas fa-building"></i>
-                        <p>No departments found</p>
-                    </div>
-                `;
+            <div class="no-data">
+              <i class="fas fa-building"></i>
+              <p>No departments found</p>
+            </div>
+          `;
           return;
         }
-
         container.innerHTML = `
-                <div class="departments-grid">
-                    ${filteredDepartments
-                      .map((dept) => createDepartmentCardFull(dept))
-                      .join("")}
-                </div>
-            `;
+          <div class="departments-grid">
+            ${filteredDepartments.map((dept) => createDepartmentCardFull(dept)).join("")}
+          </div>
+        `;
       }
 
       function createDepartmentCardSummary(dept) {
@@ -908,13 +940,58 @@
             </div>
         </div>
     `;
-      // Add confirmDeleteDepartment function
+      }
+
+      // Add confirmDeleteDepartment function at top-level scope
       function confirmDeleteDepartment(departmentId, departmentName) {
         if (confirm(`Are you sure you want to delete the department '${departmentName}'? This action cannot be undone.`)) {
           deleteDepartment(departmentId);
         }
       }
+      window.confirmDeleteDepartment = confirmDeleteDepartment;
+
+      // Add assignManager function at top-level scope
+      async function assignManager(departmentId) {
+        // Find department
+        const dept = departments.find((d) => d.id === departmentId);
+        if (!dept) {
+          showAlert("Department not found", "error");
+          return;
+        }
+        // Get list of available managers (MANAGER or ADMIN)
+        const availableManagers = employees.filter(
+          (emp) => (emp.role === "MANAGER" || emp.role === "ADMIN")
+        );
+        if (availableManagers.length === 0) {
+          showAlert("No available managers to assign.", "error");
+          return;
+        }
+        // Prompt user to select a manager
+        let managerOptions = availableManagers
+          .map((mgr) => `${mgr.id}: ${mgr.firstName} ${mgr.lastName}`)
+          .join("\n");
+        let selectedId = prompt(
+          `Enter the ID of the manager to assign to ${dept.name}:\n${managerOptions}`
+        );
+        if (!selectedId) return;
+        selectedId = parseInt(selectedId);
+        if (!availableManagers.some((mgr) => mgr.id === selectedId)) {
+          showAlert("Invalid manager ID selected.", "error");
+          return;
+        }
+        try {
+          await window.authManager.apiRequest(
+            `/departments/${departmentId}`,
+            "PUT",
+            { managerId: selectedId }
+          );
+          showAlert("Manager assigned successfully!", "success");
+          await loadDepartments();
+        } catch (error) {
+          showAlert("Failed to assign manager.", "error");
+        }
       }
+      window.assignManager = assignManager;
 
       function openDepartmentDetailsModal(departmentId) {
         const dept = departments.find((d) => d.id === departmentId);
@@ -1027,13 +1104,60 @@
         renderDepartments();
       }
 
-      function openCreateDepartmentModal() {
-        document.getElementById("modalTitle").innerHTML =
-          '<i class="fas fa-plus"></i> Add Department';
-        document.getElementById("submitBtn").textContent = "Create Department";
-        document.getElementById("departmentForm").reset();
-        document.getElementById("departmentId").value = "";
-        document.getElementById("departmentModal").style.display = "block";
+      async function openCreateDepartmentModal() {
+        try {
+          document.getElementById("modalTitle").innerHTML =
+            '<i class="fas fa-plus"></i> Add Department';
+          document.getElementById("submitBtn").textContent = "Create Department";
+          document.getElementById("departmentForm").reset();
+          document.getElementById("departmentId").value = "";
+          // Show/hide building select for admin/manager
+          if (currentUser && currentUser.role === "ADMIN") {
+            document.getElementById("buildingSelectGroup").style.display = "block";
+            // Fetch buildings for admin
+            const buildingSelect = document.getElementById("departmentBuilding");
+            buildingSelect.innerHTML = '<option value="">Loading buildings...</option>';
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await fetch(`${API_BASE_URL}/buildings/my-buildings`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (response.status === 401) {
+                // Token invalid, force logout
+                showAlert("Session expired. Please log in again.", "error");
+                logout();
+                return;
+              }
+              if (response.ok) {
+                const buildings = await response.json();
+                if (!buildings.length) {
+                  buildingSelect.innerHTML = '<option value="">No buildings found. Please create one first.</option>';
+                  buildingSelect.disabled = true;
+                } else {
+                  buildingSelect.innerHTML = '<option value="">Select a building...</option>' +
+                    buildings.map(b => `<option value="${b.id}">${b.name} (ID: ${b.id})</option>`).join('');
+                  buildingSelect.disabled = false;
+                }
+              } else {
+                buildingSelect.innerHTML = '<option value="">Failed to load buildings</option>';
+                buildingSelect.disabled = true;
+              }
+            } catch (err) {
+              buildingSelect.innerHTML = '<option value="">Failed to load buildings</option>';
+              buildingSelect.disabled = true;
+              console.error("Error fetching buildings:", err);
+            }
+          } else {
+            document.getElementById("buildingSelectGroup").style.display = "none";
+          }
+          document.getElementById("departmentModal").style.display = "block";
+        } catch (err) {
+          console.error("Error opening department modal:", err);
+          showAlert("Failed to open department modal.", "error");
+        }
       }
 
       function editDepartment(id) {
@@ -1190,18 +1314,40 @@
             .join("");
       }
 
-      document
-        .getElementById("departmentForm")
-        .addEventListener("submit", async function (e) {
+      // Show alert utility
+      function showAlert(message, type = "info") {
+        const alertContainer = document.getElementById("alertContainer");
+        if (!alertContainer) return;
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type === "error" ? "error" : type === "success" ? "success" : "info"}`;
+        alertDiv.textContent = message;
+        alertContainer.appendChild(alertDiv);
+        setTimeout(() => {
+          alertDiv.remove();
+        }, 4000);
+      }
+
+      // Remove any duplicate event listener registration for departmentForm
+      const departmentForm = document.getElementById("departmentForm");
+      if (departmentForm) {
+        departmentForm.addEventListener("submit", async function (e) {
           e.preventDefault();
           const id = document.getElementById("departmentId").value;
           const name = document.getElementById("departmentName").value;
-          const description = document.getElementById(
-            "departmentDescription"
-          ).value;
+          const description = document.getElementById("departmentDescription").value;
           const managerId = document.getElementById("departmentManager").value;
           const minStaffing = document.getElementById("minStaffing").value;
           const maxStaffing = document.getElementById("maxStaffing").value;
+          let buildingId = null;
+          if (currentUser && currentUser.role === "ADMIN") {
+            buildingId = document.getElementById("departmentBuilding").value;
+            if (!buildingId) {
+              showAlert("Please select a building.", "error");
+              return;
+            }
+          } else if (currentUser && currentUser.buildingId) {
+            buildingId = currentUser.buildingId;
+          }
           if (!name.trim()) {
             showAlert("Department name is required", "error");
             return;
@@ -1212,6 +1358,7 @@
             managerId: managerId ? parseInt(managerId) : null,
             minStaffing: minStaffing ? parseInt(minStaffing) : null,
             maxStaffing: maxStaffing ? parseInt(maxStaffing) : null,
+            buildingId: buildingId ? parseInt(buildingId) : null
           };
           try {
             const endpoint = id ? `/departments/${id}` : "/departments";
@@ -1230,43 +1377,27 @@
             await loadDepartments();
           } catch (error) {
             console.error("Error saving department:", error);
-            showAlert(
-              `Error ${id ? "updating" : "creating"} department`,
-              "error"
-            );
+            // Try to parse duplicate key error
+            let msg = `Error ${id ? "updating" : "creating"} department`;
+            if (error && error.message && typeof error.message === "string") {
+              if (error.message.includes("duplicate key value") && error.message.includes("name")) {
+                msg = "A department with this name already exists in this building. Please choose a different name.";
+              } else if (error.message.includes("could not execute statement")) {
+                // Show backend error message if available
+                try {
+                  const match = error.message.match(/\{.*\}/);
+                  if (match) {
+                    const errObj = JSON.parse(match[0]);
+                    if (errObj.message) msg = errObj.message;
+                  }
+                } catch {}
+              }
+            }
+            showAlert(msg, "error");
           }
         });
-
-      function showAlert(message, type) {
-        const container = document.getElementById("alertContainer");
-        const alert = document.createElement("div");
-        alert.className = `alert alert-${type}`;
-        alert.textContent = message;
-
-        container.appendChild(alert);
-
-        setTimeout(() => {
-          container.removeChild(alert);
-        }, 5000);
       }
-
-      function logout() {
-        window.authManager.logout();
-        window.location.href = "/frontend/login.html";
-      }
-
-      // Close modals when clicking outside
-      window.onclick = function (event) {
-        const departmentModal = document.getElementById("departmentModal");
-        const assignModal = document.getElementById("assignEmployeesModal");
-
-        if (event.target === departmentModal) {
-          closeDepartmentModal();
-        }
-        if (event.target === assignModal) {
-          closeAssignEmployeesModal();
-        }
-      };
-    </script>
+          </script>
   </body>
 </html>
+      

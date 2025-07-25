@@ -47,4 +47,15 @@ public class Invitation {
 
     @Column(nullable = true)
     private String buildingName;
+
+    // Admin assignment for invitation (for multi-tenant validation)
+    @Column(nullable = true)
+    private Long adminId;
+
+    public Long getAdminId() {
+        return adminId;
+    }
+    public void setAdminId(Long adminId) {
+        this.adminId = adminId;
+    }
 }

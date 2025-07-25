@@ -77,7 +77,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 path.matches("^/frontend/[a-zA-Z0-9_-]+$") ||
                 path.equals("/api/auth/login") ||
                 path.equals("/api/auth/register") ||
-                path.equals("/api/auth/validate-invitation")) {
+                path.equals("/api/auth/validate-invitation") ||
+                path.equals("/api/super-admin/auth/login")) {
             filterChain.doFilter(request, response);
             return;
         }

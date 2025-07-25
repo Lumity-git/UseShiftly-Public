@@ -14,4 +14,6 @@ public interface BuildingRepository extends JpaRepository<Building, Long> {
 
     // Find buildings by manager id
     List<Building> findByManager_Id(Long managerId);
+
+    long countByAdminId(Long adminId);
 }

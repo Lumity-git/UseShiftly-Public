@@ -48,13 +48,15 @@ public class Employee implements UserDetails {
     @Column(nullable = false)
     private Role role = Role.EMPLOYEE;
     
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     @JsonIgnore // Prevent circular reference during JSON serialization
     private Department department;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "building_id")
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "building_id", nullable = false)
     @JsonIgnore
     private Building building;
     
@@ -114,7 +116,7 @@ public class Employee implements UserDetails {
     }
     
     public enum Role {
-        EMPLOYEE, MANAGER, ADMIN
+        EMPLOYEE, MANAGER, ADMIN, SUPER_ADMIN
     }
     
     @PreUpdate

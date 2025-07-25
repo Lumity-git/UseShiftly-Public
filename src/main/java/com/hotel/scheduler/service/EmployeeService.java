@@ -27,10 +27,26 @@ import java.util.Optional;
  * employee-related operations.
  */
 
+import org.springframework.context.annotation.Primary;
+
+@Primary
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class EmployeeService implements UserDetailsService {
+    public List<Employee> getAllByAdminId(Long adminId) {
+        return employeeRepository.findAllByAdminId(adminId);
+    }
+
+    public Optional<com.hotel.scheduler.model.Building> getBuildingById(Long buildingId) {
+        return buildingRepository.findById(buildingId);
+    }
+
+    public Optional<com.hotel.scheduler.model.Department> getDepartmentById(Long departmentId) {
+        return departmentRepository.findById(departmentId);
+    }
+
+    
     private final com.hotel.scheduler.repository.BuildingRepository buildingRepository;
 
     /**
@@ -282,5 +298,80 @@ public class EmployeeService implements UserDetailsService {
 
     public Optional<Employee> getEmployeeWithBuilding(Long id) {
         return employeeRepository.findByIdWithBuilding(id);
+    }
+    /**
+     * Checks if the given employee is the admin of the specified building.
+     */
+    public boolean isAdminOfBuilding(Employee employee, Long buildingId) {
+        return buildingRepository.findById(buildingId)
+                .map(b -> b.getAdmin() != null && b.getAdmin().getId().equals(employee.getId()))
+                .orElse(false);
+    }
+
+    /**
+     * Checks if the given employee is the manager of the specified building.
+     */
+    public boolean isManagerOfBuilding(Employee employee, Long buildingId) {
+        return buildingRepository.findById(buildingId)
+                .map(b -> b.getManager() != null && b.getManager().getId().equals(employee.getId()))
+                .orElse(false);
+    }
+
+    /**
+     * Checks if the given employee is the admin of the specified department (via building).
+     */
+    public boolean isAdminOfDepartment(Employee employee, Long departmentId) {
+        return departmentRepository.findById(departmentId)
+                .map(d -> d.getBuilding() != null && d.getBuilding().getAdmin() != null && d.getBuilding().getAdmin().getId().equals(employee.getId()))
+                .orElse(false);
+    }
+
+    /**
+     * Checks if the given employee is the manager of the specified department (via building).
+     */
+    public boolean isManagerOfDepartment(Employee employee, Long departmentId) {
+        return departmentRepository.findById(departmentId)
+                .map(d -> d.getBuilding() != null && d.getBuilding().getManager() != null && d.getBuilding().getManager().getId().equals(employee.getId()))
+                .orElse(false);
+    }
+
+    // --- Super-admin methods for admin management ---
+    /**
+     * Returns all admin accounts (for super-admin only).
+     */
+    public List<Employee> getAllAdmins() {
+        return employeeRepository.findByRoleAndActiveTrue(Employee.Role.ADMIN);
+    }
+
+    /**
+     * Creates a new admin account (for super-admin only).
+     */
+    public Employee createAdmin(Employee admin, String password) {
+        if (employeeRepository.existsByEmail(admin.getEmail())) {
+            throw new RuntimeException("Error: Email is already taken!");
+        }
+        admin.setPassword(passwordEncoder.encode(password));
+        admin.setRole(Employee.Role.ADMIN);
+        admin.setActive(true);
+        return employeeRepository.save(admin);
+    }
+
+    /**
+     * Gets an admin by ID (for super-admin only).
+     */
+    public Optional<Employee> getAdminById(Long id) {
+        return employeeRepository.findById(id)
+                .filter(e -> e.getRole() == Employee.Role.ADMIN);
+    }
+
+    /**
+     * Deletes an admin by ID (for super-admin only).
+     */
+    public void deleteAdmin(Long id) {
+        Optional<Employee> adminOpt = getAdminById(id);
+        if (adminOpt.isEmpty()) {
+            throw new RuntimeException("Admin not found");
+        }
+        employeeRepository.deleteById(id);
     }
 }

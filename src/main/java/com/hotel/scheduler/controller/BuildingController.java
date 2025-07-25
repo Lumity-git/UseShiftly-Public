@@ -51,7 +51,6 @@ public class BuildingController {
             Building saved = buildingRepository.save(building);
             return ResponseEntity.ok(toDTO(saved));
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            // Check for duplicate key violation
             return ResponseEntity.status(409).body("Building name already exists");
         }
     }
@@ -62,7 +61,6 @@ public class BuildingController {
     @GetMapping("/my-building")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<?> getMyBuilding(@AuthenticationPrincipal Employee currentUser) {
-        // Assuming manager is assigned to one building
         List<Building> buildings = buildingRepository.findByManager_Id(currentUser.getId());
         if (buildings == null || buildings.isEmpty()) {
             return ResponseEntity.ok().body("No building assigned to this manager");
@@ -96,30 +94,16 @@ public class BuildingController {
      * Assign building to new user during invitation creation (stub)
      * This would be called by the invitation controller, not here, but stub for reference
      */
-    @PostMapping("/assign-building")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ResponseEntity<?> assignBuildingToUser(@RequestBody Map<String, Object> request,
-                                                  @AuthenticationPrincipal Employee currentUser) {
-        // request: { userId, buildingId }
-        // TODO: Implement actual assignment logic in the relevant service/controller
-        return ResponseEntity.ok(Map.of("status", "stub - not implemented"));
-    }
+    // Assignment of buildings to users should be handled in a secure, admin-scoped service/controller only.
 
 
     /**
      * Get buildings by admin id (legacy, for frontend selection)
      */
-    @GetMapping("/by-admin/{adminId}")
-    public List<BuildingDTO> getBuildingsByAdmin(@PathVariable Long adminId) {
-        List<Building> buildings = buildingRepository.findByAdminId(adminId);
-        return buildings.stream().map(this::toDTO).toList();
-    }
+    // Removed endpoint to prevent cross-admin access. Use /my-buildings for admin's own buildings.
 
     /**
      * Get all buildings (id, name)
      */
-    @GetMapping
-    public List<BuildingDTO> getAllBuildings() {
-        return buildingRepository.findAll().stream().map(this::toDTO).toList();
-    }
+    // Removed endpoint to prevent cross-admin access. Use /my-buildings for admin's own buildings.
 }

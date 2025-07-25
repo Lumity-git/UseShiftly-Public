@@ -15,25 +15,35 @@ function renderNavLinks(currentPage) {
       links.push('<a href="departments" class="nav-link">Departments</a>');
       links.push('<a href="admin-logs" class="nav-link">Logs</a>');
     } else {
-      // Employee links use employee-*.html files
-      links.push('<a href="employee-dashboard.html" class="nav-link">Dashboard</a>');
-      links.push('<a href="employee-shifts.html" class="nav-link">Shifts</a>');
-      links.push('<a href="employee-trades.html" class="nav-link">Trades</a>');
-      links.push('<a href="employee-notifications.html" class="nav-link">Notifications</a>');
-      links.push('<a href="employee-profile.html" class="nav-link">Profile</a>');
+      // Employee links use employee-*.html files, but extensionless for Caddy
+      links.push('<a href="employee-dashboard" class="nav-link">Dashboard</a>');
+      links.push('<a href="employee-shifts" class="nav-link">Shifts</a>');
+      links.push('<a href="employee-trades" class="nav-link">Trades</a>');
+      links.push('<a href="employee-notifications" class="nav-link">Notifications</a>');
+      links.push('<a href="employee-profile" class="nav-link">Profile</a>');
     }
   } else {
     links.push('<a href="dashboard" class="nav-link">Dashboard</a>');
     links.push('<a href="login" class="nav-link">Login</a>');
   }
   if (nav) nav.innerHTML = links.join("");
-  highlightCurrentNavLink(currentPage);
+  // Remove .html from currentPage for highlight if present
+  let pageKey = currentPage;
+  if (pageKey && pageKey.endsWith('.html')) {
+    pageKey = pageKey.slice(0, -5);
+  }
+  highlightCurrentNavLink(pageKey);
 }
 
 function highlightCurrentNavLink(currentPage) {
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
-    if (link.getAttribute('href') === currentPage) {
+    // Remove .html from href for comparison
+    let href = link.getAttribute('href');
+    if (href && href.endsWith('.html')) {
+      href = href.slice(0, -5);
+    }
+    if (href === currentPage) {
       link.classList.add('active');
     } else {
       link.classList.remove('active');

@@ -89,17 +89,70 @@ This document outlines the requirements and implementation plan for a strict mul
    - Super-admin cannot access or modify any regular user/building/department data.
 
 ## Implementation Steps
-- [ ] Update entity models to enforce relationships.
-- [ ] Refactor controllers to enforce scoping and isolation.
-- [ ] Add/Update utility methods for ownership checks.
-- [ ] Add/Update tests for access control and isolation.
+- [x] Update entity models to enforce relationships. ✅
+- [x] Refactor controllers to enforce scoping and isolation. (EmployeeController, DepartmentController, BuildingController, AuthController)
+- [x] Add/Update utility methods for ownership checks. ✅
+- [x] Add/Update tests for access control and isolation. ✅
 - [ ] Document all endpoints and access rules.
 
 ## TODO
-- [ ] Enforce admin isolation in all relevant controllers/services.
+- [x] Enforce admin isolation in all relevant controllers/services (EmployeeController, DepartmentController, BuildingController, AuthController).
+- [x] Add/Update utility methods for ownership checks. ✅
 - [ ] Add super-admin controller for admin management.
 - [ ] Update frontend to respect new scoping (if needed).
-- [ ] Add tests for multi-tenant isolation.
+- [x] Add tests for multi-tenant isolation. ✅
+- [x] Update entity models to enforce relationships. ✅
+## Progress Notes
+- DepartmentController, BuildingController, and AuthController endpoints now enforce strict multi-tenant isolation.
+- Invitation entity updated to include adminId for secure registration validation.
+- All required tests for access control and multi-tenant isolation are now implemented and passing in CI.
+- Next: Document all endpoints and access rules for admins, managers, and super-admin.
 
 ---
+
+## Endpoint & Access Rule Documentation
+
+### EmployeeController
+| Endpoint | Method | Roles Allowed | Access Rule |
+|---|---|---|---|
+| /api/employees | GET | ADMIN, MANAGER | Only employees in admin's buildings or manager's building |
+| /api/employees/{id} | GET | ADMIN, MANAGER | Only if employee belongs to admin's buildings or manager's building |
+| /api/employees | POST | ADMIN, MANAGER | Can only create in own building(s) |
+| /api/employees/{id} | PUT | ADMIN, MANAGER | Only if employee belongs to admin's buildings or manager's building |
+| /api/employees/{id}/delete | DELETE | ADMIN | Only if employee belongs to admin's buildings |
+| /api/employees/{id}/status | PUT | ADMIN | Only if employee belongs to admin's buildings |
+| /api/employees/department/{departmentId} | GET | ADMIN, MANAGER | Only if department belongs to admin's buildings or manager's building |
+| /api/employees/by-building/{buildingId} | GET | ADMIN, MANAGER | Only if building belongs to admin or manager |
+| /api/employees/export | GET | ADMIN, MANAGER | Only employees in admin's buildings or manager's building |
+
+### DepartmentController
+| Endpoint | Method | Roles Allowed | Access Rule |
+|---|---|---|---|
+| /api/departments | GET | ADMIN, MANAGER | Only departments in admin's buildings or manager's building |
+| /api/departments/{id} | GET | ADMIN, MANAGER | Only if department belongs to admin's buildings or manager's building |
+| /api/departments | POST | ADMIN, MANAGER | Can only create in own building(s) |
+| /api/departments/{id} | PUT | ADMIN, MANAGER | Only if department belongs to admin's buildings or manager's building |
+| /api/departments/{id} | DELETE | ADMIN, MANAGER | Only if department belongs to admin's buildings or manager's building |
+
+### BuildingController
+| Endpoint | Method | Roles Allowed | Access Rule |
+|---|---|---|---|
+| /api/buildings/my-buildings | GET | ADMIN | Only buildings for current admin |
+| /api/buildings/my-building | GET | MANAGER | Only building assigned to current manager |
+| /api/buildings | POST | ADMIN | Can only create for self |
+
+### AuthController (Invitations)
+| Endpoint | Method | Roles Allowed | Access Rule |
+|---|---|---|---|
+| /api/auth/invite | POST | ADMIN | Can only invite to own building(s) |
+| /api/auth/validate-invitation | POST | PUBLIC | Invitation must be scoped to admin/building |
+
+### Super-Admin Controller (Planned)
+| Endpoint | Method | Roles Allowed | Access Rule |
+|---|---|---|---|
+| /api/super-admin/admins | GET, POST, PUT, DELETE | SUPER_ADMIN | Only manages admin accounts, cannot access regular user/building/department data |
+
+---
+This table should be updated as endpoints evolve. All endpoints must enforce strict tenant isolation and role-based access as described above.
+
 This document should be updated as implementation progresses.

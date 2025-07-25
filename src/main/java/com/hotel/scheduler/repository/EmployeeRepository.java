@@ -11,6 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    // Find all employees by admin (scoped to admin's buildings)
+    @Query("SELECT e FROM Employee e WHERE e.building.admin.id = :adminId")
+    List<Employee> findAllByAdminId(@Param("adminId") Long adminId);
     // Find all employees by department (active or not)
     List<Employee> findByDepartmentId(Long departmentId);
     
@@ -44,4 +47,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.building WHERE e.id = :id")
     Optional<Employee> findByIdWithBuilding(@Param("id") Long id);
 
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.building.admin.id = :adminId AND e.role = :role")
+    long countByAdminIdAndRole(@Param("adminId") Long adminId, @Param("role") com.hotel.scheduler.model.Employee.Role role);
 }

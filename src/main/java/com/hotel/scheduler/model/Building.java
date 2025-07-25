@@ -10,8 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class Building {
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_id")
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "admin_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Employee admin;
 

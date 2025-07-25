@@ -18,6 +18,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
+    // Utility: Check if current user is admin for a building
+    private void assertAdminForBuilding(Long buildingId, Employee currentUser) {
+        var buildingOpt = employeeService.getBuildingById(buildingId);
+        if (buildingOpt.isEmpty() || !buildingOpt.get().getAdmin().getId().equals(currentUser.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Not your building");
+        }
+    }
     /**
      * Permanently deletes an employee by ID (Admin only).
      * Endpoint: DELETE /api/employees/{id}/delete
@@ -41,27 +48,7 @@ public class EmployeeController {
      * Request: { "active": true/false }
      * Response: Success or error message
      */
-    @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> updateEmployeeStatus(@PathVariable Long id,
-                                                  @RequestBody Map<String, Object> statusUpdate,
-                                                  @AuthenticationPrincipal Employee currentUser) {
-        try {
-            Employee employee = employeeService.getEmployeeById(id)
-                    .orElseThrow(() -> new RuntimeException("Employee not found"));
-            if (!statusUpdate.containsKey("active")) {
-                return ResponseEntity.badRequest().body(new MessageResponse("Missing 'active' field"));
-            }
-            boolean active = Boolean.parseBoolean(statusUpdate.get("active").toString());
-            employee.setActive(active);
-            Employee updated = employeeService.updateEmployee(employee);
-            userActionLogService.logAction(active ? "ACTIVATED_EMPLOYEE" : "DEACTIVATED_EMPLOYEE", currentUser.getId());
-            return ResponseEntity.ok(EmployeeDTO.fromEntity(updated));
-        } catch (Exception e) {
-            userActionLogService.logAction("FAILED_UPDATE_EMPLOYEE_STATUS", currentUser.getId());
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
-        }
-    }
+
     private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
 
     /**
@@ -72,7 +59,8 @@ public class EmployeeController {
      */
     @GetMapping("/by-building/{buildingId}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getEmployeesByBuilding(@PathVariable Long buildingId) {
+    public ResponseEntity<?> getEmployeesByBuilding(@PathVariable Long buildingId, @AuthenticationPrincipal Employee currentUser) {
+        assertAdminForBuilding(buildingId, currentUser);
         List<Employee> employees = employeeService.getEmployeesByBuilding(buildingId);
         List<EmployeeDTO> dtos = employees.stream().map(EmployeeDTO::fromEntity).toList();
         return ResponseEntity.ok(dtos);
@@ -88,6 +76,7 @@ public class EmployeeController {
         try {
             Employee employee = employeeService.getEmployeeById(id)
                     .orElseThrow(() -> new RuntimeException("Employee not found"));
+            assertAdminForBuilding(employee.getBuilding().getId(), currentUser);
             if (employeeUpdate.containsKey("firstName")) {
                 employee.setFirstName((String) employeeUpdate.get("firstName"));
             }
@@ -225,12 +214,13 @@ public class EmployeeController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
+    public ResponseEntity<?> getEmployeeById(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
             var employeeOpt = employeeService.getEmployeeById(id);
             if (employeeOpt.isEmpty()) {
                 return ResponseEntity.status(404).body(new MessageResponse("Employee not found"));
             }
+            assertAdminForBuilding(employeeOpt.get().getBuilding().getId(), currentUser);
             return ResponseEntity.ok(EmployeeDTO.fromEntity(employeeOpt.get()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
@@ -241,8 +231,8 @@ public class EmployeeController {
     
     @GetMapping
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<List<EmployeeDTO>> getAllEmployees() {
-        List<Employee> employees = employeeService.getAllActiveEmployees();
+    public ResponseEntity<List<EmployeeDTO>> getAllEmployees(@AuthenticationPrincipal Employee currentUser) {
+        List<Employee> employees = employeeService.getAllByAdminId(currentUser.getId());
         List<EmployeeDTO> employeeDTOs = employees.stream()
                 .map(EmployeeDTO::fromEntity)
                 .toList();
@@ -287,7 +277,12 @@ public class EmployeeController {
     
     @GetMapping("/department/{departmentId}")
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public ResponseEntity<List<EmployeeDTO>> getEmployeesByDepartment(@PathVariable Long departmentId) {
+    public ResponseEntity<List<EmployeeDTO>> getEmployeesByDepartment(@PathVariable Long departmentId, @AuthenticationPrincipal Employee currentUser) {
+        var deptOpt = employeeService.getDepartmentById(departmentId);
+        if (deptOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(List.of());
+        }
+        assertAdminForBuilding(deptOpt.get().getBuilding().getId(), currentUser);
         List<Employee> employees = employeeService.getEmployeesByDepartment(departmentId);
         List<EmployeeDTO> employeeDTOs = employees.stream()
                 .map(EmployeeDTO::fromEntity)
@@ -299,6 +294,9 @@ public class EmployeeController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deactivateEmployee(@PathVariable Long id, @AuthenticationPrincipal Employee currentUser) {
         try {
+            Employee employee = employeeService.getEmployeeById(id)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+            assertAdminForBuilding(employee.getBuilding().getId(), currentUser);
             employeeService.deactivateEmployee(id);
             userActionLogService.logAction("DEACTIVATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(new MessageResponse("Employee deactivated successfully"));
