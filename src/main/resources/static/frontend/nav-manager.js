@@ -15,7 +15,6 @@ function renderNavLinks(currentPage) {
       links.push('<a href="departments" class="nav-link">Departments</a>');
       links.push('<a href="admin-logs" class="nav-link">Logs</a>');
     } else {
-      // Employee links use employee-*.html files, but extensionless for Caddy
       links.push('<a href="employee-dashboard" class="nav-link">Dashboard</a>');
       links.push('<a href="employee-shifts" class="nav-link">Shifts</a>');
       links.push('<a href="employee-trades" class="nav-link">Trades</a>');
@@ -26,13 +25,30 @@ function renderNavLinks(currentPage) {
     links.push('<a href="dashboard" class="nav-link">Dashboard</a>');
     links.push('<a href="login" class="nav-link">Login</a>');
   }
-  if (nav) nav.innerHTML = links.join("");
-  // Remove .html from currentPage for highlight if present
-  let pageKey = currentPage;
-  if (pageKey && pageKey.endsWith('.html')) {
-    pageKey = pageKey.slice(0, -5);
+  if (nav) {
+    nav.innerHTML = '';
+    const batchSize = 5;
+    let i = 0;
+    function renderBatch() {
+      const end = Math.min(i + batchSize, links.length);
+      for (; i < end; i++) {
+        const div = document.createElement('div');
+        div.innerHTML = links[i];
+        while (div.firstChild) nav.appendChild(div.firstChild);
+      }
+      if (i < links.length) {
+        setTimeout(renderBatch, 0);
+      } else {
+        // Remove .html from currentPage for highlight if present
+        let pageKey = currentPage;
+        if (pageKey && pageKey.endsWith('.html')) {
+          pageKey = pageKey.slice(0, -5);
+        }
+        highlightCurrentNavLink(pageKey);
+      }
+    }
+    renderBatch();
   }
-  highlightCurrentNavLink(pageKey);
 }
 
 function highlightCurrentNavLink(currentPage) {

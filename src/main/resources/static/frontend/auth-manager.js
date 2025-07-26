@@ -1,5 +1,26 @@
 // Global authentication utility for hotel scheduler
 class AuthManager {
+  // Utility: Render large lists/tables in batches for responsive UI
+  renderBatch(items, renderFn, container, batchSize = 20) {
+    let i = 0;
+    function renderNextBatch() {
+      const end = Math.min(i + batchSize, items.length);
+      for (; i < end; i++) {
+        const html = renderFn(items[i], i);
+        if (typeof html === 'string') {
+          const div = document.createElement('div');
+          div.innerHTML = html;
+          while (div.firstChild) container.appendChild(div.firstChild);
+        } else if (html instanceof HTMLElement) {
+          container.appendChild(html);
+        }
+      }
+      if (i < items.length) {
+        setTimeout(renderNextBatch, 0);
+      }
+    }
+    renderNextBatch();
+  }
   constructor() {
     this.API_BASE_URL = window.location.origin + '/api';
     this.setupGlobalErrorHandler();

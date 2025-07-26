@@ -640,78 +640,87 @@
         // Render shifts
         function renderShifts() {
             const container = document.getElementById('shiftsContainer');
-            
             if (shifts.length === 0) {
                 container.innerHTML = '<div class="alert alert-info">No shifts found for the selected criteria.</div>';
                 return;
             }
-
-            const shiftsHtml = shifts.map(shift => {
-                // Custom status badge for tradeStatus PENDING_APPROVAL
-                let statusText = formatStatus(shift.status);
-                let statusClass = `status-${shift.status.toLowerCase()}`;
-                if (shift.tradeStatus === 'PENDING_APPROVAL' && shift.postedBy === currentUser?.id) {
-                    statusText = 'Pending Approval by Manager';
-                    statusClass = 'status-pending-approval';
+            container.innerHTML = '<div class="shifts-grid"></div>';
+            const grid = container.querySelector('.shifts-grid');
+            const batchSize = 20;
+            let i = 0;
+            function renderBatch() {
+                const end = Math.min(i + batchSize, shifts.length);
+                for (; i < end; i++) {
+                    const shift = shifts[i];
+                    // Custom status badge for tradeStatus PENDING_APPROVAL
+                    let statusText = formatStatus(shift.status);
+                    let statusClass = `status-${shift.status.toLowerCase()}`;
+                    if (shift.tradeStatus === 'PENDING_APPROVAL' && shift.postedBy === currentUser?.id) {
+                        statusText = 'Pending Approval by Manager';
+                        statusClass = 'status-pending-approval';
+                    }
+                    const card = document.createElement('div');
+                    card.className = 'shift-card';
+                    card.innerHTML = `
+                        <div class="shift-header">
+                            <div class="shift-time">
+                                ${formatDateTime(shift.startTime)} - ${formatTime(shift.endTime)}
+                            </div>
+                            <span class="shift-status ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </div>
+                        <div class="shift-info">
+                            <div class="shift-detail">
+                                <strong>Employee:</strong>
+                                <span>${shift.employeeName || 'Unassigned'}</span>
+                            </div>
+                            <div class="shift-detail">
+                                <strong>Department:</strong>
+                                <span>${shift.departmentName}</span>
+                            </div>
+                            <div class="shift-detail">
+                                <strong>Duration:</strong>
+                                <span>${calculateDuration(shift.startTime, shift.endTime)} hours</span>
+                            </div>
+                            ${shift.notes ? `
+                            <div class="shift-detail">
+                                <strong>Notes:</strong>
+                                <span>${shift.notes}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="shift-actions">
+                            ${canManageShifts() ? `
+                                <button class="btn btn-primary btn-small" onclick="editShift(${shift.id})">
+                                    ✏️ Edit
+                                </button>
+                                <button class="btn btn-danger btn-small" onclick="deleteShift(${shift.id})">
+                                    🗑️ Delete
+                                </button>
+                            ` : ''}
+                            ${shift.status === 'SCHEDULED' && shift.employeeId === currentUser?.id ? `
+                                <button class="btn btn-warning btn-small" onclick="openTradeModal(${shift.id})">
+                                    🔁 Trade
+                                </button>
+                                <button class="btn btn-success btn-small" onclick="openPostShiftModal(${shift.id})">
+                                    📢 Post Shift
+                                </button>
+                            ` : ''}
+                            ${shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser?.id ? `
+                                <button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">
+                                    ✋ Pick Up
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    grid.appendChild(card);
                 }
-                return `
-                <div class="shift-card">
-                    <div class="shift-header">
-                        <div class="shift-time">
-                            ${formatDateTime(shift.startTime)} - ${formatTime(shift.endTime)}
-                        </div>
-                        <span class="shift-status ${statusClass}">
-                            ${statusText}
-                        </span>
-                    </div>
-                    <div class="shift-info">
-                        <div class="shift-detail">
-                            <strong>Employee:</strong>
-                            <span>${shift.employeeName || 'Unassigned'}</span>
-                        </div>
-                        <div class="shift-detail">
-                            <strong>Department:</strong>
-                            <span>${shift.departmentName}</span>
-                        </div>
-                        <div class="shift-detail">
-                            <strong>Duration:</strong>
-                            <span>${calculateDuration(shift.startTime, shift.endTime)} hours</span>
-                        </div>
-                        ${shift.notes ? `
-                        <div class="shift-detail">
-                            <strong>Notes:</strong>
-                            <span>${shift.notes}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                    <div class="shift-actions">
-                        ${canManageShifts() ? `
-                            <button class="btn btn-primary btn-small" onclick="editShift(${shift.id})">
-                                ✏️ Edit
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="deleteShift(${shift.id})">
-                                🗑️ Delete
-                            </button>
-                        ` : ''}
-                        ${shift.status === 'SCHEDULED' && shift.employeeId === currentUser?.id ? `
-                            <button class="btn btn-warning btn-small" onclick="openTradeModal(${shift.id})">
-                                🔁 Trade
-                            </button>
-                            <button class="btn btn-success btn-small" onclick="openPostShiftModal(${shift.id})">
-                                📢 Post Shift
-                            </button>
-                        ` : ''}
-                        ${shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser?.id ? `
-                            <button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">
-                                ✋ Pick Up
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-                `;
-            }).join('');
-
-            container.innerHTML = `<div class="shifts-grid">${shiftsHtml}</div>`;
+                if (i < shifts.length) {
+                    setTimeout(renderBatch, 0);
+                }
+            }
+            renderBatch();
         }
 
         // Modal functions

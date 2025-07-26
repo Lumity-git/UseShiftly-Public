@@ -349,7 +349,6 @@
 
         function displayMyTrades() {
             const container = document.getElementById('myTradesList');
-            
             if (myTrades.length === 0) {
                 container.innerHTML = `
                     <div class="no-data">
@@ -359,13 +358,27 @@
                 `;
                 return;
             }
-
-            container.innerHTML = myTrades.map(trade => createTradeCard(trade, 'my')).join('');
+            container.innerHTML = '';
+            const batchSize = 20;
+            let i = 0;
+            function renderBatch() {
+                const end = Math.min(i + batchSize, myTrades.length);
+                for (; i < end; i++) {
+                    const cardHtml = createTradeCard(myTrades[i], 'my');
+                    const div = document.createElement('div');
+                    div.innerHTML = cardHtml;
+                    // Flatten if cardHtml is a single root
+                    while (div.firstChild) container.appendChild(div.firstChild);
+                }
+                if (i < myTrades.length) {
+                    setTimeout(renderBatch, 0);
+                }
+            }
+            renderBatch();
         }
 
         function displayAvailableTrades() {
             const container = document.getElementById('availableTradesList');
-            
             if (availableTrades.length === 0) {
                 container.innerHTML = `
                     <div class="no-data">
@@ -375,8 +388,22 @@
                 `;
                 return;
             }
-
-            container.innerHTML = availableTrades.map(trade => createTradeCard(trade, 'available')).join('');
+            container.innerHTML = '';
+            const batchSize = 20;
+            let i = 0;
+            function renderBatch() {
+                const end = Math.min(i + batchSize, availableTrades.length);
+                for (; i < end; i++) {
+                    const cardHtml = createTradeCard(availableTrades[i], 'available');
+                    const div = document.createElement('div');
+                    div.innerHTML = cardHtml;
+                    while (div.firstChild) container.appendChild(div.firstChild);
+                }
+                if (i < availableTrades.length) {
+                    setTimeout(renderBatch, 0);
+                }
+            }
+            renderBatch();
         }
 
         function displayPendingApprovals() {
@@ -390,8 +417,22 @@
                 `;
                 return;
             }
-            // Only show trades that are truly pending manager/admin approval
-            container.innerHTML = pendingApprovals.map(trade => createTradeCard(trade, 'approval')).join('');
+            container.innerHTML = '';
+            const batchSize = 20;
+            let i = 0;
+            function renderBatch() {
+                const end = Math.min(i + batchSize, pendingApprovals.length);
+                for (; i < end; i++) {
+                    const cardHtml = createTradeCard(pendingApprovals[i], 'approval');
+                    const div = document.createElement('div');
+                    div.innerHTML = cardHtml;
+                    while (div.firstChild) container.appendChild(div.firstChild);
+                }
+                if (i < pendingApprovals.length) {
+                    setTimeout(renderBatch, 0);
+                }
+            }
+            renderBatch();
         }
 
         function createTradeCard(trade, context) {
