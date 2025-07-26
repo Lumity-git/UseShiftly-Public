@@ -99,6 +99,29 @@
               <option value="EMPLOYEE">Employee</option>
             </select>
           </div>
+
+        <script>
+        // Hide building filter for managers
+        document.addEventListener("DOMContentLoaded", function() {
+          const userInfo = localStorage.getItem("userInfo");
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            if (user.role === "MANAGER") {
+              document.querySelector("label[for='buildingFilter']").style.display = "none";
+              document.getElementById("buildingFilter").style.display = "none";
+            }
+            // Hide 'Admin' from role dropdown for managers
+            if (user.role === "MANAGER") {
+              const roleFilter = document.getElementById("roleFilter");
+              if (roleFilter) {
+                Array.from(roleFilter.options).forEach(opt => {
+                  if (opt.value === "ADMIN") opt.style.display = "none";
+                });
+              }
+            }
+          }
+        });
+        </script>
           <div class="filter-group" style="min-width: 120px">
             <label for="statusFilter">Status</label>
             <select id="statusFilter">
@@ -207,6 +230,23 @@
                 <option value="MANAGER">Manager</option>
                 <option value="ADMIN">Admin</option>
               </select>
+            <script>
+            // Hide 'Admin' from role dropdown in modal for managers
+            document.addEventListener("DOMContentLoaded", function() {
+              const userInfo = localStorage.getItem("userInfo");
+              if (userInfo) {
+                const user = JSON.parse(userInfo);
+                if (user.role === "MANAGER") {
+                  const roleSelect = document.getElementById("role");
+                  if (roleSelect) {
+                    Array.from(roleSelect.options).forEach(opt => {
+                      if (opt.value === "ADMIN") opt.style.display = "none";
+                    });
+                  }
+                }
+              }
+            });
+            </script>
             </div>
             <div class="form-group">
               <label for="department">Department</label>
@@ -715,12 +755,20 @@
           if (user.role === "ADMIN") {
             buildingsResult = await apiRequest("/buildings/my-buildings");
           } else if (user.role === "MANAGER") {
-            const result = await apiRequest("/buildings/my-building");
-            // API returns a single building or a message
-            if (result && typeof result === "object" && result.id) {
+            let result = null;
+            try {
+              result = await apiRequest("/buildings/my-building");
+            } catch (e) {
+              result = null;
+            }
+            // Accept both array and object responses for manager
+            if (Array.isArray(result) && result.length > 0) {
+              buildingsResult = result.filter(b => b && b.id);
+            } else if (result && typeof result === "object" && result.id) {
               buildingsResult = [result];
             } else {
               buildingsResult = [];
+              showAlert("You are not assigned to any building. Please contact admin.", "error");
             }
           }
           if (!Array.isArray(buildingsResult)) {
@@ -956,12 +1004,19 @@
           if (user.role === "ADMIN") {
             buildingsResult = await apiRequest("/buildings/my-buildings");
           } else if (user.role === "MANAGER") {
-            const result = await apiRequest("/buildings/my-building");
-            // API returns a single building or a message
-            if (result && typeof result === "object" && result.id) {
+            let result = null;
+            try {
+              result = await apiRequest("/buildings/my-building");
+            } catch (e) {
+              result = null;
+            }
+            if (Array.isArray(result) && result.length > 0) {
+              buildingsResult = result;
+            } else if (result && typeof result === "object" && result.id) {
               buildingsResult = [result];
             } else {
               buildingsResult = [];
+              showAlert("You are not assigned to any building. Please contact admin.", "error");
             }
           }
           if (!Array.isArray(buildingsResult)) {
@@ -1006,9 +1061,12 @@
         };
 
         try {
+          console.debug("apiRequest: endpoint", endpoint, "options", options);
           const response = await fetch(url, config);
+          console.debug("apiRequest: response status", response.status, "url", url);
 
           if (response.status === 401) {
+            console.warn("apiRequest: Unauthorized (401)");
             logout();
             return;
           }
@@ -1020,11 +1078,23 @@
               const text = await response.text();
               errorMsg = text || errorMsg;
             } catch {}
+            console.error("apiRequest: error response", errorMsg);
             showAlert(errorMsg, "error");
             throw new Error(errorMsg);
           }
 
-          return await response.json();
+          // Check if response is JSON before parsing
+          const contentType = response.headers.get("content-type");
+          console.debug("apiRequest: content-type", contentType);
+          if (contentType && contentType.includes("application/json")) {
+            const json = await response.json();
+            console.debug("apiRequest: response JSON", json);
+            return json;
+          } else {
+            const text = await response.text();
+            console.debug("apiRequest: response text", text);
+            return text;
+          }
         } catch (error) {
           console.error("API Request failed:", error);
           showAlert("Network error. Please check your connection.", "error");
@@ -1056,22 +1126,32 @@
 
       async function loadEmployees() {
         try {
+          console.debug("loadEmployees: currentUser", currentUser);
           let buildingId = "";
           const buildingFilter = document.getElementById("buildingFilter");
           if (buildingFilter) {
             buildingId = buildingFilter.value;
           }
           let endpoint = "/employees";
-          if (buildingId) {
+          // For managers, only load employees for their assigned building
+          if (currentUser && currentUser.role === "MANAGER") {
+            console.debug("loadEmployees: manager buildings", buildings);
+            if (buildings.length === 0) {
+              // No building assigned, do not load employees
+              console.warn("loadEmployees: manager has no building assigned");
+              employees = [];
+              document.getElementById("employeesContainer").innerHTML =
+                '<div class="alert alert-error">You are not assigned to any building. Please contact admin.</div>';
+              return;
+            }
+            // Use manager-specific endpoint
+            endpoint = "/employees/my-building";
+          } else if (buildingId) {
             endpoint = `/employees/by-building/${buildingId}`;
-          } else if (
-            currentUser &&
-            currentUser.role === "MANAGER" &&
-            buildings.length > 0
-          ) {
-            endpoint = `/employees/by-building/${buildings[0].id}`;
           }
+          console.debug("loadEmployees: endpoint", endpoint);
           employees = await apiRequest(endpoint);
+          console.debug("loadEmployees: employees result", employees);
           if (!employees || !Array.isArray(employees)) employees = [];
           renderEmployees();
         } catch (error) {
@@ -1141,7 +1221,7 @@
 
         const employeesHtml = employeesToShow
           .filter(function (employee) {
-            // Managers cannot see admin accounts
+            // Managers cannot see admin accounts, only employees and managers
             if (
               currentUser &&
               currentUser.role === "MANAGER" &&
@@ -1313,9 +1393,82 @@
       // Modal functions
       function openCreateEmployeeModal() {
         editingEmployeeId = null;
-        document.getElementById("employeeModalTitle").textContent =
-          "Add New Employee";
+        document.getElementById("employeeModalTitle").textContent = "Add New Employee";
         document.getElementById("employeeForm").reset();
+        // Show building dropdown for admins
+        const buildingGroup = document.getElementById("buildingGroup");
+        const buildingSelect = document.getElementById("employeeBuilding");
+        const departmentSelect = document.getElementById("department");
+        if (currentUser && currentUser.role === "ADMIN") {
+          buildingGroup.style.display = "block";
+          buildingSelect.innerHTML = '<option value="">Select Building</option>';
+          buildings.forEach((b) => {
+            const option = document.createElement("option");
+            option.value = b.id;
+            option.textContent = b.name;
+            buildingSelect.appendChild(option);
+          });
+          // Disable and clear department dropdown until building is selected
+          if (departmentSelect) {
+            departmentSelect.innerHTML = '<option value="">Select Department</option>';
+            departmentSelect.disabled = true;
+          }
+          // Add change event to buildingSelect to load departments for selected building
+          buildingSelect.onchange = async function() {
+            const buildingId = buildingSelect.value;
+            if (!buildingId || isNaN(buildingId)) {
+              if (departmentSelect) {
+                departmentSelect.innerHTML = '<option value="">Select Department</option>';
+                departmentSelect.disabled = true;
+              }
+              return;
+            }
+            // Fetch departments for selected building
+            try {
+              const token = localStorage.getItem("authToken");
+              const response = await fetch(`${API_BASE_URL}/departments/by-building/${buildingId}`, {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              let departments = [];
+              if (response.ok) {
+                departments = await response.json();
+              }
+              if (departmentSelect) {
+                departmentSelect.innerHTML = '<option value="">Select Department</option>';
+                if (Array.isArray(departments)) {
+                  departments.forEach((dept) => {
+                    const option = document.createElement("option");
+                    option.value = dept.id;
+                    option.textContent = dept.name;
+                    departmentSelect.appendChild(option);
+                  });
+                }
+                departmentSelect.disabled = false;
+              }
+            } catch (err) {
+              if (departmentSelect) {
+                departmentSelect.innerHTML = '<option value="">Select Department</option>';
+                departmentSelect.disabled = true;
+              }
+            }
+          };
+        } else {
+          buildingGroup.style.display = "none";
+          if (departmentSelect) {
+            departmentSelect.disabled = false;
+          }
+        }
+        // Hide 'Admin' from role dropdown in modal for managers
+        const roleSelect = document.getElementById("role");
+        if (currentUser && currentUser.role === "MANAGER" && roleSelect) {
+          Array.from(roleSelect.options).forEach(opt => {
+            if (opt.value === "ADMIN") opt.style.display = "none";
+          });
+        }
         document.getElementById("employeeModal").style.display = "block";
       }
 
@@ -1463,20 +1616,22 @@
           console.error("User validation failed: missing or invalid id", user);
           return;
         }
-        // For admins, parse buildingId as number or null
+        // For admins, require building selection and set buildingId/buildingName
         let buildingId = null;
         let buildingName = "";
         if (currentUser && currentUser.role === "ADMIN") {
           const buildingSelect = document.getElementById("employeeBuilding");
           if (buildingSelect) {
             const val = buildingSelect.value;
-            if (val && val !== "" && !isNaN(val)) {
-              buildingId = Number(val);
+            if (!val || val === "" || isNaN(val)) {
+              showAlert("Please select a building for the new employee.", "error");
+              return;
             }
+            buildingId = Number(val);
             buildingName = buildingSelect.options[buildingSelect.selectedIndex]?.text || "";
           }
         }
-        // Send all employee fields to backend, and include admin/manager id for auditing if needed
+        // Build employeeData, always sending buildingId/buildingName for admins
         const employeeData = {
           firstName,
           lastName,
@@ -1489,9 +1644,7 @@
           emergencyContactPhone: cleanField(formData.get("emergencyContactPhone")),
           role,
           departmentId,
-          // Optionally send admin/manager id for backend auditing
           adminId: user.id,
-          // For admins, update buildingId/buildingName
           ...(currentUser && currentUser.role === "ADMIN" ? { buildingId, buildingName } : {}),
         };
         // Debug: log employeeData and adminId
@@ -1515,6 +1668,23 @@
             console.debug("Create result", apiResult);
             showAlert("Employee created successfully!", "success");
           }
+
+          // Add manager to building if role is MANAGER and buildingId is set
+          // Use multi-manager API: /buildings/{buildingId}/add-manager
+          if (role === "MANAGER" && (buildingId || apiResult.buildingId)) {
+            const assignBuildingId = buildingId || apiResult.buildingId;
+            try {
+              await apiRequest(`/buildings/${assignBuildingId}/add-manager`, {
+                method: "PUT",
+                body: JSON.stringify({ managerId: apiResult.id })
+              });
+              console.debug("Manager added to building (multi-manager support)", assignBuildingId);
+            } catch (err) {
+              console.error("Failed to add manager to building", err);
+              showAlert("Failed to add manager to building.", "error");
+            }
+          }
+
           form.reset();
           closeEmployeeModal();
           await loadEmployees();

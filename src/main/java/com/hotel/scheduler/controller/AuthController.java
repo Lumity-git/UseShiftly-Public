@@ -197,7 +197,7 @@ public class AuthController {
                     return ResponseEntity.badRequest().body(new MessageResponse("Invalid department for registration."));
                 }
                 // Check that the department's building admin matches the invitation's admin (if present)
-                if (invitation.getAdminId() != null && !department.getBuilding().getAdmin().getId().equals(invitation.getAdminId())) {
+                if (invitation.getAdminId() != null && department.getBuilding() != null && department.getBuilding().getAdmin() != null && !department.getBuilding().getAdmin().getId().equals(invitation.getAdminId())) {
                     return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Department does not belong to inviting admin."));
                 }
             }

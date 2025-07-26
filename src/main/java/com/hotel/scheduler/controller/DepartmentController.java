@@ -53,7 +53,7 @@ public class DepartmentController {
         if (currentUser.getRole() == Employee.Role.ADMIN) {
             departments = departmentRepository.findAllByAdminId(currentUser.getId());
         } else if (currentUser.getRole() == Employee.Role.MANAGER) {
-            List<Building> buildings = buildingRepository.findByManager_Id(currentUser.getId());
+            List<Building> buildings = buildingRepository.findByManagers_Id(currentUser.getId());
             departments = buildings.stream()
                 .flatMap(b -> departmentRepository.findAllByBuildingId(b.getId()).stream())
                 .toList();
@@ -78,8 +78,8 @@ public class DepartmentController {
                     if (currentUser.getRole() == Employee.Role.ADMIN) {
                         return department.getBuilding().getAdmin().getId().equals(currentUser.getId());
                     } else if (currentUser.getRole() == Employee.Role.MANAGER) {
-                        return department.getBuilding().getManager() != null &&
-                               department.getBuilding().getManager().getId().equals(currentUser.getId());
+                        return department.getBuilding().getManagers() != null &&
+                               department.getBuilding().getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
                     }
                     return false;
                 })
@@ -111,7 +111,7 @@ public class DepartmentController {
             if (currentUser.getRole() == Employee.Role.ADMIN) {
                 allowed = building.getAdmin().getId().equals(currentUser.getId());
             } else if (currentUser.getRole() == Employee.Role.MANAGER) {
-                allowed = building.getManager() != null && building.getManager().getId().equals(currentUser.getId());
+                allowed = building.getManagers() != null && building.getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
             }
             if (!allowed) {
                 return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Not your building"));
@@ -157,8 +157,8 @@ public class DepartmentController {
             if (currentUser.getRole() == Employee.Role.ADMIN) {
                 allowed = existing.getBuilding().getAdmin().getId().equals(currentUser.getId());
             } else if (currentUser.getRole() == Employee.Role.MANAGER) {
-                allowed = existing.getBuilding().getManager() != null &&
-                          existing.getBuilding().getManager().getId().equals(currentUser.getId());
+                allowed = existing.getBuilding().getManagers() != null &&
+                          existing.getBuilding().getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
             }
             if (!allowed) {
                 return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Not your department/building"));
@@ -202,8 +202,8 @@ public class DepartmentController {
             if (currentUser.getRole() == Employee.Role.ADMIN) {
                 allowed = existing.getBuilding().getAdmin().getId().equals(currentUser.getId());
             } else if (currentUser.getRole() == Employee.Role.MANAGER) {
-                allowed = existing.getBuilding().getManager() != null &&
-                          existing.getBuilding().getManager().getId().equals(currentUser.getId());
+                allowed = existing.getBuilding().getManagers() != null &&
+                          existing.getBuilding().getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
             }
             if (!allowed) {
                 return ResponseEntity.status(403).body(new MessageResponse("Forbidden: Not your department/building"));

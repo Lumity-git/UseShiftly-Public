@@ -3,6 +3,7 @@ package com.hotel.scheduler.controller;
 import com.hotel.scheduler.model.Building;
 import com.hotel.scheduler.dto.BuildingDTO;
 import com.hotel.scheduler.repository.BuildingRepository;
+import com.hotel.scheduler.repository.EmployeeRepository;
 import com.hotel.scheduler.model.Employee;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,17 @@ public class BuildingController {
         dto.setId(building.getId());
         dto.setName(building.getName());
         dto.setAdminId(building.getAdmin() != null ? building.getAdmin().getId() : null);
-        dto.setManagerId(building.getManager() != null ? building.getManager().getId() : null);
+        // Set all manager IDs
+        if (building.getManagers() != null) {
+            dto.setManagerIds(building.getManagers().stream().map(Employee::getId).toList());
+        }
         if (building.getEmployees() != null) {
             dto.setEmployeeIds(building.getEmployees().stream().map(Employee::getId).toList());
         }
         return dto;
     }
     private final BuildingRepository buildingRepository;
+    private final EmployeeRepository employeeRepository;
 
 
     /**
@@ -61,11 +66,17 @@ public class BuildingController {
     @GetMapping("/my-building")
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<?> getMyBuilding(@AuthenticationPrincipal Employee currentUser) {
-        List<Building> buildings = buildingRepository.findByManager_Id(currentUser.getId());
+        List<Building> buildings = buildingRepository.findByManagers_Id(currentUser.getId());
         if (buildings == null || buildings.isEmpty()) {
-            return ResponseEntity.ok().body("No building assigned to this manager");
+            // Always return JSON for frontend compatibility
+            return ResponseEntity.status(404).body(Map.of(
+                "error", true,
+                "message", "No building assigned to this manager"
+            ));
         }
-        return ResponseEntity.ok(toDTO(buildings.get(0)));
+        // Return all buildings managed by this manager as DTOs
+        List<BuildingDTO> dtos = buildings.stream().map(this::toDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     /**
@@ -95,6 +106,62 @@ public class BuildingController {
      * This would be called by the invitation controller, not here, but stub for reference
      */
     // Assignment of buildings to users should be handled in a secure, admin-scoped service/controller only.
+
+    /**
+     * Set manager for a building (admin only)
+     */
+    @PutMapping("/{buildingId}/add-manager")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> addManagerToBuilding(@PathVariable Long buildingId, @RequestBody Map<String, Object> request) {
+        Long managerId = null;
+        try {
+            managerId = Long.valueOf(request.get("managerId").toString());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "message", "Invalid managerId"));
+        }
+        Building building = buildingRepository.findById(buildingId).orElse(null);
+        if (building == null) {
+            return ResponseEntity.status(404).body(Map.of("error", true, "message", "Building not found"));
+        }
+        com.hotel.scheduler.model.Employee manager = employeeRepository.findById(managerId).orElse(null);
+        if (manager == null) {
+            return ResponseEntity.status(404).body(Map.of("error", true, "message", "Manager employee not found"));
+        }
+        if (manager.getRole() != com.hotel.scheduler.model.Employee.Role.MANAGER) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "message", "Employee is not a MANAGER"));
+        }
+        if (building.getManagers().contains(manager)) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Manager already assigned"));
+        }
+        building.getManagers().add(manager);
+        buildingRepository.save(building);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Manager added", "buildingId", buildingId, "managerId", managerId));
+    }
+
+    @PutMapping("/{buildingId}/remove-manager")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> removeManagerFromBuilding(@PathVariable Long buildingId, @RequestBody Map<String, Object> request) {
+        Long managerId = null;
+        try {
+            managerId = Long.valueOf(request.get("managerId").toString());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", true, "message", "Invalid managerId"));
+        }
+        Building building = buildingRepository.findById(buildingId).orElse(null);
+        if (building == null) {
+            return ResponseEntity.status(404).body(Map.of("error", true, "message", "Building not found"));
+        }
+        com.hotel.scheduler.model.Employee manager = employeeRepository.findById(managerId).orElse(null);
+        if (manager == null) {
+            return ResponseEntity.status(404).body(Map.of("error", true, "message", "Manager employee not found"));
+        }
+        if (!building.getManagers().contains(manager)) {
+            return ResponseEntity.ok(Map.of("success", false, "message", "Manager not assigned to building"));
+        }
+        building.getManagers().remove(manager);
+        buildingRepository.save(building);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Manager removed", "buildingId", buildingId, "managerId", managerId));
+    }
 
 
     /**

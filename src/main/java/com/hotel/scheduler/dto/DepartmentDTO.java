@@ -1,39 +1,45 @@
 package com.hotel.scheduler.dto;
 
 import com.hotel.scheduler.model.Department;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class DepartmentDTO {
-    private Long id;
-    private String name;
-    private String description;
-    private Boolean active;
-    private int employeeCount;
-    private Integer minStaffing;
-    private Integer maxStaffing;
-    private Integer totalShifts;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    public DepartmentDTO(Long id, String name, String description, Boolean active, int employeeCount, Integer minStaffing, Integer maxStaffing, Integer totalShifts, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.active = active;
+        this.employeeCount = employeeCount;
+        this.minStaffing = minStaffing;
+        this.maxStaffing = maxStaffing;
+        this.totalShifts = totalShifts;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+    public Long id;
+    public String name;
+    public String description;
+    public Boolean active;
+    public int employeeCount;
+    public Integer minStaffing;
+    public Integer maxStaffing;
+    public Integer totalShifts;
+    public LocalDateTime createdAt;
+    public LocalDateTime updatedAt;
 
     public static DepartmentDTO fromEntity(Department department) {
         return new DepartmentDTO(
-            department.getId(),
-            department.getName(),
-            department.getDescription(),
-            department.getActive(),
-            department.getEmployees() != null ? department.getEmployees().size() : 0,
-            department.getMinStaffing(),
-            department.getMaxStaffing(),
-            department.getTotalShifts(),
-            department.getCreatedAt(),
-            department.getUpdatedAt()
+            department.id,
+            department.name,
+            department.description,
+            department.active,
+            department.employees != null ? department.employees.size() : 0,
+            department.minStaffing,
+            department.maxStaffing,
+            department.totalShifts,
+            department.createdAt,
+            department.updatedAt
         );
     }
 }

@@ -2,9 +2,6 @@ package com.hotel.scheduler.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,101 +12,141 @@ import java.util.List;
 
 @Entity
 @Table(name = "employees")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Employee implements UserDetails {
+    // --- Setters ---
+    public void setId(Long id) { this.id = id; }
+    public void setUuid(String uuid) { this.uuid = uuid; }
+    public void setEmail(String email) { this.email = email; }
+    public void setPassword(String password) { this.password = password; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public void setRole(Role role) { this.role = role; }
+    public void setDepartment(Department department) { this.department = department; }
+    public void setBuilding(Building building) { this.building = building; }
+    public void setActive(Boolean active) { this.active = active; }
+    public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    public void setAddress(String address) { this.address = address; }
+    public void setEmergencyContactName(String emergencyContactName) { this.emergencyContactName = emergencyContactName; }
+    public void setEmergencyContactRelation(String emergencyContactRelation) { this.emergencyContactRelation = emergencyContactRelation; }
+    public void setEmergencyContactPhone(String emergencyContactPhone) { this.emergencyContactPhone = emergencyContactPhone; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+    public Long getId() { return id; }
+    public String getUuid() { return uuid; }
+    public String getEmail() { return email; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public Role getRole() { return role; }
+    public Department getDepartment() { return department; }
+    public Building getBuilding() { return building; }
+    public Boolean getActive() { return active; }
+    public String getDateOfBirth() { return dateOfBirth; }
+    public String getAddress() { return address; }
+    public String getEmergencyContactName() { return emergencyContactName; }
+    public String getEmergencyContactRelation() { return emergencyContactRelation; }
+    public String getEmergencyContactPhone() { return emergencyContactPhone; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
     @Column(name = "must_change_password", nullable = false)
-    private boolean mustChangePassword = false;
+    public boolean mustChangePassword = false;
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id;
 
     @Column(nullable = false, unique = true, updatable = false)
-    private String uuid = java.util.UUID.randomUUID().toString();
+    public String uuid = java.util.UUID.randomUUID().toString();
     
     @Column(unique = true, nullable = false)
-    private String email;
+    public String email;
     
     @Column(nullable = false)
-    private String password;
+    public String password;
     
     @Column(nullable = false)
-    private String firstName;
+    public String firstName;
     
     @Column(nullable = false)
-    private String lastName;
+    public String lastName;
     
     @Column
-    private String phoneNumber;
+    public String phoneNumber;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.EMPLOYEE;
+    public Role role = Role.EMPLOYEE;
     
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     @JsonIgnore // Prevent circular reference during JSON serialization
-    private Department department;
+    public Department department;
 
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "building_id", nullable = false)
     @JsonIgnore
-    private Building building;
+    public Building building;
     
     @Column(nullable = false)
-    private Boolean active = true;
+    public Boolean active = true;
 
     @Column(name = "date_of_birth")
-    private String dateOfBirth; // ISO format (yyyy-MM-dd)
+    public String dateOfBirth; // ISO format (yyyy-MM-dd)
 
     @Column(name = "address")
-    private String address;
+    public String address;
 
     @Column(name = "emergency_contact_name")
-    private String emergencyContactName;
+    public String emergencyContactName;
 
     @Column(name = "emergency_contact_relation")
-    private String emergencyContactRelation;
+    public String emergencyContactRelation;
 
     @Column(name = "emergency_contact_phone")
-    private String emergencyContactPhone;
+    public String emergencyContactPhone;
     
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    public LocalDateTime createdAt = LocalDateTime.now();
     
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    public LocalDateTime updatedAt;
     
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
-    
+
     @Override
     public String getUsername() {
         return email;
     }
-    
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
-    
+
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
-    
+
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
-    
+
     @Override
     public boolean isEnabled() {
         return active;
@@ -122,5 +159,17 @@ public class Employee implements UserDetails {
     @PreUpdate
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Employee employee = (Employee) o;
+        return id != null && id.equals(employee.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
     }
 }

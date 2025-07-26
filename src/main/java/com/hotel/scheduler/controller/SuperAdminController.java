@@ -36,11 +36,11 @@ public class SuperAdminController {
     @PostMapping
     public ResponseEntity<?> createAdmin(@RequestBody Map<String, String> req) {
         Employee admin = new Employee();
-        admin.setFirstName(req.get("firstName"));
-        admin.setLastName(req.get("lastName"));
-        admin.setEmail(req.get("email"));
-        admin.setRole(Employee.Role.ADMIN);
-        admin.setActive(true);
+        admin.firstName = req.get("firstName");
+        admin.lastName = req.get("lastName");
+        admin.email = req.get("email");
+        admin.role = Employee.Role.ADMIN;
+        admin.active = true;
         // Set password and other fields as needed
         Employee saved = employeeService.createAdmin(admin, req.get("password"));
         return ResponseEntity.ok(saved);
@@ -53,9 +53,9 @@ public class SuperAdminController {
     public ResponseEntity<?> updateAdmin(@PathVariable Long id, @RequestBody Map<String, String> req) {
         Employee admin = employeeService.getAdminById(id)
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
-        if (req.containsKey("firstName")) admin.setFirstName(req.get("firstName"));
-        if (req.containsKey("lastName")) admin.setLastName(req.get("lastName"));
-        if (req.containsKey("email")) admin.setEmail(req.get("email"));
+        if (req.containsKey("firstName")) admin.firstName = req.get("firstName");
+        if (req.containsKey("lastName")) admin.lastName = req.get("lastName");
+        if (req.containsKey("email")) admin.email = req.get("email");
         Employee updated = employeeService.updateEmployee(admin);
         return ResponseEntity.ok(updated);
     }

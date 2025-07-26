@@ -20,6 +20,11 @@
 
     <div class="section">
         <h2>Admin Usage & Billing Preview</h2>
+        <div style="margin-bottom:10px;">
+            <strong>Packages:</strong><br>
+            <span><b>Basic</b>: $4/user/month, website only</span><br>
+            <span><b>Pro</b>: $7/user/month, includes iPhone/Android app access</span>
+        </div>
         <button class="btn" onclick="loadUsage()">Refresh Usage</button>
         <button class="btn" onclick="loadBillingPreview()">Preview Bills</button>
         <table class="billing-table" id="usageTable">
@@ -29,6 +34,7 @@
                     <th>Employees</th>
                     <th>Managers</th>
                     <th>Buildings</th>
+                    <th>Package</th>
                     <th>Billable Users</th>
                     <th>Over Free Tier?</th>
                     <th>Projected Bill ($)</th>

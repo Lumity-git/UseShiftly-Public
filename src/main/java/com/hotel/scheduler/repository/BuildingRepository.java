@@ -1,3 +1,4 @@
+
 package com.hotel.scheduler.repository;
 
 import java.util.List;
@@ -12,8 +13,9 @@ public interface BuildingRepository extends JpaRepository<Building, Long> {
 
     List<Building> findByAdminId(Long adminId);
 
-    // Find buildings by manager id
-    List<Building> findByManager_Id(Long managerId);
+
+    // Find buildings by managers (many-to-many)
+    List<Building> findByManagers_Id(Long managerId);
 
     long countByAdminId(Long adminId);
 }

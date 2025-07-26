@@ -34,6 +34,16 @@ import org.springframework.context.annotation.Primary;
 @RequiredArgsConstructor
 @Transactional
 public class EmployeeService implements UserDetailsService {
+    /**
+     * Returns the first building assigned to the given manager.
+     * @param managerId the manager's employee ID
+     * @return Optional<Building> (first found)
+     */
+    public Optional<com.hotel.scheduler.model.Building> getBuildingForManager(Long managerId) {
+        List<com.hotel.scheduler.model.Building> buildings = buildingRepository.findByManagers_Id(managerId);
+        if (buildings == null || buildings.isEmpty()) return Optional.empty();
+        return Optional.of(buildings.get(0));
+    }
     public List<Employee> getAllByAdminId(Long adminId) {
         return employeeRepository.findAllByAdminId(adminId);
     }
@@ -313,7 +323,7 @@ public class EmployeeService implements UserDetailsService {
      */
     public boolean isManagerOfBuilding(Employee employee, Long buildingId) {
         return buildingRepository.findById(buildingId)
-                .map(b -> b.getManager() != null && b.getManager().getId().equals(employee.getId()))
+                .map(b -> b.getManagers() != null && b.getManagers().stream().anyMatch(m -> m.getId().equals(employee.getId())))
                 .orElse(false);
     }
 
@@ -331,7 +341,7 @@ public class EmployeeService implements UserDetailsService {
      */
     public boolean isManagerOfDepartment(Employee employee, Long departmentId) {
         return departmentRepository.findById(departmentId)
-                .map(d -> d.getBuilding() != null && d.getBuilding().getManager() != null && d.getBuilding().getManager().getId().equals(employee.getId()))
+                .map(d -> d.getBuilding() != null && d.getBuilding().getManagers() != null && d.getBuilding().getManagers().stream().anyMatch(m -> m.getId().equals(employee.getId())))
                 .orElse(false);
     }
 

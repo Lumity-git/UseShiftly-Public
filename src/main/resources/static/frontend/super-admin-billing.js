@@ -27,20 +27,32 @@ async function loadBillingPreview() {
 function renderUsageTable(data) {
     const tbody = document.querySelector('#usageTable tbody');
     tbody.innerHTML = '';
-    data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${row.adminEmail}</td>
-            <td>${row.employees}</td>
-            <td>${row.managers}</td>
-            <td>${row.buildings}</td>
-            <td>${Math.max(0, row.employees - 5)}</td>
-            <td>${row.employees > 5 ? 'Yes' : 'No'}</td>
-            <td>${row.projectedBill !== undefined ? row.projectedBill : ''}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+    const batchSize = 20;
+    let i = 0;
+    function renderBatch() {
+        const end = Math.min(i + batchSize, data.length);
+        for (; i < end; i++) {
+            const row = data[i];
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.adminEmail}</td>
+                <td>${row.employees}</td>
+                <td>${row.managers}</td>
+                <td>${row.buildings}</td>
+                <td>${row.package || ''}</td>
+                <td>${row.billableUsers !== undefined ? row.billableUsers : Math.max(0, row.employees - 5)}</td>
+                <td>${row.overFreeTier !== undefined ? row.overFreeTier : (row.employees > 5 ? 'Yes' : 'No')}</td>
+                <td>${row.projectedBill !== undefined ? row.projectedBill : ''}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+        if (i < data.length) {
+            setTimeout(renderBatch, 0);
+        }
+    }
+    renderBatch();
 }
+
 
 async function generateReceipts() {
     const period = document.getElementById('billingPeriod').value;

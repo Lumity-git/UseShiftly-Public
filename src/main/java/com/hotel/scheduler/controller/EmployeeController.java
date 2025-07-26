@@ -18,10 +18,39 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class EmployeeController {
+    /**
+     * Lists all employees (except admins) for the manager's assigned building.
+     * Endpoint: GET /api/employees/my-building
+     * Only accessible by MANAGER role.
+     */
+    @GetMapping("/my-building")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<?> getEmployeesForMyBuilding(@AuthenticationPrincipal Employee currentUser) {
+        // Find manager's building
+        var buildingOpt = employeeService.getBuildingForManager(currentUser.getId());
+        if (buildingOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(new MessageResponse("Manager is not assigned to any building."));
+        }
+        Long buildingId = buildingOpt.get().getId();
+        // Get all employees for this building
+        List<Employee> employees = employeeService.getEmployeesByBuilding(buildingId);
+        // Filter out admins
+        List<EmployeeDTO> dtos = employees.stream()
+            .filter(e -> e.getRole() != Employee.Role.ADMIN)
+            .map(EmployeeDTO::fromEntity)
+            .toList();
+        return ResponseEntity.ok(dtos);
+    }
     // Utility: Check if current user is admin for a building
     private void assertAdminForBuilding(Long buildingId, Employee currentUser) {
         var buildingOpt = employeeService.getBuildingById(buildingId);
-        if (buildingOpt.isEmpty() || !buildingOpt.get().getAdmin().getId().equals(currentUser.getId())) {
+        if (buildingOpt.isEmpty()) {
+            throw new org.springframework.security.access.AccessDeniedException("Not your building");
+        }
+        var building = buildingOpt.get();
+        boolean isAdmin = building.getAdmin() != null && building.getAdmin().getId().equals(currentUser.getId());
+        boolean isManager = building.getManagers() != null && building.getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
+        if (!(isAdmin || isManager)) {
             throw new org.springframework.security.access.AccessDeniedException("Not your building");
         }
     }
