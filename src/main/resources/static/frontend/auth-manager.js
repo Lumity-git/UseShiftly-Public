@@ -118,6 +118,12 @@ class AuthManager {
 
     const userInfo = this.getUserInfo();
 
+    // Must change password redirect
+    if (userInfo && (userInfo.mustChangePassword === true || userInfo.mustChangePassword === "true")) {
+      window.location.href = "/frontend/change-password";
+      return false;
+    }
+
     // Check role requirements
     if (requiredRole) {
       if (Array.isArray(requiredRole)) {
@@ -139,9 +145,9 @@ class AuthManager {
     const userInfo = this.getUserInfo();
     if (userInfo) {
       if (userInfo.role === "EMPLOYEE") {
-        window.location.href = "/frontend/employee-dashboard.html";
+        window.location.href = "/frontend/employee-dashboard";
       } else {
-        window.location.href = "/frontend/dashboard.html";
+        window.location.href = "/frontend/dashboard";
       }
     } else {
       this.redirectToLogin();
@@ -151,7 +157,7 @@ class AuthManager {
   // Redirect to login page
   redirectToLogin() {
     this.logout();
-    window.location.href = "/frontend/login.html";
+    window.location.href = "/frontend/login";
   }
 
   // Logout user
@@ -292,5 +298,5 @@ window.apiRequest = async (endpoint, method = "GET", body = null) => {
 
 window.logout = () => {
   window.authManager.logout();
-  window.location.href = "/frontend/login.html";
+  window.location.href = "/frontend/login";
 };

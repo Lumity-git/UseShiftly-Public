@@ -29,91 +29,111 @@ import java.util.List;
 @Slf4j
 public class NotificationService {
     /**
-     * Notify manager/admin that a trade was accepted by the employee (for approval).
-     */
-    private final com.hotel.scheduler.repository.EmployeeRepository employeeRepository;
-
-    // ...existing code...
-    /**
-     * Sends a registration email to a new employee with their temporary password and login instructions.
-     * @param employee The new employee
-     * @param tempPassword The temporary password
-     */
-    @Async
-    public void sendEmployeeRegistrationEmail(Employee employee, String tempPassword) {
-        if (!emailEnabled) {
-            log.info("Email notifications disabled");
-            return;
-        }
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(employee.getEmail());
-            message.setSubject("Welcome to Hotel Scheduler - Account Created");
-            message.setText(String.format(
-                "Hello %s,\n\n" +
-                "Your account has been created on Hotel Scheduler.\n" +
-                "You can log in at: http://localhost:8080/login.html\n\n" +
-                "Your temporary password: %s\n" +
-                "You will be required to change your password on first login.\n\n" +
-                "If you have any questions, please contact your manager or HR.\n\n" +
-                "Best regards,\nHotel Scheduler Team",
-                employee.getFirstName(),
-                tempPassword
-            ));
-            mailSender.send(message);
-            log.info("Registration email sent to {}", employee.getEmail());
-        } catch (Exception e) {
-            log.error("Failed to send registration email to {}: {}", employee.getEmail(), e.getMessage());
-        }
-    }
-
-    /**
-     * Notify requester that a trade was declined by the employee.
-     */
-    /**
      * Notifies the requesting employee that their shift trade offer was declined.
-     *
+     * Sends both email and in-app notification.
      * @param trade the shift trade that was declined
      */
     public void sendTradeDeclinedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
-        // Instead of email, create notification object for requesting employee
         if (trade.getRequestingEmployee() != null) {
-            createNotification(
-                trade.getRequestingEmployee(),
-                "Shift Trade Declined",
-                String.format("Your shift trade offer was declined by %s %s. Shift: %s Date & Time: %s - %s Department: %s",
+            // Save notification entity
+            com.hotel.scheduler.model.Notification notification = com.hotel.scheduler.model.Notification.builder()
+                .userId(trade.getRequestingEmployee().getId())
+                .title("Shift Trade Declined")
+                .message(String.format("Your shift trade offer was declined by %s %s. Shift: %s Date & Time: %s - %s Department: %s",
                     trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
                     trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
                     trade.getShift() != null ? trade.getShift().getId() : "",
-                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
-                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
+                    trade.getShift() != null ? trade.getShift().getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "",
+                    trade.getShift() != null ? trade.getShift().getEndTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "",
                     trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
-                ),
-                "TRADE_DECLINED"
-            );
+                ))
+                .type("TRADE_DECLINED")
+                .read(false)
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+            notificationRepository.save(notification);
+            // Send email
+            try {
+                SimpleMailMessage mail = new SimpleMailMessage();
+                mail.setFrom(fromEmail);
+                mail.setTo(trade.getRequestingEmployee().getEmail());
+                mail.setSubject("Shift Trade Declined");
+                mail.setText(notification.getMessage());
+                mailSender.send(mail);
+                log.info("Trade declined email sent to requesting employee {}", trade.getRequestingEmployee().getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send trade declined email to requesting employee {}: {}", trade.getRequestingEmployee().getEmail(), e.getMessage());
+            }
         }
     }
-    // Helper to create and save notification objects for the frontend tab
+        
     /**
-     * Helper to create and save notification objects for the frontend notification tab.
-     *
-     * @param recipient the employee to notify
-     * @param title     the notification title
-     * @param message   the notification message
-     * @param type      the notification type (e.g., TRADE_ACCEPTED)
+     * Notify manager/admin that a trade was accepted by the employee (for approval).
      */
-    private void createNotification(com.hotel.scheduler.model.Employee recipient, String title, String message, String type) {
-        // TODO: Implement Notification entity and repository
-        // Notification notification = new Notification();
-        // notification.setRecipient(recipient);
-        // notification.setTitle(title);
-        // notification.setMessage(message);
-        // notification.setType(type);
-        // notification.setTimestamp(java.time.OffsetDateTime.now());
-        // notification.setRead(false);
-        // notificationRepository.save(notification);
-        log.info("[NOTIFY] Would create notification for {}: {} - {}", recipient.getEmail(), title, message);
+    private final com.hotel.scheduler.repository.NotificationRepository notificationRepository;
+
+    /**
+     * Returns all notifications for the given user ID.
+     */
+    public List<com.hotel.scheduler.model.Notification> getNotificationsForUser(Long userId) {
+        return notificationRepository.findByUserIdOrderByTimestampDesc(userId);
+    }
+
+    /**
+     * Marks a specific notification as read for the user.
+     */
+    public void markNotificationAsRead(Long userId, Long notificationId) {
+        com.hotel.scheduler.model.Notification notification = notificationRepository.findById(notificationId)
+                .filter(n -> n.getUserId().equals(userId))
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notification.setRead(true);
+        notificationRepository.save(notification);
+    }
+
+    /**
+     * Marks all notifications as read for the user.
+     */
+    public void markAllNotificationsAsRead(Long userId) {
+        List<com.hotel.scheduler.model.Notification> notifications = notificationRepository.findByUserIdOrderByTimestampDesc(userId);
+        for (com.hotel.scheduler.model.Notification notification : notifications) {
+            if (!notification.isRead()) {
+                notification.setRead(true);
+                notificationRepository.save(notification);
+            }
+        }
+    }
+
+    /**
+     * Deletes a specific notification for the user.
+     */
+    public void deleteNotification(Long userId, Long notificationId) {
+        com.hotel.scheduler.model.Notification notification = notificationRepository.findById(notificationId)
+                .filter(n -> n.getUserId().equals(userId))
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notificationRepository.delete(notification);
+    }
+
+    /**
+     * Returns notification settings for the user.
+     * (This example uses a simple in-memory map; replace with persistent storage as needed.)
+     */
+    public java.util.Map<String, Object> getNotificationSettings(Long userId) {
+        // TODO: Replace with real settings storage
+        java.util.Map<String, Object> settings = new java.util.HashMap<>();
+        settings.put("emailNotifications", true);
+        settings.put("pushNotifications", true);
+        settings.put("shiftReminders", true);
+        settings.put("tradeNotifications", true);
+        settings.put("scheduleUpdates", true);
+        return settings;
+    }
+
+    /**
+     * Updates notification settings for the user.
+     * (This example does not persist settings; implement persistence as needed.)
+     */
+    public void updateNotificationSettings(Long userId, java.util.Map<String, Object> settings) {
+        // TODO: Persist settings for user
     }
     /**
      * Notify the requesting employee that they are still responsible for the shift until accepted by the target employee.
@@ -143,7 +163,8 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "If the offer is not accepted in time, you are expected to show up for your scheduled shift.\n\n" +
-                "Best regards,\nHotel Management",
+                "You can log in at: https://useshiftly.com/\n\n" +
+                "Best regards,\nShiftly Team",
                 requestingEmployee.getFirstName(),
                 targetEmployee.getFirstName(),
                 targetEmployee.getLastName(),
@@ -186,7 +207,8 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "If no one picks up the shift in time, you are expected to show up for your scheduled shift.\n\n" +
-                "Best regards,\nHotel Management",
+                "You can log in at: https://useshiftly.com/\n\n" +
+                "Best regards,\nShiftly Team",
                 requestingEmployee.getFirstName(),
                 shift.getStartTime().format(formatter),
                 shift.getEndTime().format(formatter),
@@ -222,7 +244,6 @@ public class NotificationService {
             log.info("Email notifications disabled");
             return;
         }
-        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -234,16 +255,16 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
-                "Please log into the scheduling system to view more details.\n\n" +
+                "Please log into Shiftly to view more details.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 employee.getFirstName(),
                 shift.getStartTime().format(formatter),
                 shift.getEndTime().format(formatter),
                 shift.getDepartment().getName(),
                 shift.getNotes() != null ? shift.getNotes() : "None"
             ));
-            
             mailSender.send(message);
             log.info("Shift assignment notification sent to {}", employee.getEmail());
         } catch (Exception e) {
@@ -263,7 +284,6 @@ public class NotificationService {
             log.info("Email notifications disabled");
             return;
         }
-        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -275,16 +295,16 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
-                "Please log into the scheduling system to view the updated details.\n\n" +
+                "Please log into Shiftly to view the updated details.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 employee.getFirstName(),
                 shift.getStartTime().format(formatter),
                 shift.getEndTime().format(formatter),
                 shift.getDepartment().getName(),
                 shift.getNotes() != null ? shift.getNotes() : "None"
             ));
-            
             mailSender.send(message);
             log.info("Shift update notification sent to {}", employee.getEmail());
         } catch (Exception e) {
@@ -304,7 +324,6 @@ public class NotificationService {
             log.info("Email notifications disabled");
             return;
         }
-        
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -316,14 +335,14 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n\n" +
                 "If you have any questions, please contact your manager.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 employee.getFirstName(),
                 shift.getStartTime().format(formatter),
                 shift.getEndTime().format(formatter),
                 shift.getDepartment().getName()
             ));
-            
             mailSender.send(message);
             log.info("Shift cancellation notification sent to {}", employee.getEmail());
         } catch (Exception e) {
@@ -357,8 +376,9 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n\n" +
                 "Thank you for making your shift available.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 originalEmployee.getFirstName(),
                 pickupEmployee.getFirstName(),
                 pickupEmployee.getLastName(),
@@ -386,8 +406,9 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "Thank you for your flexibility.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 pickupEmployee.getFirstName(),
                 shift.getStartTime().format(formatter),
                 shift.getEndTime().format(formatter),
@@ -426,9 +447,10 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
-                "Please log into the scheduling system to accept or decline this offer.\n\n" +
+                "Please log into Shiftly to accept or decline this offer.\n\n" +
+                "You can log in at: https://useshiftly.com/\n\n" +
                 "Best regards,\n" +
-                "Hotel Management",
+                "Shiftly Team",
                 targetEmployee.getFirstName(),
                 requestingEmployee.getFirstName(),
                 requestingEmployee.getLastName(),
@@ -470,9 +492,10 @@ public class NotificationService {
                     "Date & Time: %s - %s\n" +
                     "Department: %s\n" +
                     "Notes: %s\n\n" +
-                    "Log into the scheduling system to pick up this shift if interested.\n\n" +
+                    "Log into Shiftly to pick up this shift if interested.\n\n" +
+                    "You can log in at: https://useshiftly.com/\n\n" +
                     "Best regards,\n" +
-                    "Hotel Management",
+                    "Shiftly Team",
                     employee.getFirstName(),
                     requestingEmployee.getFirstName(),
                     requestingEmployee.getLastName(),
@@ -494,42 +517,38 @@ public class NotificationService {
      * @param trade the ShiftTrade entity
      */
     public void sendTradeAcceptedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
-        // Notify all managers/admins
-        List<com.hotel.scheduler.model.Employee> managers = employeeRepository.findAll().stream()
-            .filter(e -> e.getRole() == com.hotel.scheduler.model.Employee.Role.MANAGER || e.getRole() == com.hotel.scheduler.model.Employee.Role.ADMIN)
-            .toList();
-        for (com.hotel.scheduler.model.Employee manager : managers) {
-            createNotification(
-                manager,
-                "Shift Trade Accepted - Pending Manager Approval",
-                String.format("A shift trade has been accepted by %s %s and is now pending your approval. Shift: %s Date & Time: %s - %s Department: %s",
-                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getFirstName() : "",
-                    trade.getPickupEmployee() != null ? trade.getPickupEmployee().getLastName() : "",
-                    trade.getShift() != null ? trade.getShift().getId() : "",
-                    trade.getShift() != null ? trade.getShift().getStartTime().format(formatter) : "",
-                    trade.getShift() != null ? trade.getShift().getEndTime().format(formatter) : "",
-                    trade.getShift() != null && trade.getShift().getDepartment() != null ? trade.getShift().getDepartment().getName() : ""
-                ),
-                "TRADE_ACCEPTED"
-            );
+        // Only notify pickup and requesting employees
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
         }
-        // Notify pickup employee
+        // Notify pickup employee by email
         if (trade.getPickupEmployee() != null) {
-            createNotification(
-                trade.getPickupEmployee(),
-                "Shift Trade Accepted",
-                "You have accepted a shift trade. Awaiting manager approval.",
-                "TRADE_ACCEPTED"
-            );
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(trade.getPickupEmployee().getEmail());
+                message.setSubject("Shift Trade Accepted");
+                message.setText("You have accepted a shift trade. Awaiting manager approval.");
+                mailSender.send(message);
+                log.info("Trade accepted email sent to pickup employee {}", trade.getPickupEmployee().getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send trade accepted email to pickup employee {}: {}", trade.getPickupEmployee().getEmail(), e.getMessage());
+            }
         }
-        // Notify requesting employee
+        // Notify requesting employee by email
         if (trade.getRequestingEmployee() != null) {
-            createNotification(
-                trade.getRequestingEmployee(),
-                "Shift Trade Accepted",
-                "Your shift trade has been accepted and is pending manager approval.",
-                "TRADE_ACCEPTED"
-            );
+            try {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(trade.getRequestingEmployee().getEmail());
+                message.setSubject("Shift Trade Accepted");
+                message.setText("Your shift trade has been accepted and is pending manager approval.");
+                mailSender.send(message);
+                log.info("Trade accepted email sent to requesting employee {}", trade.getRequestingEmployee().getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send trade accepted email to requesting employee {}: {}", trade.getRequestingEmployee().getEmail(), e.getMessage());
+            }
         }
     }
 
@@ -538,24 +557,77 @@ public class NotificationService {
      * @param trade the ShiftTrade entity
      */
     public void sendTradeRejectedNotification(com.hotel.scheduler.model.ShiftTrade trade) {
+        // Only notify pickup and requesting employees
         String reasonMsg = trade.getReason() != null ? " Reason: " + trade.getReason() : "";
-        // Notify pickup employee
         if (trade.getPickupEmployee() != null) {
-            createNotification(
-                trade.getPickupEmployee(),
-                "Shift Trade Rejected",
-                "Your shift trade was rejected by a manager." + reasonMsg,
-                "TRADE_REJECTED"
-            );
+            com.hotel.scheduler.model.Notification notification = com.hotel.scheduler.model.Notification.builder()
+                .userId(trade.getPickupEmployee().getId())
+                .title("Shift Trade Rejected")
+                .message("Your shift trade was rejected by a manager." + reasonMsg)
+                .type("TRADE_REJECTED")
+                .read(false)
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+            notificationRepository.save(notification);
         }
-        // Notify requesting employee
         if (trade.getRequestingEmployee() != null) {
-            createNotification(
-                trade.getRequestingEmployee(),
-                "Shift Trade Rejected",
-                "Your shift trade was rejected by a manager." + reasonMsg,
-                "TRADE_REJECTED"
-            );
+            com.hotel.scheduler.model.Notification notification = com.hotel.scheduler.model.Notification.builder()
+                .userId(trade.getRequestingEmployee().getId())
+                .title("Shift Trade Rejected")
+                .message("Your shift trade was rejected by a manager." + reasonMsg)
+                .type("TRADE_REJECTED")
+                .read(false)
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+            notificationRepository.save(notification);
+        }
+    }
+    
+    /**
+     * Sends a registration email to a new employee with their temporary password and login instructions.
+     * Also saves a notification for the employee.
+     * @param employee The new employee
+     * @param tempPassword The temporary password
+     */
+    public void sendEmployeeRegistrationEmail(Employee employee, String tempPassword) {
+        // Save notification entity
+        com.hotel.scheduler.model.Notification notification = com.hotel.scheduler.model.Notification.builder()
+            .userId(employee.getId())
+            .title("Welcome to Shiftly Scheduler")
+            .message(String.format(
+                "Your account has been created. Temporary password: %s. You will be required to change your password on first login.",
+                tempPassword
+            ))
+            .type("info")
+            .read(false)
+            .timestamp(java.time.LocalDateTime.now())
+            .build();
+        notificationRepository.save(notification);
+        // Send email
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(employee.getEmail());
+            message.setSubject("Welcome to Shiftly Scheduler - Account Created");
+            message.setText(String.format(
+                "Hello %s,\n\n" +
+                "Your account has been created on Shiftly Scheduler.\n" +
+                "You can log in at: https://useshiftly.com\n\n" +
+                "Your temporary password: %s\n" +
+                "You will be required to change your password on first login.\n\n" +
+                "If you have any questions, please contact your manager or HR.\n\n" +
+                "Best regards,\nShiftly Scheduler Team",
+                employee.getFirstName(),
+                tempPassword
+            ));
+            mailSender.send(message);
+            log.info("Registration email sent to {}", employee.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send registration email to {}: {}", employee.getEmail(), e.getMessage());
         }
     }
 }

@@ -19,8 +19,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:noreply@useshiftly.com}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -37,13 +37,13 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:NUkpwZybKi2HGV0AHPf704rpGkubj94WXL7hYH7hoyDs}
+    secret: ${JWT_SECRET}
     expiration: 86400000 # 24 hours
   cors:
     allowed-origins: ${CORS_ORIGINS:https://scheduler.asluxeco.org}
   notification:
     email:
-      from: ${EMAIL_FROM:noreply@asluxeco.org}
+      from: ${EMAIL_FROM:noreply@useshiftly.com}
       enabled: ${EMAIL_ENABLED:true}
 
 logging:

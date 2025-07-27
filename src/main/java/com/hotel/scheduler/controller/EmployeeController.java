@@ -3,6 +3,7 @@ package com.hotel.scheduler.controller;
 import com.hotel.scheduler.dto.EmployeeDTO;
 import com.hotel.scheduler.model.Employee;
 import com.hotel.scheduler.service.EmployeeService;
+import com.hotel.scheduler.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -79,6 +80,7 @@ public class EmployeeController {
      */
 
     private final com.hotel.scheduler.service.UserActionLogService userActionLogService;
+    private final NotificationService notificationService;
 
     /**
      * Lists all employees assigned to a specific building.
@@ -381,8 +383,15 @@ public class EmployeeController {
             newEmployee.setRole(Employee.Role.valueOf(roleStr));
             // Set active status
             newEmployee.setActive(true);
-            // Create employee with email notification and temp password
+
+            // Generate a secure temporary password
+            String tempPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!";
+            newEmployee.setPassword(tempPassword); // Will be hashed by service
+            newEmployee.setMustChangePassword(true);
+
+            // Create employee and persist
             Employee saved = employeeService.createEmployee(newEmployee, true);
+
             // Assign department if provided
             if (employeeData.containsKey("departmentId")) {
                 Long deptId = Long.valueOf(employeeData.get("departmentId").toString());
@@ -393,6 +402,10 @@ public class EmployeeController {
                 Long buildingId = Long.valueOf(employeeData.get("buildingId").toString());
                 employeeService.assignEmployeeToBuilding(saved, buildingId);
             }
+
+            // Send registration email with temp password
+            notificationService.sendEmployeeRegistrationEmail(saved, tempPassword);
+
             userActionLogService.logAction("CREATED_EMPLOYEE", currentUser.getId());
             return ResponseEntity.ok(EmployeeDTO.fromEntity(saved));
         } catch (Exception e) {
@@ -437,6 +450,33 @@ public class EmployeeController {
         }
         employeeService.updatePassword(currentUser, newPassword);
         return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+    }
+
+    /**
+     * Sends a new temporary password to the employee's email and sets mustChangePassword=true.
+     * Endpoint: POST /api/employees/{id}/send-temp-password
+     * Only accessible by MANAGER or ADMIN.
+     */
+    @PostMapping("/{id}/send-temp-password")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<?> sendTempPasswordToEmployee(@PathVariable Long id, @RequestBody Map<String, String> req,
+                                                       @AuthenticationPrincipal Employee currentUser) {
+        try {
+            Employee employee = employeeService.getEmployeeById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+            assertAdminForBuilding(employee.getBuilding().getId(), currentUser);
+            // Generate new temp password
+            String tempPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!";
+            employeeService.updatePassword(employee, tempPassword);
+            employee.setMustChangePassword(true);
+            employeeService.updateEmployee(employee);
+            notificationService.sendEmployeeRegistrationEmail(employee, tempPassword);
+            userActionLogService.logAction("SENT_TEMP_PASSWORD", currentUser.getId());
+            return ResponseEntity.ok(new MessageResponse("Temporary password sent to employee's email."));
+        } catch (Exception e) {
+            userActionLogService.logAction("FAILED_SEND_TEMP_PASSWORD", currentUser.getId());
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
     }
 
     // Helper class for response messages

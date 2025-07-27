@@ -912,9 +912,9 @@ public class ShiftService {
             shift.setAvailableForPickup(false);
             shiftRepository.save(shift);
         }
-        // Notify both employees
+        // Notify both employees asynchronously (only accepted notification)
         notificationService.sendTradeAcceptedNotification(trade);
-        notificationService.sendTradeRejectedNotification(trade);
+        // Do NOT send rejected notification here
     }
 
     /**

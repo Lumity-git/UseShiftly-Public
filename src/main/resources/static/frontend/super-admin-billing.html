@@ -5,14 +5,104 @@
     <title>Super Admin Billing Panel</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .billing-table { width: 100%; border-collapse: collapse; margin-top: 2em; }
-        .billing-table th, .billing-table td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        .billing-table th { background: #f5f5f5; }
-        .section { margin-bottom: 2em; }
-        .btn { padding: 6px 16px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        .btn:disabled { background: #aaa; }
-        .success { color: green; }
-        .error { color: red; }
+        body {
+            background: #f8fafc;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 2em;
+            color: #2c3e50;
+            font-size: 2.2em;
+            letter-spacing: 1px;
+        }
+        .section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            margin: 2em auto;
+            padding: 2em 2em 1em 2em;
+            max-width: 900px;
+        }
+        .section h2 {
+            color: #007bff;
+            margin-bottom: 1em;
+            font-size: 1.3em;
+        }
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+            background: #f9f9f9;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .billing-table th, .billing-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: center;
+        }
+        .billing-table th {
+            background: #eaf4ff;
+            color: #007bff;
+            font-weight: 600;
+        }
+        .billing-table tbody tr:hover {
+            background: #f0f8ff;
+        }
+        .btn {
+            padding: 8px 20px;
+            background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 6px 10px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: background 0.2s;
+        }
+        .btn:hover:not(:disabled) {
+            background: linear-gradient(90deg, #0056b3 0%, #007bff 100%);
+        }
+        .btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: 500;
+        }
+        .error {
+            color: #c0392b;
+            font-weight: 500;
+        }
+        #receiptStatus {
+            margin-left: 1em;
+            font-size: 1em;
+        }
+        input[type="month"] {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        #analytics, #receipts, #events {
+            margin-top: 1em;
+        }
+        @media (max-width: 600px) {
+            .section {
+                padding: 1em;
+            }
+            .billing-table th, .billing-table td {
+                padding: 6px 4px;
+                font-size: 0.95em;
+            }
+        }
     </style>
 </head>
 <body>

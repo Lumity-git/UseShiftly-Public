@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Trading - Shiftly Scheduler</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -328,12 +328,13 @@
             const safeTrades = Array.isArray(allTrades) ? allTrades.filter(trade => trade && trade.shiftId) : [];
             if (currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN') {
                 myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
-                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && !trade.pickupEmployeeId);
+                // Show all trades with status AVAILABLE_FOR_PICKUP, except those posted by the current user
+                availableTrades = safeTrades.filter(trade => trade.status === 'AVAILABLE_FOR_PICKUP' && trade.requestingEmployeeId !== currentUser.id);
                 // Pending approval: show all trades with status PENDING_APPROVAL and a pickupEmployeeId
                 pendingApprovals = safeTrades.filter(trade => trade.status === 'PENDING_APPROVAL' && trade.pickupEmployeeId);
             } else {
                 myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
-                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && trade.requestingEmployeeId !== currentUser.id && !trade.pickupEmployeeId);
+                availableTrades = safeTrades.filter(trade => trade.status === 'AVAILABLE_FOR_PICKUP' && trade.requestingEmployeeId !== currentUser.id);
                 pendingApprovals = [];
             }
             displayTrades();
@@ -439,20 +440,49 @@
             // Adapt to ShiftTradeResponse DTO
             const isOwner = trade.requestingEmployeeId === currentUser.id;
             const isPickup = trade.pickupEmployeeId === currentUser.id;
-            let statusText = trade.status || 'PENDING';
-            let statusClass = `status-${(trade.status || 'PENDING').toLowerCase()}`;
-            if (trade.status === 'SCHEDULED') {
-                statusText = 'SCHEDULED';
-                statusClass = 'status-approved';
-            } else if (trade.status === 'PENDING_APPROVAL') {
-                statusText = 'Pending Approval by Manager';
-                statusClass = 'status-pending';
-            } else if (trade.status === 'REJECTED') {
-                statusText = 'Rejected by Manager';
-                statusClass = 'status-rejected';
-            } else if (trade.status === 'CANCELLED') {
-                statusText = 'Cancelled';
-                statusClass = 'status-rejected';
+            // Map backend enums to display text and CSS class
+            let statusText = '';
+            let statusClass = '';
+            switch (trade.status) {
+                case 'AVAILABLE_FOR_PICKUP':
+                    statusText = 'Available for Pickup';
+                    statusClass = 'status-available';
+                    break;
+                case 'ACCEPTED':
+                    statusText = 'Accepted';
+                    statusClass = 'status-accepted';
+                    break;
+                case 'DENIED':
+                    statusText = 'Denied';
+                    statusClass = 'status-denied';
+                    break;
+                case 'PENDING_APPROVAL':
+                    statusText = 'Pending Approval by Manager';
+                    statusClass = 'status-pending';
+                    break;
+                case 'SCHEDULED':
+                    statusText = 'Scheduled';
+                    statusClass = 'status-scheduled';
+                    break;
+                case 'CANCELLED':
+                    statusText = 'Cancelled';
+                    statusClass = 'status-cancelled';
+                    break;
+                case 'PENDING':
+                    statusText = 'Pending';
+                    statusClass = 'status-pending';
+                    break;
+                case 'APPROVED':
+                    statusText = 'Approved';
+                    statusClass = 'status-approved';
+                    break;
+                case 'REJECTED':
+                    statusText = 'Rejected';
+                    statusClass = 'status-rejected';
+                    break;
+                default:
+                    statusText = trade.status || 'Unknown';
+                    statusClass = `status-${(trade.status || 'unknown').toLowerCase()}`;
             }
             return `
                 <div class="trade-card">

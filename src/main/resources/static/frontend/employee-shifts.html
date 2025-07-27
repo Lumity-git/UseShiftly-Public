@@ -481,8 +481,10 @@
         function showPickPerson(shiftId) {
             // Fetch eligible coworkers from backend
             fetchEmployees().then(employees => {
+                // Only show regular employees (exclude ADMIN, MANAGER, SUPER_ADMIN) and exclude current user
+                const eligible = employees.filter(e => e.role === 'EMPLOYEE' && e.id !== currentUser.id);
                 const container = document.getElementById('pickPersonContainer');
-                if (employees.length === 0) {
+                if (eligible.length === 0) {
                     container.innerHTML = '<div>No eligible employees found.</div>';
                     return;
                 }
@@ -490,7 +492,7 @@
                     <label for="pickPersonSelect">Select Employee:</label>
                     <select id="pickPersonSelect">
                         <option value="">-- Select --</option>
-                        ${employees.map(e => `<option value="${e.id}">${e.firstName} ${e.lastName} (${e.role})</option>`).join('')}
+                        ${eligible.map(e => `<option value="${e.id}">${e.firstName} ${e.lastName} (${e.role})</option>`).join('')}
                     </select>
                     <button class="btn btn-success" onclick="submitPostToPerson(${shiftId})">Send Shift Offer</button>
                 `;
