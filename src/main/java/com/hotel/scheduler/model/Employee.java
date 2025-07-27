@@ -13,7 +13,32 @@ import java.util.List;
 @Entity
 @Table(name = "employees")
 public class Employee implements UserDetails {
+    /**
+     * Billing package type for admin: "Basic" or "Pro".
+     * Basic: 5 free users, $4/user/month after 5, website/email access.
+     * Pro: $7/user/month, no free users, website/email/mobile app access.
+     */
+    @Column(name = "package_type", nullable = false)
+    private String packageType = "Basic"; // Set to "Pro" for Pro tier
+
+    public String getPackageType() {
+        return packageType;
+    }
+
+    public void setPackageType(String packageType) {
+        this.packageType = packageType;
+    }
     // --- Setters ---
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
     public void setId(Long id) { this.id = id; }
     public void setUuid(String uuid) { this.uuid = uuid; }
     public void setEmail(String email) { this.email = email; }

@@ -72,41 +72,44 @@
                             </div>
                             <div class="info-value" id="roleInfo">Loading...</div>
                         </div>
-                    <div class="info-item">
-                        <div class="info-label">
-                            <span>📅</span>
-                            Date of Birth
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>📅</span>
+                                Date of Birth
+                            </div>
+                            <div class="info-value" id="dateOfBirth">Loading...</div>
                         </div>
-                        <div class="info-value" id="dateOfBirth">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">
-                            <span>🏠</span>
-                            Address
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>🏠</span>
+                                Address
+                            </div>
+                            <div class="info-value" id="address">Loading...</div>
+                            <button class="action-btn btn-secondary" id="editAddressBtn">Edit</button>
                         </div>
-                        <div class="info-value" id="address">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">
-                            <span>✅</span>
-                            Account Status
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>✅</span>
+                                Account Status
+                            </div>
+                            <div class="info-value" id="accountStatus">Active</div>
                         </div>
-                        <div class="info-value" id="accountStatus">Active</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">
-                            <span>📞</span>
-                            Phone Number
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>📞</span>
+                                Phone Number
+                            </div>
+                            <div class="info-value" id="phoneNumber">Loading...</div>
+                            <button class="action-btn btn-secondary" id="editPhoneBtn">Edit</button>
                         </div>
-                        <div class="info-value" id="phoneNumber">Loading...</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">
-                            <span>🚨</span>
-                            Emergency Contact
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span>🚨</span>
+                                Emergency Contact
+                            </div>
+                            <div class="info-value" id="emergencyContact">Loading...</div>
+                            <button class="action-btn btn-secondary" id="editEmergencyBtn">Edit</button>
                         </div>
-                        <div class="info-value" id="emergencyContact">Loading...</div>
-                    </div>
                     </div>
 
                     <h3 class="section-title">Quick Actions</h3>
@@ -123,6 +126,39 @@
                             <span>🏠</span>
                             Back to Dashboard
                         </a>
+                        <button class="action-btn btn-warning" id="changePasswordBtn">
+                            <span>🔒</span>
+                            Change Password
+                        </button>
+                    </div>
+
+                    <div id="editModal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close" id="closeEditModal">&times;</span>
+                            <h3 id="editModalTitle">Edit</h3>
+                            <form id="editForm">
+                                <div id="editFields"></div>
+                                <button type="submit" class="action-btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="passwordModal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <span class="close" id="closePasswordModal">&times;</span>
+                            <h3>Change Password</h3>
+                            <form id="passwordForm">
+                                <div class="form-group">
+                                    <label for="currentPassword">Current Password</label>
+                                    <input type="password" id="currentPassword" name="currentPassword" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newPassword">New Password</label>
+                                    <input type="password" id="newPassword" name="newPassword" required>
+                                </div>
+                                <button type="submit" class="action-btn btn-primary">Update Password</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -276,7 +312,72 @@
             window.location.href = 'login.html';
         }
 
-        // ...existing code...
+        // Add event listeners for edit buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('editAddressBtn').onclick = function() { openEditModal('address'); };
+            document.getElementById('editPhoneBtn').onclick = function() { openEditModal('phoneNumber'); };
+            document.getElementById('editEmergencyBtn').onclick = function() { openEditModal('emergencyContact'); };
+            document.getElementById('changePasswordBtn').onclick = function() { document.getElementById('passwordModal').style.display = 'block'; };
+            document.getElementById('closeEditModal').onclick = function() { document.getElementById('editModal').style.display = 'none'; };
+            document.getElementById('closePasswordModal').onclick = function() { document.getElementById('passwordModal').style.display = 'none'; };
+        });
+
+        function openEditModal(field) {
+            const modal = document.getElementById('editModal');
+            const editFields = document.getElementById('editFields');
+            let html = '';
+            let title = '';
+            if (field === 'address') {
+                title = 'Edit Address';
+                html = `<div class="form-group"><label for="editAddress">New Address</label><input type="text" id="editAddress" name="editAddress" required></div>`;
+            } else if (field === 'phoneNumber') {
+                title = 'Edit Phone Number';
+                html = `<div class="form-group"><label for="editPhone">New Phone Number</label><input type="text" id="editPhone" name="editPhone" required></div>`;
+            } else if (field === 'emergencyContact') {
+                title = 'Edit Emergency Contact';
+                html = `<div class="form-group"><label for="editEmergencyName">Contact Name</label><input type="text" id="editEmergencyName" name="editEmergencyName"><label for="editEmergencyRelation">Relation</label><input type="text" id="editEmergencyRelation" name="editEmergencyRelation"><label for="editEmergencyPhone">Phone</label><input type="text" id="editEmergencyPhone" name="editEmergencyPhone"></div>`;
+            }
+            document.getElementById('editModalTitle').textContent = title;
+            editFields.innerHTML = html;
+            modal.style.display = 'block';
+            document.getElementById('editForm').onsubmit = function(e) {
+                e.preventDefault();
+                saveEdit(field);
+            };
+        }
+
+        async function saveEdit(field) {
+            let payload = {};
+            if (field === 'address') {
+                payload.address = document.getElementById('editAddress').value;
+            } else if (field === 'phoneNumber') {
+                payload.phoneNumber = document.getElementById('editPhone').value;
+            } else if (field === 'emergencyContact') {
+                payload.emergencyContactName = document.getElementById('editEmergencyName').value;
+                payload.emergencyContactRelation = document.getElementById('editEmergencyRelation').value;
+                payload.emergencyContactPhone = document.getElementById('editEmergencyPhone').value;
+            }
+            try {
+                await authManager.apiRequest('/employees/profile', 'PUT', payload);
+                document.getElementById('editModal').style.display = 'none';
+                loadProfile();
+            } catch (error) {
+                alert('Failed to update. Please try again.');
+            }
+        }
+
+        document.getElementById('passwordForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            try {
+                await authManager.apiRequest('/employees/change-password', 'POST', { currentPassword, newPassword });
+                document.getElementById('passwordModal').style.display = 'none';
+                alert('Password updated successfully!');
+            } catch (error) {
+                alert('Failed to update password. Please try again.');
+            }
+        };
     </script>
 </body>
 </html>

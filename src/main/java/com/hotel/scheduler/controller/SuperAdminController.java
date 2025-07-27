@@ -19,6 +19,34 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SuperAdminController {
+    /**
+     * Send Stripe invoice to all admins.
+     */
+    @PostMapping("/invoice/send-all")
+    public ResponseEntity<?> sendInvoiceToAllAdmins() {
+        List<Employee> admins = employeeService.getAllAdmins();
+        int sent = 0;
+        for (Employee admin : admins) {
+            try {
+                employeeService.sendStripeInvoice(admin);
+                sent++;
+            } catch (Exception e) {
+                // Log error, continue
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Invoices sent to " + sent + " admins."));
+    }
+
+    /**
+     * Send Stripe invoice to a specific admin.
+     */
+    @PostMapping("/invoice/send/{id}")
+    public ResponseEntity<?> sendInvoiceToAdmin(@PathVariable Long id) {
+        Employee admin = employeeService.getAdminById(id)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        employeeService.sendStripeInvoice(admin);
+        return ResponseEntity.ok(Map.of("message", "Invoice sent to admin " + id));
+    }
     private final EmployeeService employeeService;
 
     /**
@@ -42,6 +70,11 @@ public class SuperAdminController {
         admin.role = Employee.Role.ADMIN;
         admin.active = true;
         // Set password and other fields as needed
+        if (req.containsKey("packageType") && req.get("packageType") != null && !req.get("packageType").isEmpty()) {
+            admin.setPackageType(req.get("packageType"));
+        } else {
+            admin.setPackageType("Basic");
+        }
         Employee saved = employeeService.createAdmin(admin, req.get("password"));
         return ResponseEntity.ok(saved);
     }
@@ -56,6 +89,7 @@ public class SuperAdminController {
         if (req.containsKey("firstName")) admin.firstName = req.get("firstName");
         if (req.containsKey("lastName")) admin.lastName = req.get("lastName");
         if (req.containsKey("email")) admin.email = req.get("email");
+        if (req.containsKey("packageType")) admin.setPackageType(req.get("packageType"));
         Employee updated = employeeService.updateEmployee(admin);
         return ResponseEntity.ok(updated);
     }

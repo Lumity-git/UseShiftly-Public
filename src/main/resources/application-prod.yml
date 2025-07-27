@@ -55,3 +55,6 @@ logging:
     org.hibernate: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY}

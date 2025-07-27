@@ -35,6 +35,21 @@ import org.springframework.context.annotation.Primary;
 @Transactional
 public class EmployeeService implements UserDetailsService {
     /**
+     * Sends a Stripe invoice email to the given admin.
+     * This should generate a Stripe payment link and email it to the admin.
+     */
+    public void sendStripeInvoice(Employee admin) {
+        // TODO: Integrate with StripeService to generate invoice/payment link
+        // Example:
+        // String stripeLink = stripeService.createInvoiceLink(admin);
+        String stripeLink = "https://pay.stripe.com/invoice/demo/" + admin.getId(); // Placeholder
+        String subject = "Your Hotel Scheduler Invoice";
+        String body = "Hello " + admin.getFirstName() + ",<br><br>"
+            + "Please pay your invoice using the following Stripe link:<br>"
+            + "<a href='" + stripeLink + "'>Pay Invoice</a><br><br>Thank you.";
+        notificationService.sendEmail(admin.getEmail(), subject, body);
+    }
+    /**
      * Returns the first building assigned to the given manager.
      * @param managerId the manager's employee ID
      * @return Optional<Building> (first found)
@@ -256,12 +271,20 @@ public class EmployeeService implements UserDetailsService {
     }
 
     /**
-     * Permanently deletes an employee by ID.
-     * 
+     * Soft deletes an employee by setting deleted_at timestamp.
      * @param id Employee ID
      */
     public void deleteEmployee(Long id) {
-        employeeRepository.deleteById(id);
+        Optional<Employee> employeeOpt = employeeRepository.findById(id);
+        if (employeeOpt.isPresent()) {
+            Employee employee = employeeOpt.get();
+            // Add the deletedAt field if not present in Employee class:
+            // private LocalDateTime deletedAt;
+            // And its setter:
+            // public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+            employee.setDeletedAt(java.time.LocalDateTime.now());
+            employeeRepository.save(employee);
+        }
     }
 
     /**
@@ -363,6 +386,10 @@ public class EmployeeService implements UserDetailsService {
         admin.setPassword(passwordEncoder.encode(password));
         admin.setRole(Employee.Role.ADMIN);
         admin.setActive(true);
+        // Ensure packageType is set, default to Basic if missing
+        if (admin.getPackageType() == null || admin.getPackageType().isEmpty()) {
+            admin.setPackageType("Basic");
+        }
         return employeeRepository.save(admin);
     }
 

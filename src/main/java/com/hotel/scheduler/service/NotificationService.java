@@ -29,6 +29,29 @@ import java.util.List;
 @Slf4j
 public class NotificationService {
     /**
+     * Sends a general email to the specified recipient.
+     * @param to recipient email address
+     * @param subject email subject
+     * @param body email body
+     */
+    public void sendEmail(String to, String subject, String body) {
+        if (!emailEnabled) {
+            log.info("Email notifications disabled");
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+            log.info("General email sent to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send general email to {}: {}", to, e.getMessage());
+        }
+    }
+    /**
      * Notifies the requesting employee that their shift trade offer was declined.
      * Sends both email and in-app notification.
      * @param trade the shift trade that was declined

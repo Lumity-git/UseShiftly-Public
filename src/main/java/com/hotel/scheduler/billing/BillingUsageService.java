@@ -12,6 +12,17 @@ import java.util.*;
 @RequiredArgsConstructor
 public class BillingUsageService {
     /**
+     * Returns a map of admin email to package type for billing.
+     */
+    public Map<String, String> getAdminPackageTypes() {
+        Map<String, String> result = new HashMap<>();
+        List<Employee> admins = employeeRepository.findByRoleAndActiveTrue(Employee.Role.ADMIN);
+        for (Employee admin : admins) {
+            result.put(admin.getEmail(), admin.getPackageType() != null ? admin.getPackageType() : "Basic");
+        }
+        return result;
+    }
+    /**
      * Returns a map of admin email to employee count for billing.
      * This is used by the billing calculation logic.
      */

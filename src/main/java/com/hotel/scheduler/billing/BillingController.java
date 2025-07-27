@@ -35,17 +35,22 @@ public class BillingController {
     @GetMapping("/preview")
     public Map<String, Integer> previewBills() {
         Map<String, Integer> adminEmployeeCounts = billingUsageService.getAdminEmployeeCounts();
-        return billingCalculationService.calculateAllBills(adminEmployeeCounts);
+        Map<String, String> adminPackageTypes = billingUsageService.getAdminPackageTypes();
+        return billingCalculationService.calculateAllBills(adminEmployeeCounts, adminPackageTypes);
     }
 
     // Generate and store receipts for all admins for a given period
     @PostMapping("/generate-receipts")
     public List<Map<String, Object>> generateReceipts(@RequestParam String period) {
         Map<String, Integer> adminEmployeeCounts = billingUsageService.getAdminEmployeeCounts();
+        Map<String, String> adminPackageTypes = billingUsageService.getAdminPackageTypes();
         List<Map<String, Object>> receipts = new java.util.ArrayList<>();
         for (Map.Entry<String, Integer> entry : adminEmployeeCounts.entrySet()) {
-            int amount = billingCalculationService.calculateBill(entry.getValue());
-            receipts.add(billingReceiptService.generateReceipt(entry.getKey(), amount, period));
+            String email = entry.getKey();
+            int count = entry.getValue();
+            String packageType = adminPackageTypes.getOrDefault(email, "Basic");
+            int amount = billingCalculationService.calculateBill(count, packageType);
+            receipts.add(billingReceiptService.generateReceipt(email, amount, period));
         }
         return receipts;
     }

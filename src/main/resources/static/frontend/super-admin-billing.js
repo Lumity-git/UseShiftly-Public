@@ -1,3 +1,36 @@
+// Export receipts as CSV
+function exportReceiptsCSV() {
+    fetch('/api/super-admin/billing/receipts')
+        .then(resp => resp.json())
+        .then(receipts => {
+            let csv = 'Admin,Amount,Period,Date\n';
+            receipts.forEach(r => {
+                csv += `${r.admin},${r.amount},${r.period},${r.date}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'receipts.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+}
+
+// Render audit log (placeholder, implement backend endpoint for real data)
+function renderAuditLog() {
+    fetch('/api/super-admin/billing/logs')
+        .then(resp => resp.json())
+        .then(logs => {
+            let html = '<h3>Audit Log</h3><table class="billing-table"><thead><tr><th>Event</th><th>Admin</th><th>Employee</th><th>Timestamp</th></tr></thead><tbody>';
+            logs.forEach(l => {
+                html += `<tr><td>${l.event}</td><td>${l.admin}</td><td>${l.employee}</td><td>${l.timestamp}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('auditLog').innerHTML = html;
+        });
+}
 const token = localStorage.getItem('superAdminToken');
 if (!token) window.location.href = '/frontend/super-admin-login.html';
 
@@ -33,6 +66,8 @@ function renderUsageTable(data) {
         const end = Math.min(i + batchSize, data.length);
         for (; i < end; i++) {
             const row = data[i];
+            const billableUsers = row.billableUsers !== undefined ? row.billableUsers : Math.max(0, row.employees - 5);
+            const projectedBill = row.projectedBill !== undefined ? row.projectedBill : billableUsers * 4;
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${row.adminEmail}</td>
@@ -40,9 +75,9 @@ function renderUsageTable(data) {
                 <td>${row.managers}</td>
                 <td>${row.buildings}</td>
                 <td>${row.package || ''}</td>
-                <td>${row.billableUsers !== undefined ? row.billableUsers : Math.max(0, row.employees - 5)}</td>
+                <td>${billableUsers}</td>
                 <td>${row.overFreeTier !== undefined ? row.overFreeTier : (row.employees > 5 ? 'Yes' : 'No')}</td>
-                <td>${row.projectedBill !== undefined ? row.projectedBill : ''}</td>
+                <td>${projectedBill}</td>
             `;
             tbody.appendChild(tr);
         }
@@ -51,6 +86,18 @@ function renderUsageTable(data) {
         }
     }
     renderBatch();
+
+    // Add note about deleted employees billing
+    const usageSection = document.querySelector('.section');
+    if (usageSection && !document.getElementById('deletedEmployeeNote')) {
+        const note = document.createElement('div');
+        note.id = 'deletedEmployeeNote';
+        note.style.marginTop = '12px';
+        note.style.fontSize = '0.98em';
+        note.style.color = '#555';
+        note.innerHTML = '<b>Note:</b> Employees deleted during a billing period are still billed for that period.';
+        usageSection.appendChild(note);
+    }
 }
 
 

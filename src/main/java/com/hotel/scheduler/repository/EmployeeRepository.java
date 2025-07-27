@@ -11,6 +11,12 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    /**
+     * Finds employees for an admin who were active during a billing period.
+     * Includes employees not deleted or deleted after the billing period start.
+     */
+    @Query("SELECT e FROM Employee e WHERE e.building.id = :buildingId AND (e.deletedAt IS NULL OR e.deletedAt > :periodStart)")
+    List<Employee> findActiveForBillingPeriod(@Param("buildingId") Long buildingId, @Param("periodStart") java.time.LocalDateTime periodStart);
     // Find all employees by admin (scoped to admin's buildings)
     @Query("SELECT e FROM Employee e WHERE e.building.admin.id = :adminId")
     List<Employee> findAllByAdminId(@Param("adminId") Long adminId);
