@@ -1,167 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Employee Directory - Shiftly Scheduler</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* Make all modal and input edges rounded */
-    .modal-content {
-      border-radius: 16px !important;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-    }
-
-    .modal-header,
-    .modal-title,
-    .form-group input,
-    .form-group select,
-    .form-group textarea,
-    .form-row,
-    .form-group,
-    .action-buttons button {
-      border-radius: 12px !important;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      border: 1px solid #ccc;
-      padding: 0.5em;
-    }
-
-    .modal-header {
-      position: relative;
-    }
-
-    /* Move X button outside modal header for Edit Employee */
-    #employeeModal .close {
-      position: absolute;
-      top: -18px;
-      right: -18px;
-      background: #fff;
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-      border: 1px solid #ccc;
-      width: 36px;
-      height: 36px;
-      font-size: 1.5em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 10;
-    }
-
-    #employeeModal .modal-header {
-      border-radius: 16px 16px 0 0 !important;
-    }
-
-    #employeeModal .modal-content {
-      border-radius: 16px !important;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="headerContainer">
-    <script>
-      // Use nav-manager.js to load header and navigation
-      document.addEventListener("DOMContentLoaded", function () {
-        fetch("header.html")
-          .then(res => res.text())
-          .then(html => {
-            document.getElementById("headerContainer").innerHTML = html;
-            if (window.renderNavLinks) {
-              renderNavLinks("employees.html");
-            }
-            if (window.highlightCurrentNavLink) {
-              highlightCurrentNavLink("employees.html");
-            }
-            initEmployeesPage();
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Directory - Shiftly Scheduler</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Make all modal and input edges rounded */
+      .modal-content {
+        border-radius: 16px !important;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      }
+      .modal-header, .modal-title, .form-group input, .form-group select, .form-group textarea, .form-row, .form-group, .action-buttons button {
+        border-radius: 12px !important;
+      }
+      .form-group input, .form-group select, .form-group textarea {
+        border: 1px solid #ccc;
+        padding: 0.5em;
+      }
+      .modal-header {
+        position: relative;
+      }
+      /* Move X button outside modal header for Edit Employee */
+      #employeeModal .close {
+        position: absolute;
+        top: -18px;
+        right: -18px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        border: 1px solid #ccc;
+        width: 36px;
+        height: 36px;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+      }
+      #employeeModal .modal-header {
+        border-radius: 16px 16px 0 0 !important;
+      }
+      #employeeModal .modal-content {
+        border-radius: 16px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="headerContainer">
+      <script>
+          // Use nav-manager.js to load header and navigation
+          document.addEventListener("DOMContentLoaded", function() {
+            fetch("header.html")
+              .then(res => res.text())
+              .then(html => {
+                document.getElementById("headerContainer").innerHTML = html;
+                if (window.renderNavLinks) {
+                  renderNavLinks("employees.html");
+                }
+                if (window.highlightCurrentNavLink) {
+                  highlightCurrentNavLink("employees.html");
+                }
+                initEmployeesPage();
+              });
           });
-      });
-    </script>
-  </div>
-  <div class="container">
-    <div class="filters">
-      <div class="filter-row">
-        <div class="filter-group" style="min-width: 180px">
-          <label for="searchTerm">Search Employee</label>
-          <input type="text" id="searchTerm" placeholder="Search by name, email, or phone" />
-        </div>
-        <div class="filter-group" style="min-width: 140px">
-          <label for="buildingFilter">Building</label>
-          <select id="buildingFilter">
-            <option value="">All Buildings</option>
-          </select>
-        </div>
-        <div class="filter-group" style="min-width: 140px">
-          <label for="departmentFilter">Department</label>
-          <select id="departmentFilter">
-            <option value="">All Departments</option>
-          </select>
-        </div>
-        <div class="filter-group" style="min-width: 120px">
-          <label for="roleFilter">Role</label>
-          <select id="roleFilter">
-            <option value="">All Roles</option>
-            <option value="ADMIN">Admin</option>
-            <option value="MANAGER">Manager</option>
-            <option value="EMPLOYEE">Employee</option>
-          </select>
-        </div>
+      </script>
+    </div>
+    <div class="container">
+      <div class="filters">
+        <div class="filter-row">
+          <div class="filter-group" style="min-width: 180px">
+            <label for="searchTerm">Search Employee</label>
+            <input
+              type="text"
+              id="searchTerm"
+              placeholder="Search by name, email, or phone"
+            />
+          </div>
+          <div class="filter-group" style="min-width: 140px">
+            <label for="buildingFilter">Building</label>
+            <select id="buildingFilter">
+              <option value="">All Buildings</option>
+            </select>
+          </div>
+          <div class="filter-group" style="min-width: 140px">
+            <label for="departmentFilter">Department</label>
+            <select id="departmentFilter">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div class="filter-group" style="min-width: 120px">
+            <label for="roleFilter">Role</label>
+            <select id="roleFilter">
+              <option value="">All Roles</option>
+              <option value="ADMIN">Admin</option>
+              <option value="MANAGER">Manager</option>
+              <option value="EMPLOYEE">Employee</option>
+            </select>
+          </div>
 
         <script>
-          // Hide building filter for managers
-          document.addEventListener("DOMContentLoaded", function () {
-            const userInfo = localStorage.getItem("userInfo");
-            if (userInfo) {
-              const user = JSON.parse(userInfo);
-              if (user.role === "MANAGER") {
-                document.querySelector("label[for='buildingFilter']").style.display = "none";
-                document.getElementById("buildingFilter").style.display = "none";
-              }
-              // Hide 'Admin' from role dropdown for managers
-              if (user.role === "MANAGER") {
-                const roleFilter = document.getElementById("roleFilter");
-                if (roleFilter) {
-                  Array.from(roleFilter.options).forEach(opt => {
-                    if (opt.value === "ADMIN") opt.style.display = "none";
-                  });
-                }
+        // Hide building filter for managers
+        document.addEventListener("DOMContentLoaded", function() {
+          const userInfo = localStorage.getItem("userInfo");
+          if (userInfo) {
+            const user = JSON.parse(userInfo);
+            if (user.role === "MANAGER") {
+              document.querySelector("label[for='buildingFilter']").style.display = "none";
+              document.getElementById("buildingFilter").style.display = "none";
+            }
+            // Hide 'Admin' from role dropdown for managers
+            if (user.role === "MANAGER") {
+              const roleFilter = document.getElementById("roleFilter");
+              if (roleFilter) {
+                Array.from(roleFilter.options).forEach(opt => {
+                  if (opt.value === "ADMIN") opt.style.display = "none";
+                });
               }
             }
-          });
+          }
+        });
         </script>
-        <div class="filter-group" style="min-width: 120px">
-          <label for="statusFilter">Status</label>
-          <select id="statusFilter">
-            <option value="">All Statuses</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
-        </div>
-        <div class="action-buttons" id="actionButtons" style="
+          <div class="filter-group" style="min-width: 120px">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <div
+            class="action-buttons"
+            id="actionButtons"
+            style="
               display: flex;
               gap: 0.5em;
               align-items: flex-end;
               min-width: 420px;
-            ">
-          <!-- Buttons will be populated based on user role -->
+            "
+          >
+            <!-- Buttons will be populated based on user role -->
+          </div>
         </div>
       </div>
-    </div>
 
-    <div id="alertContainer"></div>
+      <div id="alertContainer"></div>
 
-    <div id="employeesContainer">
-      <div class="loading">
-        <div class="spinner"></div>
-        <p>Loading employees...</p>
+      <div id="employeesContainer">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading employees...</p>
+        </div>
       </div>
-    </div>
 
 
 
@@ -206,15 +197,29 @@
           <div class="form-row">
             <div class="form-group">
               <label for="emergencyContactName">Emergency Contact Name</label>
-              <input type="text" id="emergencyContactName" name="emergencyContactName" />
+              <input
+                type="text"
+                id="emergencyContactName"
+                name="emergencyContactName"
+              />
             </div>
             <div class="form-group">
-              <label for="emergencyContactRelation">Emergency Contact Relation</label>
-              <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" />
+              <label for="emergencyContactRelation"
+                >Emergency Contact Relation</label
+              >
+              <input
+                type="text"
+                id="emergencyContactRelation"
+                name="emergencyContactRelation"
+              />
             </div>
             <div class="form-group">
               <label for="emergencyContactPhone">Emergency Contact Phone</label>
-              <input type="tel" id="emergencyContactPhone" name="emergencyContactPhone" />
+              <input
+                type="tel"
+                id="emergencyContactPhone"
+                name="emergencyContactPhone"
+              />
             </div>
           </div>
           <div class="form-row">
@@ -225,23 +230,23 @@
                 <option value="MANAGER">Manager</option>
                 <option value="ADMIN">Admin</option>
               </select>
-              <script>
-                // Hide 'Admin' from role dropdown in modal for managers
-                document.addEventListener("DOMContentLoaded", function () {
-                  const userInfo = localStorage.getItem("userInfo");
-                  if (userInfo) {
-                    const user = JSON.parse(userInfo);
-                    if (user.role === "MANAGER") {
-                      const roleSelect = document.getElementById("role");
-                      if (roleSelect) {
-                        Array.from(roleSelect.options).forEach(opt => {
-                          if (opt.value === "ADMIN") opt.style.display = "none";
-                        });
-                      }
-                    }
+            <script>
+            // Hide 'Admin' from role dropdown in modal for managers
+            document.addEventListener("DOMContentLoaded", function() {
+              const userInfo = localStorage.getItem("userInfo");
+              if (userInfo) {
+                const user = JSON.parse(userInfo);
+                if (user.role === "MANAGER") {
+                  const roleSelect = document.getElementById("role");
+                  if (roleSelect) {
+                    Array.from(roleSelect.options).forEach(opt => {
+                      if (opt.value === "ADMIN") opt.style.display = "none";
+                    });
                   }
-                });
-              </script>
+                }
+              }
+            });
+            </script>
             </div>
             <div class="form-group">
               <label for="department">Department</label>
@@ -267,7 +272,11 @@
             <button type="submit" class="btn btn-primary">
               💾 Save Employee
             </button>
-            <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEmployeeModal()"
+            >
               ✖ Cancel
             </button>
           </div>
@@ -288,7 +297,12 @@
           <div class="form-row">
             <div class="form-group">
               <label for="inviteFirstName">First Name</label>
-              <input type="text" id="inviteFirstName" name="firstName" required />
+              <input
+                type="text"
+                id="inviteFirstName"
+                name="firstName"
+                required
+              />
             </div>
             <div class="form-group">
               <label for="inviteLastName">Last Name</label>
@@ -322,8 +336,12 @@
           </div>
           <div class="form-group">
             <label for="inviteNotes">Notes for HR/Legal</label>
-            <textarea id="inviteNotes" name="notes" rows="3"
-              placeholder="Documentation requirements, position details, etc."></textarea>
+            <textarea
+              id="inviteNotes"
+              name="notes"
+              rows="3"
+              placeholder="Documentation requirements, position details, etc."
+            ></textarea>
           </div>
           <div class="form-group">
             <label for="expiryDays">Invitation Expires In (Days)</label>
@@ -337,7 +355,11 @@
             <button type="submit" class="btn btn-primary">
               📧 Generate Invitation Link
             </button>
-            <button type="button" class="btn btn-secondary" onclick="closeInvitationModal()">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeInvitationModal()"
+            >
               ❌ Cancel
             </button>
           </div>
@@ -356,9 +378,7 @@
           <div id="availabilityDays" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;">
             <!-- Days and time inputs will be generated here -->
           </div>
-          <div id="availabilitySummary"
-            style="background:#f8f9fa;border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#007bff;font-size:15px;display:none;">
-          </div>
+          <div id="availabilitySummary" style="background:#f8f9fa;border-radius:6px;padding:10px 14px;margin-bottom:12px;color:#007bff;font-size:15px;display:none;"></div>
           <div class="action-buttons" style="display:flex;gap:10px;justify-content:flex-end;">
             <button type="submit" class="btn btn-primary">💾 Save Availability</button>
             <button type="button" class="btn btn-secondary" onclick="closeUpdateAvailabilityModal()">❌ Cancel</button>
@@ -372,13 +392,13 @@
     <script src="nav-manager.js"></script>
     <script>
       // Modernize availability modal: generate day/time selectors and summary
-      const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      const daysOfWeek = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
       function openUpdateAvailabilityModal(employeeId) {
         document.getElementById("updateAvailabilityModal").style.display = "block";
         document.getElementById("availabilitySummary").style.display = "none";
         generateAvailabilityInputs();
         fetchAvailabilityForEmployee(employeeId);
-        document.getElementById("updateAvailabilityForm").onsubmit = function (e) {
+        document.getElementById("updateAvailabilityForm").onsubmit = function(e) {
           e.preventDefault();
           saveAvailabilityForEmployee(employeeId);
         };
@@ -431,7 +451,7 @@
             });
             showAvailabilitySummary(data);
           }
-        } catch { }
+        } catch {}
       }
       function showAvailabilitySummary(data) {
         const summaryDiv = document.getElementById("availabilitySummary");
@@ -473,26 +493,26 @@
           showAlert("Failed to save availability.", "error");
         }
 
-        // Toast function for success message
-        function showToast(message) {
-          let toast = document.createElement("div");
-          toast.className = "toast-success";
-          toast.textContent = message;
-          toast.style.position = "fixed";
-          toast.style.bottom = "32px";
-          toast.style.right = "32px";
-          toast.style.background = "#28a745";
-          toast.style.color = "#fff";
-          toast.style.padding = "12px 24px";
-          toast.style.borderRadius = "8px";
-          toast.style.fontSize = "16px";
-          toast.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-          toast.style.zIndex = "9999";
-          document.body.appendChild(toast);
-          setTimeout(() => {
-            toast.remove();
-          }, 1800);
-        }
+      // Toast function for success message
+      function showToast(message) {
+        let toast = document.createElement("div");
+        toast.className = "toast-success";
+        toast.textContent = message;
+        toast.style.position = "fixed";
+        toast.style.bottom = "32px";
+        toast.style.right = "32px";
+        toast.style.background = "#28a745";
+        toast.style.color = "#fff";
+        toast.style.padding = "12px 24px";
+        toast.style.borderRadius = "8px";
+        toast.style.fontSize = "16px";
+        toast.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+        toast.style.zIndex = "9999";
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.remove();
+        }, 1800);
+      }
       }
       // --- AUTH & PAGE INIT CLEANUP START ---
       // Unified, parameterized authentication check
@@ -615,15 +635,24 @@
           if (userNameElem) {
             userNameElem.textContent = userDisplay;
           }
-          // Redirect to change-password.html if mustChangePassword is true
-          if (currentUser.mustChangePassword === "true" || currentUser.mustChangePassword === true) {
-            window.location.href = "change-password.html";
+          // Optionally, handle mustChangePassword flag
+          if (
+            currentUser.mustChangePassword === true ||
+            currentUser.mustChangePassword === "true"
+          ) {
+            showAlert(
+              "You must change your password before continuing.",
+              "error"
+            );
+            setTimeout(() => {
+              window.location.href = "/frontend/change-password.html";
+            }, 1200);
             return;
           }
         }
       }
       // Only one DOMContentLoaded handler: fetch header, then call initEmployeesPage
-      document.addEventListener("DOMContentLoaded", function () {
+      document.addEventListener("DOMContentLoaded", function() {
         fetch("header.html")
           .then(res => res.text())
           .then(html => {
@@ -643,17 +672,45 @@
 
 
 
-
-      // Admin/manager: send temporary password to employee via email
-      async function sendTempPasswordToEmployee(employeeId, employeeEmail) {
+      // Password reset invitation link generation for employees
+      async function generateChangePasswordLinkFor(employeeId, employeeEmail) {
         try {
-          const response = await apiRequest(`/employees/${employeeId}/send-temp-password`, {
-            method: "POST",
-            body: JSON.stringify({ email: employeeEmail })
-          });
-          showAlert("Temporary password has been sent to the employee's email.", "success");
-        } catch (error) {
-          showAlert("Failed to send temporary password.", "error");
+        // Prepare invitation data for password reset
+        const invitationData = {
+          email: employeeEmail,
+          employeeId: employeeId,
+          type: "PASSWORD_RESET"
+        };
+        const response = await apiRequest("/auth/generate-invitation", {
+          method: "POST",
+          body: JSON.stringify(invitationData)
+        });
+        // Build the reset link
+        const resetUrl = `${window.location.origin}/change-password.html?code=${response.invitationCode}&token=${response.invitationToken}`;
+        // Show and set the link in the input for copy
+        const linkInput = document.getElementById(`changePasswordLink_${employeeId}`);
+        linkInput.value = resetUrl;
+        linkInput.style.display = "inline-block";
+        linkInput.style.width = "80%";
+        // Show the copy button
+        const copyBtn = document.getElementById(`copyChangePasswordBtn_${employeeId}`);
+        copyBtn.style.display = "inline-block";
+        showAlert("Password reset link generated! Click copy to copy the link.", "success");
+      } catch (error) {
+        showAlert("Failed to generate password reset link.", "error");
+      }
+      }
+
+      function copyChangePasswordLinkFor(employeeId) {
+        const linkInput = document.getElementById(`changePasswordLink_${employeeId}`);
+        if (linkInput && linkInput.value) {
+          navigator.clipboard.writeText(linkInput.value)
+            .then(() => {
+              showAlert("Password reset link copied to clipboard!", "success");
+            })
+            .catch(() => {
+              prompt("Copy this password reset link:", linkInput.value);
+            });
         }
       }
       let currentUser = null;
@@ -682,7 +739,52 @@
       });
       let buildings = [];
 
-      // ...existing code...
+      async function loadBuildingsByAdmin() {
+        try {
+          const userInfo = localStorage.getItem("userInfo");
+          if (!userInfo) return;
+          const user = JSON.parse(userInfo);
+          let buildingsResult = [];
+          // Defensive: ensure user.id is a valid number
+          if (!user.id || isNaN(Number(user.id))) {
+            console.error(
+              "User ID is missing or invalid, cannot load buildings."
+            );
+            return;
+          }
+          if (user.role === "ADMIN") {
+            buildingsResult = await apiRequest("/buildings/my-buildings");
+          } else if (user.role === "MANAGER") {
+            let result = null;
+            try {
+              result = await apiRequest("/buildings/my-building");
+            } catch (e) {
+              result = null;
+            }
+            // Accept both array and object responses for manager
+            if (Array.isArray(result) && result.length > 0) {
+              buildingsResult = result.filter(b => b && b.id);
+            } else if (result && typeof result === "object" && result.id) {
+              buildingsResult = [result];
+            } else {
+              buildingsResult = [];
+              showAlert("You are not assigned to any building. Please contact admin.", "error");
+            }
+          }
+          if (!Array.isArray(buildingsResult)) {
+            buildingsResult = [];
+          }
+          buildings = buildingsResult;
+          populateBuildingSelect();
+        } catch (error) {
+          if (error && error.status === 401) {
+            showAlert("Session expired. Please log in again.", "error");
+            setTimeout(() => logout(), 1200);
+          } else {
+            console.error("Failed to load buildings:", error);
+          }
+        }
+      }
 
       function populateBuildingSelect() {
         const select = document.getElementById("buildingFilter");
@@ -959,26 +1061,39 @@
         };
 
         try {
+          console.debug("apiRequest: endpoint", endpoint, "options", options);
           const response = await fetch(url, config);
+          console.debug("apiRequest: response status", response.status, "url", url);
+
           if (response.status === 401) {
+            console.warn("apiRequest: Unauthorized (401)");
             logout();
             return;
           }
+
           if (!response.ok) {
+            // Try to parse error message from backend
             let errorMsg = `HTTP error! status: ${response.status}`;
             try {
               const text = await response.text();
               errorMsg = text || errorMsg;
-            } catch { }
+            } catch {}
             console.error("apiRequest: error response", errorMsg);
             showAlert(errorMsg, "error");
             throw new Error(errorMsg);
           }
+
+          // Check if response is JSON before parsing
           const contentType = response.headers.get("content-type");
+          console.debug("apiRequest: content-type", contentType);
           if (contentType && contentType.includes("application/json")) {
-            return await response.json();
+            const json = await response.json();
+            console.debug("apiRequest: response JSON", json);
+            return json;
           } else {
-            return await response.text();
+            const text = await response.text();
+            console.debug("apiRequest: response text", text);
+            return text;
           }
         } catch (error) {
           console.error("API Request failed:", error);
@@ -1011,24 +1126,32 @@
 
       async function loadEmployees() {
         try {
+          console.debug("loadEmployees: currentUser", currentUser);
           let buildingId = "";
           const buildingFilter = document.getElementById("buildingFilter");
           if (buildingFilter) {
             buildingId = buildingFilter.value;
           }
           let endpoint = "/employees";
+          // For managers, only load employees for their assigned building
           if (currentUser && currentUser.role === "MANAGER") {
+            console.debug("loadEmployees: manager buildings", buildings);
             if (buildings.length === 0) {
+              // No building assigned, do not load employees
+              console.warn("loadEmployees: manager has no building assigned");
               employees = [];
               document.getElementById("employeesContainer").innerHTML =
                 '<div class="alert alert-error">You are not assigned to any building. Please contact admin.</div>';
               return;
             }
+            // Use manager-specific endpoint
             endpoint = "/employees/my-building";
           } else if (buildingId) {
             endpoint = `/employees/by-building/${buildingId}`;
           }
+          console.debug("loadEmployees: endpoint", endpoint);
           employees = await apiRequest(endpoint);
+          console.debug("loadEmployees: employees result", employees);
           if (!employees || !Array.isArray(employees)) employees = [];
           renderEmployees();
         } catch (error) {
@@ -1111,7 +1234,6 @@
         });
         const batchSize = 10;
         let i = 0;
-
         function renderBatch() {
           const end = Math.min(i + batchSize, filteredToShow.length);
           for (; i < end; i++) {
@@ -1119,28 +1241,92 @@
             let html = '<div class="employee-card">';
             html += '<div class="employee-header">';
             html += "<div>";
-            html += '<div class="employee-name">' + employee.firstName + " " + employee.lastName + '</div>';
-            html += '<div class="employee-role role-' + employee.role.toLowerCase() + '">' + employee.role + '</div>';
+            html +=
+              '<div class="employee-name">' +
+              employee.firstName +
+              " " +
+              employee.lastName +
+              "</div>";
+            html +=
+              '<div class="employee-role role-' +
+              employee.role.toLowerCase() +
+              '">' +
+              employee.role +
+              "</div>";
             html += "</div>";
-            html += '<div class="employee-status">' + (employee.active ? "✅ Active" : "❌ Inactive") + '</div>';
+            html +=
+              '<div class="employee-status">' +
+              (employee.active ? "✅ Active" : "❌ Inactive") +
+              "</div>";
             html += "</div>";
             html += '<div class="employee-info">';
-            html += '<div class="employee-detail"><strong>Email:</strong> <span>' + employee.email + '</span></div>';
-            html += '<div class="employee-detail"><strong>Phone:</strong> <span>' + (employee.phoneNumber || "Not provided") + '</span></div>';
-            html += '<div class="employee-detail"><strong>Department:</strong> <span>' + (employee.departmentName || "Unassigned") + '</span></div>';
-            html += '<div class="employee-detail"><strong>Joined:</strong> <span>' + formatDate(employee.createdAt) + '</span></div>';
+            html +=
+              '<div class="employee-detail"><strong>Email:</strong> <span>' +
+              employee.email +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Phone:</strong> <span>' +
+              (employee.phoneNumber || "Not provided") +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Department:</strong> <span>' +
+              (employee.departmentName || "Unassigned") +
+              "</span></div>";
+            html +=
+              '<div class="employee-detail"><strong>Joined:</strong> <span>' +
+              formatDate(employee.createdAt) +
+              "</span></div>";
             html += "</div>";
             html += '<div class="employee-actions">';
-            html += '<button class="btn btn-primary btn-small" onclick="viewEmployeeSchedule(' + employee.id + ')">📅 Schedule</button>';
-            if (canManageEmployees() && !(currentUser && currentUser.role === "MANAGER" && employee.role === "ADMIN")) {
-              html += '<button class="btn btn-secondary btn-small" onclick="editEmployee(' + employee.id + ')">✏️ Edit</button>';
-              html += '<button class="btn ' + (employee.active ? "btn-warning" : "btn-success") + ' btn-small" onclick="toggleEmployeeStatus(' + employee.id + ', ' + !employee.active + ')">' + (employee.active ? "⏸️ Deactivate" : "▶️ Activate") + '</button>';
-              html += '<button class="btn btn-info btn-small" onclick="openUpdateAvailabilityModal(' + employee.id + ')">🕒 Update Availability</button>';
+            html +=
+              '<button class="btn btn-primary btn-small" onclick="viewEmployeeSchedule(' +
+              employee.id +
+              ')">📅 Schedule</button>';
+            if (
+              canManageEmployees() &&
+              !(
+                currentUser &&
+                currentUser.role === "MANAGER" &&
+                employee.role === "ADMIN"
+              )
+            ) {
+              html +=
+                '<button class="btn btn-secondary btn-small" onclick="editEmployee(' +
+                employee.id +
+                ')">✏️ Edit</button>';
+              html +=
+                '<button class="btn ' +
+                (employee.active ? "btn-warning" : "btn-success") +
+                ' btn-small" onclick="toggleEmployeeStatus(' +
+                employee.id +
+                ", " +
+                !employee.active +
+                ')">' +
+                (employee.active ? "⏸️ Deactivate" : "▶️ Activate") +
+                "</button>";
+              html +=
+                '<button class="btn btn-info btn-small" onclick="openUpdateAvailabilityModal(' +
+                employee.id +
+                ')">🕒 Update Availability</button>';
             }
-            html += '<button class="btn btn-warning btn-small" onclick="sendTempPasswordToEmployee(' + employee.id + ', \'' + employee.email + '\')">🔒 Change Password</button>';
+            html +=
+              '<button class="btn btn-warning btn-small" onclick="generateChangePasswordLinkFor(' +
+              employee.id +
+              ", '" +
+              employee.email +
+              "')\">🔒 Change Password</button>";
+            html +=
+              '<button class="btn btn-info btn-small" id="copyChangePasswordBtn_' +
+              employee.id +
+              '" style="margin-left:4px;display:none;" onclick="copyChangePasswordLinkFor(' +
+              employee.id +
+              ')">📋 Copy</button>';
+            html +=
+              '<input type="text" id="changePasswordLink_' +
+              employee.id +
+              '" style="display:none;width:0;" readonly />';
             html += "</div>";
             html += "</div>";
-
             const div = document.createElement('div');
             div.innerHTML = html;
             while (div.firstChild) grid.appendChild(div.firstChild);
@@ -1151,16 +1337,17 @@
         }
         renderBatch();
 
-
         // Pagination controls
         let paginationHtml = "";
         if (totalPages > 1) {
           paginationHtml += '<div class="pagination-controls">';
-          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(-1)" ${currentPage === 1 ? "disabled" : ""
-            }>&laquo; Prev</button>`;
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(-1)" ${
+            currentPage === 1 ? "disabled" : ""
+          }>&laquo; Prev</button>`;
           paginationHtml += `<span class="pagination-info"> Page ${currentPage} of ${totalPages} </span>`;
-          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(1)" ${currentPage === totalPages ? "disabled" : ""
-            }>Next &raquo;</button>`;
+          paginationHtml += `<button class="btn btn-secondary" onclick="changeEmployeePage(1)" ${
+            currentPage === totalPages ? "disabled" : ""
+          }>Next &raquo;</button>`;
           paginationHtml += "</div>";
         }
         // Remove old pagination if exists
@@ -1237,7 +1424,7 @@
             departmentSelect.disabled = true;
           }
           // Add change event to buildingSelect to load departments for selected building
-          buildingSelect.onchange = async function () {
+          buildingSelect.onchange = async function() {
             const buildingId = buildingSelect.value;
             if (!buildingId || isNaN(buildingId)) {
               if (departmentSelect) {
@@ -1285,6 +1472,13 @@
             departmentSelect.disabled = false;
           }
         }
+        // Hide 'Admin' from role dropdown in modal for managers
+        const roleSelect = document.getElementById("role");
+        if (currentUser && currentUser.role === "MANAGER" && roleSelect) {
+          Array.from(roleSelect.options).forEach(opt => {
+            if (opt.value === "ADMIN") opt.style.display = "none";
+          });
+        }
         document.getElementById("employeeModal").style.display = "block";
       }
 
@@ -1314,25 +1508,33 @@
         try {
           const employee = await apiRequest(`/employees/${employeeId}`);
           editingEmployeeId = employeeId;
-          document.getElementById("employeeModalTitle").textContent = "Edit Employee";
+          document.getElementById("employeeModalTitle").textContent =
+            "Edit Employee";
           document.getElementById("firstName").value = employee.firstName;
           document.getElementById("lastName").value = employee.lastName;
           document.getElementById("email").value = employee.email;
-          document.getElementById("phoneNumber").value = employee.phoneNumber || "";
-          document.getElementById("dateOfBirth").value = employee.dateOfBirth || "";
+          document.getElementById("phoneNumber").value =
+            employee.phoneNumber || "";
+          document.getElementById("dateOfBirth").value =
+            employee.dateOfBirth || "";
           document.getElementById("address").value = employee.address || "";
-          document.getElementById("emergencyContactName").value = employee.emergencyContactName || "";
-          document.getElementById("emergencyContactRelation").value = employee.emergencyContactRelation || "";
-          document.getElementById("emergencyContactPhone").value = employee.emergencyContactPhone || "";
+          document.getElementById("emergencyContactName").value =
+            employee.emergencyContactName || "";
+          document.getElementById("emergencyContactRelation").value =
+            employee.emergencyContactRelation || "";
+          document.getElementById("emergencyContactPhone").value =
+            employee.emergencyContactPhone || "";
           document.getElementById("role").value = employee.role;
-          document.getElementById("department").value = employee.departmentId || "";
+          document.getElementById("department").value =
+            employee.departmentId || "";
           document.getElementById("active").value = employee.active.toString();
           // Show building dropdown for admins
           const buildingGroup = document.getElementById("buildingGroup");
           const buildingSelect = document.getElementById("employeeBuilding");
           if (currentUser && currentUser.role === "ADMIN") {
             buildingGroup.style.display = "block";
-            buildingSelect.innerHTML = '<option value="">Select Building</option>';
+            buildingSelect.innerHTML =
+              '<option value="">Select Building</option>';
             buildings.forEach((b) => {
               const option = document.createElement("option");
               option.value = b.id;
@@ -1344,7 +1546,21 @@
             buildingGroup.style.display = "none";
           }
           document.getElementById("employeeModal").style.display = "block";
-          // Removed password reset link UI logic; only temp password email flow is used
+          // Show the Generate Change Password Link button for admins/managers
+          const generatePasswordLinkBtn = document.getElementById(
+            "generatePasswordLinkBtn"
+          );
+          if (
+            currentUser &&
+            (currentUser.role === "ADMIN" || currentUser.role === "MANAGER")
+          ) {
+            generatePasswordLinkBtn.style.display = "inline-block";
+          } else {
+            generatePasswordLinkBtn.style.display = "none";
+          }
+          // Hide the link container by default
+          document.getElementById("changePasswordLinkContainer").style.display =
+            "none";
         } catch (error) {
           showAlert("Failed to load employee details", "error");
         }
@@ -1361,6 +1577,11 @@
           const trimmed = val.trim();
           return trimmed === "" ? null : trimmed;
         }
+        // Debug: log all form values
+        console.debug(
+          "handleEmployeeSubmit: formData",
+          Object.fromEntries(formData.entries())
+        );
         // Validate required fields
         const firstName = cleanField(formData.get("firstName"));
         const lastName = cleanField(formData.get("lastName"));
@@ -1436,20 +1657,25 @@
           adminId: user.id,
           ...(currentUser && currentUser.role === "ADMIN" ? { buildingId, buildingName } : {}),
         };
-        // ...existing code...
+        // Debug: log employeeData and adminId
+        console.debug("employeeData", employeeData, "adminId", user.id);
         try {
           let apiResult;
           if (editingEmployeeId) {
+            console.debug("Updating employee", editingEmployeeId);
             apiResult = await apiRequest(`/employees/${editingEmployeeId}`, {
               method: "PUT",
               body: JSON.stringify(employeeData),
             });
+            console.debug("Update result", apiResult);
             showAlert("Employee updated successfully!", "success");
           } else {
+            console.debug("Creating employee");
             apiResult = await apiRequest("/employees", {
               method: "POST",
               body: JSON.stringify(employeeData),
             });
+            console.debug("Create result", apiResult);
             showAlert("Employee created successfully!", "success");
           }
 
@@ -1779,7 +2005,7 @@
         editingAvailabilityEmployeeId = employeeId;
         document.getElementById('updateAvailabilityModal').style.display = 'block';
         // Generate day/time inputs
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
         let html = '';
         days.forEach(day => {
           html += `<div class="form-row">
@@ -1812,10 +2038,10 @@
           // Ignore errors for now
         }
       }
-      document.getElementById('updateAvailabilityForm').addEventListener('submit', async function (e) {
+      document.getElementById('updateAvailabilityForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const form = e.target;
-        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
         const availability = [];
         days.forEach(day => {
           const start = form[`${day}_start`].value;
@@ -1837,6 +2063,5 @@
         }
       });
     </script>
-</body>
-
+  </body>
 </html>

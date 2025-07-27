@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Trading - Shiftly Scheduler</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -328,13 +328,12 @@
             const safeTrades = Array.isArray(allTrades) ? allTrades.filter(trade => trade && trade.shiftId) : [];
             if (currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN') {
                 myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
-                // Show all trades with status AVAILABLE_FOR_PICKUP, except those posted by the current user
-                availableTrades = safeTrades.filter(trade => trade.status === 'AVAILABLE_FOR_PICKUP' && trade.requestingEmployeeId !== currentUser.id);
+                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && !trade.pickupEmployeeId);
                 // Pending approval: show all trades with status PENDING_APPROVAL and a pickupEmployeeId
                 pendingApprovals = safeTrades.filter(trade => trade.status === 'PENDING_APPROVAL' && trade.pickupEmployeeId);
             } else {
                 myTrades = safeTrades.filter(trade => trade.requestingEmployeeId === currentUser.id || trade.pickupEmployeeId === currentUser.id);
-                availableTrades = safeTrades.filter(trade => trade.status === 'AVAILABLE_FOR_PICKUP' && trade.requestingEmployeeId !== currentUser.id);
+                availableTrades = safeTrades.filter(trade => trade.status === 'PENDING' && trade.requestingEmployeeId !== currentUser.id && !trade.pickupEmployeeId);
                 pendingApprovals = [];
             }
             displayTrades();
@@ -360,22 +359,25 @@
                 return;
             }
             container.innerHTML = '';
-            const batchSize = 20;
-            let i = 0;
-            function renderBatch() {
-                const end = Math.min(i + batchSize, myTrades.length);
-                for (; i < end; i++) {
-                    const cardHtml = createTradeCard(myTrades[i], 'my');
+            if (window.AuthManager && typeof AuthManager.renderBatch === 'function') {
+                AuthManager.renderBatch({
+                    items: myTrades,
+                    batchSize: 20,
+                    renderItem: function(trade) {
+                        const div = document.createElement('div');
+                        div.innerHTML = createTradeCard(trade, 'my');
+                        return Array.from(div.childNodes);
+                    },
+                    container: container
+                });
+            } else {
+                // fallback: synchronous rendering
+                myTrades.forEach(trade => {
                     const div = document.createElement('div');
-                    div.innerHTML = cardHtml;
-                    // Flatten if cardHtml is a single root
+                    div.innerHTML = createTradeCard(trade, 'my');
                     while (div.firstChild) container.appendChild(div.firstChild);
-                }
-                if (i < myTrades.length) {
-                    setTimeout(renderBatch, 0);
-                }
+                });
             }
-            renderBatch();
         }
 
         function displayAvailableTrades() {
@@ -390,21 +392,24 @@
                 return;
             }
             container.innerHTML = '';
-            const batchSize = 20;
-            let i = 0;
-            function renderBatch() {
-                const end = Math.min(i + batchSize, availableTrades.length);
-                for (; i < end; i++) {
-                    const cardHtml = createTradeCard(availableTrades[i], 'available');
+            if (window.AuthManager && typeof AuthManager.renderBatch === 'function') {
+                AuthManager.renderBatch({
+                    items: availableTrades,
+                    batchSize: 20,
+                    renderItem: function(trade) {
+                        const div = document.createElement('div');
+                        div.innerHTML = createTradeCard(trade, 'available');
+                        return Array.from(div.childNodes);
+                    },
+                    container: container
+                });
+            } else {
+                availableTrades.forEach(trade => {
                     const div = document.createElement('div');
-                    div.innerHTML = cardHtml;
+                    div.innerHTML = createTradeCard(trade, 'available');
                     while (div.firstChild) container.appendChild(div.firstChild);
-                }
-                if (i < availableTrades.length) {
-                    setTimeout(renderBatch, 0);
-                }
+                });
             }
-            renderBatch();
         }
 
         function displayPendingApprovals() {
@@ -419,70 +424,44 @@
                 return;
             }
             container.innerHTML = '';
-            const batchSize = 20;
-            let i = 0;
-            function renderBatch() {
-                const end = Math.min(i + batchSize, pendingApprovals.length);
-                for (; i < end; i++) {
-                    const cardHtml = createTradeCard(pendingApprovals[i], 'approval');
+            if (window.AuthManager && typeof AuthManager.renderBatch === 'function') {
+                AuthManager.renderBatch({
+                    items: pendingApprovals,
+                    batchSize: 20,
+                    renderItem: function(trade) {
+                        const div = document.createElement('div');
+                        div.innerHTML = createTradeCard(trade, 'approval');
+                        return Array.from(div.childNodes);
+                    },
+                    container: container
+                });
+            } else {
+                pendingApprovals.forEach(trade => {
                     const div = document.createElement('div');
-                    div.innerHTML = cardHtml;
+                    div.innerHTML = createTradeCard(trade, 'approval');
                     while (div.firstChild) container.appendChild(div.firstChild);
-                }
-                if (i < pendingApprovals.length) {
-                    setTimeout(renderBatch, 0);
-                }
+                });
             }
-            renderBatch();
         }
 
         function createTradeCard(trade, context) {
             // Adapt to ShiftTradeResponse DTO
             const isOwner = trade.requestingEmployeeId === currentUser.id;
             const isPickup = trade.pickupEmployeeId === currentUser.id;
-            // Map backend enums to display text and CSS class
-            let statusText = '';
-            let statusClass = '';
-            switch (trade.status) {
-                case 'AVAILABLE_FOR_PICKUP':
-                    statusText = 'Available for Pickup';
-                    statusClass = 'status-available';
-                    break;
-                case 'ACCEPTED':
-                    statusText = 'Accepted';
-                    statusClass = 'status-accepted';
-                    break;
-                case 'DENIED':
-                    statusText = 'Denied';
-                    statusClass = 'status-denied';
-                    break;
-                case 'PENDING_APPROVAL':
-                    statusText = 'Pending Approval by Manager';
-                    statusClass = 'status-pending';
-                    break;
-                case 'SCHEDULED':
-                    statusText = 'Scheduled';
-                    statusClass = 'status-scheduled';
-                    break;
-                case 'CANCELLED':
-                    statusText = 'Cancelled';
-                    statusClass = 'status-cancelled';
-                    break;
-                case 'PENDING':
-                    statusText = 'Pending';
-                    statusClass = 'status-pending';
-                    break;
-                case 'APPROVED':
-                    statusText = 'Approved';
-                    statusClass = 'status-approved';
-                    break;
-                case 'REJECTED':
-                    statusText = 'Rejected';
-                    statusClass = 'status-rejected';
-                    break;
-                default:
-                    statusText = trade.status || 'Unknown';
-                    statusClass = `status-${(trade.status || 'unknown').toLowerCase()}`;
+            let statusText = trade.status || 'PENDING';
+            let statusClass = `status-${(trade.status || 'PENDING').toLowerCase()}`;
+            if (trade.status === 'SCHEDULED') {
+                statusText = 'SCHEDULED';
+                statusClass = 'status-approved';
+            } else if (trade.status === 'PENDING_APPROVAL') {
+                statusText = 'Pending Approval by Manager';
+                statusClass = 'status-pending';
+            } else if (trade.status === 'REJECTED') {
+                statusText = 'Rejected by Manager';
+                statusClass = 'status-rejected';
+            } else if (trade.status === 'CANCELLED') {
+                statusText = 'Cancelled';
+                statusClass = 'status-rejected';
             }
             return `
                 <div class="trade-card">
