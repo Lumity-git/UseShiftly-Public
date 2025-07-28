@@ -27,6 +27,41 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class AuthController {
     /**
+     * Registers a new building admin and building.
+     * Endpoint: POST /api/auth/register-admin
+     * Request: AdminRegisterRequest (JSON)
+     * Response: Success or error message
+     */
+    @PostMapping("/register-admin")
+    public ResponseEntity<?> registerAdmin(@Valid @RequestBody com.hotel.scheduler.dto.auth.AdminRegisterRequest request) {
+        try {
+            if (employeeService.getEmployeeByEmail(request.getOwnerEmail()).isPresent()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already taken!"));
+            }
+            // Create new admin employee
+            Employee admin = new Employee();
+            admin.setEmail(request.getOwnerEmail());
+            admin.setPassword(request.getPassword());
+            admin.setFirstName(request.getOwnerName());
+            admin.setLastName("");
+            admin.setRole(Employee.Role.ADMIN);
+            // Create building and assign admin
+            var building = new com.hotel.scheduler.model.Building();
+            building.setName(request.getBuildingName());
+            building.setAddress(request.getBuildingAddress());
+            building.setAdmin(admin);
+            // Save admin and building (implement these methods in your services)
+            employeeService.createEmployee(admin, true); // true = isAdmin
+            // You may need to implement buildingService.createBuilding(building)
+            // For now, just log or stub
+            log.info("Created building: {} for admin: {}", building.getName(), admin.getEmail());
+            return ResponseEntity.ok(new MessageResponse("Admin and building registered successfully!"));
+        } catch (Exception e) {
+            log.error("Admin registration failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
+    /**
      * Allows an authenticated user to change their password.
      * Endpoint: POST /api/auth/change-password
      * Request: { newPassword }

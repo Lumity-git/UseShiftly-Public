@@ -291,6 +291,7 @@
       showSuccess('Admin created!');
       document.getElementById('createForm').reset();
       fetchAdmins();
+    });
     // Send invoice logic
     async function sendInvoiceToAll() {
       if (!confirm('Send invoice to ALL admins?')) return;
@@ -393,7 +394,6 @@
         modal.style.display = 'flex';
       }
     }
-    });
     async function deleteAdmin(id) {
       if (!confirm('Delete this admin?')) return;
       const res = await fetch(`/api/super-admin/admins/${id}`, {

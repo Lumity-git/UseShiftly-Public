@@ -9,6 +9,7 @@ public class Building {
     // --- Getters ---
     public Long getId() { return id; }
     public String getName() { return name; }
+    public String getAddress() { return address; }
     public Employee getAdmin() { return admin; }
     public java.util.Set<Employee> getManagers() { return managers; }
     public List<Employee> getEmployees() { return employees; }
@@ -16,6 +17,7 @@ public class Building {
     // --- Setters ---
     public void setId(Long id) { this.id = id; }
     public void setName(String name) { this.name = name; }
+    public void setAddress(String address) { this.address = address; }
     public void setAdmin(Employee admin) { this.admin = admin; }
     public void setManagers(java.util.Set<Employee> managers) { this.managers = managers; }
     public void setEmployees(List<Employee> employees) { this.employees = employees; }
@@ -39,6 +41,9 @@ public class Building {
 
     @Column(nullable = false, unique = true)
     public String name;
+
+    @Column(nullable = false)
+    public String address;
 
     @OneToMany(mappedBy = "building")
     public List<Employee> employees;

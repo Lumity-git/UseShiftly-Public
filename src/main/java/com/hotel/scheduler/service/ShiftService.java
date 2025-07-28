@@ -31,6 +31,46 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ShiftService {
     /**
+     * Scheduled task to auto-cancel pending trades and posted shifts 2 hours before shift start.
+     * Runs every 15 minutes.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 */15 * * * *")
+    @Transactional
+    public void autoCancelExpiringTradesAndPosts() {
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime cutoff = now.plusHours(2);
+        // Find all shifts starting within the next 2 hours
+        List<Shift> upcomingShifts = shiftRepository.findAll().stream()
+            .filter(s -> s.getStartTime() != null &&
+                s.getStartTime().isAfter(now) && s.getStartTime().isBefore(cutoff))
+            .collect(Collectors.toList());
+        for (Shift shift : upcomingShifts) {
+            Long shiftId = shift.getId();
+            // Cancel all PENDING trades for this shift
+            List<com.hotel.scheduler.model.ShiftTrade> trades = shiftTradeRepository.findByShiftId(shiftId);
+            for (com.hotel.scheduler.model.ShiftTrade trade : trades) {
+                if (trade.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING ||
+                    trade.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE) {
+                    trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
+                    trade.setCompletedAt(OffsetDateTime.now());
+                    shiftTradeRepository.save(trade);
+                    // Send notification to requester and/or pickup employee
+                    notificationService.sendTradeDeclinedNotification(trade);
+                }
+            }
+            // If shift is AVAILABLE_FOR_PICKUP or PENDING, set back to SCHEDULED
+            if (shift.getStatus() == Shift.ShiftStatus.AVAILABLE_FOR_PICKUP || shift.getStatus() == Shift.ShiftStatus.PENDING) {
+                shift.setStatus(Shift.ShiftStatus.SCHEDULED);
+                shift.setAvailableForPickup(false);
+                shiftRepository.save(shift);
+                // Optionally notify shift owner
+                if (shift.getEmployee() != null) {
+                    notificationService.sendShiftCancellationNotification(shift.getEmployee(), shift);
+                }
+            }
+        }
+    }
+    /**
      * Employee accepts a shift trade sent to them (or picked up from public).
      * Sets trade status to PENDING_APPROVAL for manager/admin review.
      */

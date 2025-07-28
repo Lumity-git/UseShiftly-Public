@@ -118,9 +118,36 @@
         let uploadedFiles = {};
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // Debug logs
+            console.log('---[register.html debug]---');
+            console.log('window.location.href:', window.location.href);
+            console.log('localStorage.adminVerifiedEmail:', localStorage.getItem('adminVerifiedEmail'));
             const isAuthenticated = await checkAuth();
+            console.log('isAuthenticated:', isAuthenticated);
             if (!isAuthenticated) return;
-            validateInvitation();
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const token = urlParams.get('token');
+            console.log('code:', code, 'token:', token);
+            let adminEmail = localStorage.getItem('adminVerifiedEmail');
+            let isAdminMode = !code && !token && adminEmail;
+            // Fallback: if form is hidden and adminVerifiedEmail is set, force admin mode
+            if (!isAdminMode && adminEmail) {
+                isAdminMode = true;
+                console.log('[register.html fallback] Forcing admin mode due to adminVerifiedEmail present.');
+            }
+            console.log('isAdminMode:', isAdminMode, 'adminEmail:', adminEmail);
+            if (isAdminMode) {
+                // Always show registration form for admin
+                document.getElementById('registrationForm').style.display = '';
+                setupAdminRegistration(adminEmail);
+            } else if (code && token) {
+                validateInvitation();
+            } else {
+                // If neither mode, show error
+                console.log('Registration error: Invalid registration link or session.');
+                disablePage('Invalid registration link or session. Please use a valid invitation or admin code.');
+            }
             setupEventListeners();
             updateProgress();
         });
@@ -196,12 +223,28 @@
             const token = urlParams.get('token');
             const registrationForm = document.getElementById('registrationForm');
             if (!code || !token) {
-                showAlert('Invalid invitation link. Please contact your manager for a valid invitation.', 'error');
-                if (registrationForm) registrationForm.style.display = 'none';
+                registrationForm.style.display = 'none';
+                document.getElementById('invitationInfo').style.display = 'none';
                 return;
             }
             // Validate invitation code
             validateInvitationCode(code, token);
+        }
+
+        function setupAdminRegistration() {
+            // Hide invitation info section
+            document.getElementById('invitationInfo').style.display = 'none';
+            // Show registration form
+            const registrationForm = document.getElementById('registrationForm');
+            registrationForm.style.display = '';
+            // Hide invitationCode and invitationToken fields
+            document.getElementById('invitationCode').value = '';
+            document.getElementById('invitationToken').value = '';
+            // Set email field from adminVerifiedEmail and make it editable
+            if (document.getElementById('email')) {
+                document.getElementById('email').value = arguments[0] || '';
+                document.getElementById('email').readOnly = false;
+            }
         }
 
         const API_BASE_URL = window.location.origin + '/api';
@@ -419,7 +462,6 @@
             const requiredFields = form.querySelectorAll('[required]');
             let allValid = true;
             requiredFields.forEach(field => {
-                // Remove previous highlight
                 field.style.borderColor = '#ddd';
                 if (field.type === 'checkbox') {
                     if (!field.checked) {
@@ -445,16 +487,34 @@
                 }
             });
 
-            // Password validation
             if (!validatePassword() || !validatePasswordMatch()) {
                 allValid = false;
                 document.getElementById('password').style.borderColor = '#e74c3c';
                 document.getElementById('confirmPassword').style.borderColor = '#e74c3c';
             }
 
+            // Debug: log all field values and registration mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const token = urlParams.get('token');
+            const adminEmail = localStorage.getItem('adminVerifiedEmail');
+            const isAdminMode = !code && !token && adminEmail;
+            console.log('[handleSubmit] isAdminMode:', isAdminMode, 'adminEmail:', adminEmail);
+            console.log('[handleSubmit] code:', code, 'token:', token);
+            console.log('[handleSubmit] form values:', {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                dateOfBirth: document.getElementById('dateOfBirth').value,
+                address: document.getElementById('address').value,
+                emergencyName: document.getElementById('emergencyName').value,
+                emergencyRelation: document.getElementById('emergencyRelation').value,
+                emergencyPhone: document.getElementById('emergencyPhone').value
+            });
+
             if (!allValid) {
                 showAlert('Please complete all required fields before submitting.', 'error');
-                // Defensive: hide loading overlay if present
                 var loadingOverlay = document.getElementById('loadingOverlay');
                 if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'none';
                 return;
@@ -476,7 +536,6 @@
                     } else if (input.name === 'invitationToken' || input.name === 'invitationCode') {
                         // Skip hidden input, will set below
                     } else if (input.name === 'emergencyName') {
-                        // Map to backend DTO field
                         formData.append('emergencyContactName', input.value);
                     } else if (input.name === 'emergencyRelation') {
                         formData.append('emergencyContactRelation', input.value);
@@ -487,13 +546,19 @@
                     }
                 });
 
-                // Always set invitationCode and invitationToken once, with correct values
-                const invitationCodeValue = (invitationData && invitationData.invitationCode) ? invitationData.invitationCode : document.getElementById('invitationCode').value;
-                const invitationTokenValue = (invitationData && invitationData.invitationToken) ? invitationData.invitationToken : document.getElementById('invitationToken').value;
-                formData.append('invitationCode', invitationCodeValue);
-                formData.append('invitationToken', invitationTokenValue);
+                if (!isAdminMode) {
+                    // Employee registration: set invitationCode and invitationToken
+                    const invitationCodeValue = (invitationData && invitationData.invitationCode) ? invitationData.invitationCode : document.getElementById('invitationCode').value;
+                    const invitationTokenValue = (invitationData && invitationData.invitationToken) ? invitationData.invitationToken : document.getElementById('invitationToken').value;
+                    formData.append('invitationCode', invitationCodeValue);
+                    formData.append('invitationToken', invitationTokenValue);
+                } else {
+                    // Admin registration: remove invitation fields, add admin flag
+                    formData.append('adminRegistration', 'true');
+                    // Always send the email field for admin registration
+                    formData.set('email', document.getElementById('email').value);
+                }
 
-                // Send registration data securely
                 const response = await fetch(`${API_BASE_URL}/auth/register`, {
                     method: 'POST',
                     body: formData,
@@ -501,19 +566,20 @@
                 });
 
                 if (response.ok) {
-                    // Clear previous alerts and show success
                     const container = document.getElementById('alertContainer');
                     container.innerHTML = '';
                     showAlert('Account created successfully! Redirecting to login...', 'success');
-                    // Scroll to alert
                     container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Remove invitation link from localStorage (if present)
-                    try {
-                        const code = document.getElementById('invitationCode').value;
-                        let savedInvites = JSON.parse(localStorage.getItem('invitationLinks') || '[]');
-                        savedInvites = savedInvites.filter(link => !link.includes(code));
-                        localStorage.setItem('invitationLinks', JSON.stringify(savedInvites));
-                    } catch (e) {}
+                    if (!isAdminMode) {
+                        try {
+                            const code = document.getElementById('invitationCode').value;
+                            let savedInvites = JSON.parse(localStorage.getItem('invitationLinks') || '[]');
+                            savedInvites = savedInvites.filter(link => !link.includes(code));
+                            localStorage.setItem('invitationLinks', JSON.stringify(savedInvites));
+                        } catch (e) {}
+                    } else {
+                        localStorage.removeItem('adminVerifiedEmail');
+                    }
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2500);

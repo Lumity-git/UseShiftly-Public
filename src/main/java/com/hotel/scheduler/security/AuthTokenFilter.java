@@ -68,7 +68,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
-        // Skip filter for static resources, frontend files, public endpoints
+        // Skip filter for static resources, frontend files, public endpoints, and admin registration endpoints
         if (path.startsWith("/frontend/") ||
                 path.startsWith("/static/") ||
                 path.startsWith("/public/") ||
@@ -78,7 +78,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 path.equals("/api/auth/login") ||
                 path.equals("/api/auth/register") ||
                 path.equals("/api/auth/validate-invitation") ||
-                path.equals("/api/super-admin/auth/login")) {
+                path.equals("/api/super-admin/auth/login") ||
+                path.equals("/api/auth/request-admin-access") ||
+                path.equals("/api/auth/verify-admin-code")) {
             filterChain.doFilter(request, response);
             return;
         }

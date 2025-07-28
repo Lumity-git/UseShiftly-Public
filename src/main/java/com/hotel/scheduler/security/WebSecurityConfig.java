@@ -137,6 +137,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/logs/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                .requestMatchers("/api/auth/request-admin-access").permitAll()
+                .requestMatchers("/api/auth/verify-admin-code").permitAll()
                 .anyRequest().authenticated()
             );
 

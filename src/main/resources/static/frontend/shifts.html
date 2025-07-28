@@ -1,11 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <style>
+        .custom-tooltip {
+            position: absolute;
+            background: #222;
+            color: #fff;
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13);
+            z-index: 1003;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.18s;
+            white-space: nowrap;
+        }
+    </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shift Management - Shiftly Scheduler</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .shift-row-completed {
+            background: #eee !important;
+            color: #888 !important;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
 </head>
+
 <body>
     <div id="headerContainer"></div>
     <script src="nav-manager.js"></script>
@@ -15,10 +41,44 @@
           .then(res => res.text())
           .then(html => {
             document.getElementById("headerContainer").innerHTML = html;
-            renderNavLinks("shifts.html");
-            initShiftsPage();
+            if (typeof renderNavLinks === 'function') {
+              renderNavLinks("shifts.html");
+            }
+            if (typeof initShiftsPage === 'function') {
+              initShiftsPage();
+            }
+            if (typeof loadUserInfo === 'function') {
+              loadUserInfo();
+            }
           });
+        initCustomTooltips();
       });
+      function initCustomTooltips() {
+        let tooltip;
+        function showTooltip(e) {
+          const text = e.target.getAttribute('data-tooltip');
+          if (!text) return;
+          if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            document.body.appendChild(tooltip);
+          }
+          tooltip.textContent = text;
+          tooltip.style.opacity = '1';
+          const rect = e.target.getBoundingClientRect();
+          tooltip.style.left = (rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+          tooltip.style.top = (rect.top + window.scrollY - tooltip.offsetHeight - 8) + 'px';
+        }
+        function hideTooltip() {
+          if (tooltip) tooltip.style.opacity = '0';
+        }
+        document.querySelectorAll('[data-tooltip]').forEach(btn => {
+          btn.addEventListener('mouseenter', showTooltip);
+          btn.addEventListener('mouseleave', hideTooltip);
+          btn.addEventListener('focus', showTooltip);
+          btn.addEventListener('blur', hideTooltip);
+        });
+      }
     </script>
 
     <div class="container">
@@ -56,185 +116,184 @@
                     </select>
                 </div>
             </div>
-        <div class="action-buttons">
-            <button class="btn btn-primary" onclick="openCreateShiftModal()">
-                ➕ Create New Shift
-            </button>
-            <button class="btn btn-secondary" onclick="loadShifts()">
-                🔄 Refresh
-            </button>
-            <button class="btn btn-success" onclick="exportShifts()">
-                📊 Export
-            </button>
-            <button class="btn btn-warning" onclick="openAutoScheduleModal()">
-                🤖 Auto-Schedule
-            </button>
-            <!-- Shift Templates button removed -->
-    <!-- Shift Templates Modal removed -->
-    <!-- Shift Templates JS removed -->
-        </div>
-    <!-- Auto-Schedule Modal -->
-    <div id="autoScheduleModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Auto-Schedule Shifts</h3>
-                <button class="close" onclick="closeAutoScheduleModal()">&times;</button>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openCreateShiftModal()">
+                    ➕ Create New Shift
+                </button>
+                <button class="btn btn-secondary" onclick="loadShifts()">
+                    🔄 Refresh
+                </button>
+                <button class="btn btn-success" onclick="exportShifts()">
+                    📊 Export
+                </button>
+                <button class="btn btn-warning" onclick="openAutoScheduleModal()" disabled
+                    style="opacity:0.6;cursor:not-allowed;" data-tooltip="Coming soon">
+                    🤖 Auto Schedule
+                </button>
             </div>
-            <form id="autoScheduleForm">
-                <div class="form-group">
-                    <label for="autoScheduleDepartment">Department</label>
-                    <select id="autoScheduleDepartment" name="departmentId" required></select>
+            <!-- Auto-Schedule Modal -->
+            <div id="autoScheduleModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Auto-Schedule Shifts</h3>
+                        <button class="close" onclick="closeAutoScheduleModal()">&times;</button>
+                    </div>
+                    <form id="autoScheduleForm">
+                        <div class="form-group">
+                            <label for="autoScheduleDepartment">Department</label>
+                            <select id="autoScheduleDepartment" name="departmentId" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="autoScheduleStart">Start Date</label>
+                            <input type="date" id="autoScheduleStart" name="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="autoScheduleEnd">End Date</label>
+                            <input type="date" id="autoScheduleEnd" name="endDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="autoScheduleShiftStartTime">Shift Start Time</label>
+                            <input type="time" id="autoScheduleShiftStartTime" name="shiftStartTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="autoScheduleShiftEndTime">Shift End Time</label>
+                            <input type="time" id="autoScheduleShiftEndTime" name="shiftEndTime" required>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="submit" class="btn btn-warning">🤖 Run Auto-Schedule</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="closeAutoScheduleModal()">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="autoScheduleResult"></div>
                 </div>
-                <div class="form-group">
-                    <label for="autoScheduleStart">Start Date</label>
-                    <input type="date" id="autoScheduleStart" name="startDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="autoScheduleEnd">End Date</label>
-                    <input type="date" id="autoScheduleEnd" name="endDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="autoScheduleShiftStartTime">Shift Start Time</label>
-                    <input type="time" id="autoScheduleShiftStartTime" name="shiftStartTime" required>
-                </div>
-                <div class="form-group">
-                    <label for="autoScheduleShiftEndTime">Shift End Time</label>
-                    <input type="time" id="autoScheduleShiftEndTime" name="shiftEndTime" required>
-                </div>
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-warning">🤖 Run Auto-Schedule</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeAutoScheduleModal()">Cancel</button>
-                </div>
-            </form>
-            <div id="autoScheduleResult"></div>
-        </div>
-    </div>
-    <script>
-    // Auto-Schedule Modal logic
-    function openAutoScheduleModal() {
-        const modal = document.getElementById('autoScheduleModal');
-        if (!modal) return;
-        // Populate department select
-        const deptSelect = document.getElementById('autoScheduleDepartment');
-        deptSelect.innerHTML = '';
-        departments.forEach(dept => {
-            const option = document.createElement('option');
-            option.value = dept.id;
-            option.textContent = dept.name;
-            deptSelect.appendChild(option);
-        });
-        // Set default dates
-        const start = document.getElementById('startDate').value;
-        const end = document.getElementById('endDate').value;
-        document.getElementById('autoScheduleStart').value = start;
-        document.getElementById('autoScheduleEnd').value = end;
-        document.getElementById('autoScheduleResult').innerHTML = '';
-        modal.style.display = 'block';
-        // Attach submit event robustly (remove previous, add new)
-        const form = document.getElementById('autoScheduleForm');
-        if (form) {
-            form.removeEventListener('submit', handleAutoScheduleSubmit);
-            form.addEventListener('submit', handleAutoScheduleSubmit);
-        }
-    }
+            </div>
+            <script>
+                // Auto-Schedule Modal logic
+                function openAutoScheduleModal() {
+                    const modal = document.getElementById('autoScheduleModal');
+                    if (!modal) return;
+                    // Populate department select
+                    const deptSelect = document.getElementById('autoScheduleDepartment');
+                    deptSelect.innerHTML = '';
+                    departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name;
+                        deptSelect.appendChild(option);
+                    });
+                    // Set default dates
+                    const start = document.getElementById('startDate').value;
+                    const end = document.getElementById('endDate').value;
+                    document.getElementById('autoScheduleStart').value = start;
+                    document.getElementById('autoScheduleEnd').value = end;
+                    document.getElementById('autoScheduleResult').innerHTML = '';
+                    modal.style.display = 'block';
+                    // Attach submit event robustly (remove previous, add new)
+                    const form = document.getElementById('autoScheduleForm');
+                    if (form) {
+                        form.removeEventListener('submit', handleAutoScheduleSubmit);
+                        form.addEventListener('submit', handleAutoScheduleSubmit);
+                    }
+                }
 
-    function closeAutoScheduleModal() {
-        const modal = document.getElementById('autoScheduleModal');
-        if (modal) modal.style.display = 'none';
-    }
+                function closeAutoScheduleModal() {
+                    const modal = document.getElementById('autoScheduleModal');
+                    if (modal) modal.style.display = 'none';
+                }
 
-    async function handleAutoScheduleSubmit(e) {
-        e.preventDefault();
-        console.log('handleAutoScheduleSubmit fired');
-        const deptId = document.getElementById('autoScheduleDepartment').value;
-        const startDate = document.getElementById('autoScheduleStart').value;
-        const endDate = document.getElementById('autoScheduleEnd').value;
-        let shiftStartTime = document.getElementById('autoScheduleShiftStartTime').value;
-        let shiftEndTime = document.getElementById('autoScheduleShiftEndTime').value;
-        console.log('Auto-schedule params:', { deptId, startDate, endDate, shiftStartTime, shiftEndTime, API_BASE_URL });
-        if (!deptId || !startDate || !endDate || !shiftStartTime || !shiftEndTime) {
-            showAlert('Please fill out all fields for auto-scheduling.', 'error');
-            return;
-        }
-        // Validate time range
-        // If end time is "00:00", treat as midnight of next day
-        let startParts = shiftStartTime.split(':').map(Number);
-        let endParts = shiftEndTime.split(':').map(Number);
-        let startMinutes = startParts[0] * 60 + startParts[1];
-        let endMinutes = endParts[0] * 60 + endParts[1];
-        let validTime = true;
-        if (shiftEndTime === "00:00") {
-            // Treat as 24:00 (next day)
-            endMinutes = 24 * 60;
-        }
-        if (endMinutes <= startMinutes) {
-            validTime = false;
-        }
-        if (!validTime) {
-            showAlert('End time must be after start time. If you want a shift ending at midnight, use 23:59 or "00:00" (midnight next day).', 'error');
-            return;
-        }
-        try {
-            const resultDiv = document.getElementById('autoScheduleResult');
-            resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running auto-scheduling...</div>';
-            const token = localStorage.getItem('authToken');
-            const url = `${API_BASE_URL}/auto-scheduling`;
-            console.log('POSTing to:', url);
-            // If "00:00", send as "23:59" for backend compatibility
-            let sendEndTime = shiftEndTime;
-            if (shiftEndTime === "00:00") {
-                sendEndTime = "23:59";
-            }
-            const body = {
-                departmentId: parseInt(deptId),
-                startDate,
-                endDate,
-                shiftStartTime,
-                shiftEndTime: sendEndTime
-            };
-            console.log('Request body:', body);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            });
-            console.log('Response status:', response.status);
-            if (response.status === 401 || response.status === 403) {
-                logout();
-                return;
-            }
-            if (!response.ok) {
-                let errorText = '';
-                try {
-                    errorText = await response.text();
-                } catch (e) {}
-                console.error('Auto-scheduling failed:', response.status, errorText);
-                resultDiv.innerHTML = `<div class="alert alert-error">Auto-scheduling failed (${response.status}). ${errorText ? errorText : 'Please try again.'}</div>`;
-                return;
-            }
-            const data = await response.json();
-            console.log('Auto-schedule result:', data);
-            if (data.totalShiftsScheduled === 0) {
-                resultDiv.innerHTML = `<div class="alert alert-error">No shifts were scheduled. Please check your department, date range, and shift times. Try adjusting the start/end time or ensure employees are available.</div>`;
-            } else {
-                resultDiv.innerHTML = `<div class="alert alert-success">Auto-scheduling complete!<br>
+                async function handleAutoScheduleSubmit(e) {
+                    e.preventDefault();
+                    console.log('handleAutoScheduleSubmit fired');
+                    const deptId = document.getElementById('autoScheduleDepartment').value;
+                    const startDate = document.getElementById('autoScheduleStart').value;
+                    const endDate = document.getElementById('autoScheduleEnd').value;
+                    let shiftStartTime = document.getElementById('autoScheduleShiftStartTime').value;
+                    let shiftEndTime = document.getElementById('autoScheduleShiftEndTime').value;
+                    console.log('Auto-schedule params:', { deptId, startDate, endDate, shiftStartTime, shiftEndTime, API_BASE_URL });
+                    if (!deptId || !startDate || !endDate || !shiftStartTime || !shiftEndTime) {
+                        showAlert('Please fill out all fields for auto-scheduling.', 'error');
+                        return;
+                    }
+                    // Validate time range
+                    // If end time is "00:00", treat as midnight of next day
+                    let startParts = shiftStartTime.split(':').map(Number);
+                    let endParts = shiftEndTime.split(':').map(Number);
+                    let startMinutes = startParts[0] * 60 + startParts[1];
+                    let endMinutes = endParts[0] * 60 + endParts[1];
+                    let validTime = true;
+                    if (shiftEndTime === "00:00") {
+                        // Treat as 24:00 (next day)
+                        endMinutes = 24 * 60;
+                    }
+                    if (endMinutes <= startMinutes) {
+                        validTime = false;
+                    }
+                    if (!validTime) {
+                        showAlert('End time must be after start time. If you want a shift ending at midnight, use 23:59 or "00:00" (midnight next day).', 'error');
+                        return;
+                    }
+                    try {
+                        const resultDiv = document.getElementById('autoScheduleResult');
+                        resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running auto-scheduling...</div>';
+                        const token = localStorage.getItem('authToken');
+                        const url = `${API_BASE_URL}/auto-scheduling`;
+                        console.log('POSTing to:', url);
+                        // If "00:00", send as "23:59" for backend compatibility
+                        let sendEndTime = shiftEndTime;
+                        if (shiftEndTime === "00:00") {
+                            sendEndTime = "23:59";
+                        }
+                        const body = {
+                            departmentId: parseInt(deptId),
+                            startDate,
+                            endDate,
+                            shiftStartTime,
+                            shiftEndTime: sendEndTime
+                        };
+                        console.log('Request body:', body);
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(body)
+                        });
+                        console.log('Response status:', response.status);
+                        if (response.status === 401 || response.status === 403) {
+                            logout();
+                            return;
+                        }
+                        if (!response.ok) {
+                            let errorText = '';
+                            try {
+                                errorText = await response.text();
+                            } catch (e) { }
+                            console.error('Auto-scheduling failed:', response.status, errorText);
+                            resultDiv.innerHTML = `<div class="alert alert-error">Auto-scheduling failed (${response.status}). ${errorText ? errorText : 'Please try again.'}</div>`;
+                            return;
+                        }
+                        const data = await response.json();
+                        console.log('Auto-schedule result:', data);
+                        if (data.totalShiftsScheduled === 0) {
+                            resultDiv.innerHTML = `<div class="alert alert-error">No shifts were scheduled. Please check your department, date range, and shift times. Try adjusting the start/end time or ensure employees are available.</div>`;
+                        } else {
+                            resultDiv.innerHTML = `<div class="alert alert-success">Auto-scheduling complete!<br>
                     Shifts scheduled: <b>${data.totalShiftsScheduled}</b><br>
                     Unassigned shifts: <b>${data.totalUnassigned}</b></div>`;
-            }
-            loadShifts();
-        } catch (error) {
-            console.error('Auto-scheduling JS error:', error);
-            document.getElementById('autoScheduleResult').innerHTML = `<div class="alert alert-error">Auto-scheduling failed. ${error && error.message ? error.message : ''}</div>`;
-        }
-    }
-    </script>
+                        }
+                        loadShifts();
+                    } catch (error) {
+                        console.error('Auto-scheduling JS error:', error);
+                        document.getElementById('autoScheduleResult').innerHTML = `<div class="alert alert-error">Auto-scheduling failed. ${error && error.message ? error.message : ''}</div>`;
+                    }
+                }
+            </script>
         </div>
 
         <div id="alertContainer"></div>
-        
+
         <div id="shiftsContainer">
             <div class="loading">
                 <div class="spinner"></div>
@@ -261,7 +320,8 @@
                 </div>
                 <div class="form-group">
                     <label for="employeeSearch">Search Employee</label>
-                    <input type="text" id="employeeSearch" placeholder="Type to search..." style="margin-bottom:6px;width:100%;font-size:14px;">
+                    <input type="text" id="employeeSearch" placeholder="Type to search..."
+                        style="margin-bottom:6px;width:100%;font-size:14px;">
                     <label for="shiftEmployee">Employee</label>
                     <select id="shiftEmployee" name="employeeId" required>
                         <option value="">Select Employee</option>
@@ -320,13 +380,13 @@
         async function initShiftsPage() {
             const isAuthenticated = await checkAuth(['MANAGER', 'ADMIN']);
             if (!isAuthenticated) return;
-            
+
             loadUserInfo();
             setDefaultDates();
             await loadDepartments();
             await loadEmployees();
             await loadShifts();
-            
+
             // Add event listeners
             document.getElementById('startDate').addEventListener('change', loadShifts);
             document.getElementById('endDate').addEventListener('change', loadShifts);
@@ -341,20 +401,20 @@
         async function checkAuth(roles) {
             const token = localStorage.getItem('authToken');
             const userInfo = localStorage.getItem('userInfo');
-            
+
             if (!token || !userInfo) {
                 window.location.href = 'login.html';
                 return false;
             }
-            
+
             const user = JSON.parse(userInfo);
-            
+
             // Redirect employees to their own shifts page
             if (user.role === 'EMPLOYEE') {
                 window.location.href = 'employee-shifts.html';
                 return false;
             }
-            
+
             try {
                 const response = await fetch(`${API_BASE_URL}/auth/validate`, {
                     method: 'GET',
@@ -439,7 +499,7 @@
         async function apiRequest(endpoint, options = {}) {
             const token = localStorage.getItem('authToken');
             const url = `${API_BASE_URL}${endpoint}`;
-            
+
             const config = {
                 headers: {
                     'Content-Type': 'application/json',
@@ -451,7 +511,7 @@
 
             try {
                 const response = await fetch(url, config);
-                
+
                 if (response.status === 401) {
                     logout();
                     return;
@@ -481,13 +541,13 @@
 
         async function loadEmployees() {
             try {
-            // Use correct API for managers and admins
-            let endpoint = '/employees';
-            if (currentUser?.role === 'MANAGER') {
-                endpoint = '/employees/my-building';
-            }
-            employees = await apiRequest(endpoint);
-            populateEmployeeSelects();
+                // Use correct API for managers and admins
+                let endpoint = '/employees';
+                if (currentUser?.role === 'MANAGER') {
+                    endpoint = '/employees/my-building';
+                }
+                employees = await apiRequest(endpoint);
+                populateEmployeeSelects();
             } catch (error) {
                 console.error('Failed to load employees:', error);
             }
@@ -515,7 +575,7 @@
                 renderShifts();
             } catch (error) {
                 console.error('Failed to load shifts:', error);
-                document.getElementById('shiftsContainer').innerHTML = 
+                document.getElementById('shiftsContainer').innerHTML =
                     '<div class="alert alert-error">Failed to load shifts. Please try again.</div>';
             }
         }
@@ -530,7 +590,7 @@
                 } else {
                     select.innerHTML = '<option value="">Select Department</option>';
                 }
-                
+
                 departments.forEach(dept => {
                     const option = document.createElement('option');
                     option.value = dept.id;
@@ -540,27 +600,33 @@
             });
         }
 
+        function getShiftRowClass(shift) {
+            // Mark completed shifts gray and disable actions
+            let isCompleted = shift.status === 'COMPLETED' || new Date(shift.endTime) < new Date();
+            return isCompleted ? 'shift-row-completed' : '';
+        }
+
         // Add JS to filter employee select options
         function updateEmployeeOptionsCache() {
             const select = document.getElementById('shiftEmployee');
             if (select) {
-                allEmployeeOptions = Array.from(select.options).map(opt => ({value: opt.value, text: opt.textContent}));
+                allEmployeeOptions = Array.from(select.options).map(opt => ({ value: opt.value, text: opt.textContent }));
             }
         }
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // After employees are loaded, cache all options
             setTimeout(() => {
                 updateEmployeeOptionsCache();
                 const select = document.getElementById('shiftEmployee');
                 if (select) {
-                    select.addEventListener('change', function() {
+                    select.addEventListener('change', function () {
                         showSelectedEmployeeAvailability();
                     });
                 }
             }, 500);
             const searchInput = document.getElementById('employeeSearch');
             if (searchInput) {
-                searchInput.addEventListener('input', function() {
+                searchInput.addEventListener('input', function () {
                     const term = searchInput.value.toLowerCase();
                     const select = document.getElementById('shiftEmployee');
                     if (!select) return;
@@ -612,27 +678,17 @@
             const selects = ['employeeFilter', 'shiftEmployee'];
             selects.forEach(selectId => {
                 const select = document.getElementById(selectId);
-                if (!select) return;
-                select.disabled = false;
                 if (selectId === 'employeeFilter') {
                     select.innerHTML = '<option value="">All Employees</option>';
                 } else {
                     select.innerHTML = '<option value="">Select Employee</option>';
                 }
-                if (Array.isArray(employees) && employees.length > 0) {
-                    employees.forEach(emp => {
-                        const option = document.createElement('option');
-                        option.value = emp.id;
-                        option.textContent = `${emp.firstName} ${emp.lastName}`;
-                        select.appendChild(option);
-                    });
-                } else {
-                    // No employees found
+                employees.forEach(emp => {
                     const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No employees found';
+                    option.value = emp.id;
+                    option.textContent = `${emp.firstName} ${emp.lastName}`;
                     select.appendChild(option);
-                }
+                });
             });
             updateEmployeeOptionsCache();
         }
@@ -654,7 +710,7 @@
                     const shift = shifts[i];
                     // Custom status badge for tradeStatus PENDING_APPROVAL
                     let statusText = formatStatus(shift.status);
-                    let statusClass = `status-${shift.status.toLowerCase()}`;
+                    let statusClass = `status-${shift.status ? shift.status.toLowerCase() : ''}`;
                     if (shift.tradeStatus === 'PENDING_APPROVAL' && shift.postedBy === currentUser?.id) {
                         statusText = 'Pending Approval by Manager';
                         statusClass = 'status-pending-approval';
@@ -691,7 +747,7 @@
                             ` : ''}
                         </div>
                         <div class="shift-actions">
-                            ${canManageShifts() ? `
+                            ${(typeof canManageShifts === 'function' && canManageShifts()) ? `
                                 <button class="btn btn-primary btn-small" onclick="editShift(${shift.id})">
                                     ✏️ Edit
                                 </button>
@@ -699,7 +755,7 @@
                                     🗑️ Delete
                                 </button>
                             ` : ''}
-                            ${shift.status === 'SCHEDULED' && shift.employeeId === currentUser?.id ? `
+                            ${(shift.status === 'SCHEDULED' && shift.employeeId === currentUser?.id) ? `
                                 <button class="btn btn-warning btn-small" onclick="openTradeModal(${shift.id})">
                                     🔁 Trade
                                 </button>
@@ -707,7 +763,7 @@
                                     📢 Post Shift
                                 </button>
                             ` : ''}
-                            ${shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser?.id ? `
+                            ${(shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser?.id) ? `
                                 <button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">
                                     ✋ Pick Up
                                 </button>
@@ -725,23 +781,180 @@
 
         // Modal functions
         function openCreateShiftModal() {
-        editingShiftId = null;
-        document.getElementById('shiftModalTitle').textContent = 'Create New Shift';
-        document.getElementById('shiftForm').reset();
-        document.getElementById('shiftModal').style.display = 'block';
-        // Attach submit event listener robustly
-        const shiftForm = document.getElementById('shiftForm');
-        if (shiftForm) {
-            shiftForm.removeEventListener('submit', handleShiftSubmit); // Remove previous to avoid duplicates
-            shiftForm.addEventListener('submit', handleShiftSubmit);
-        }
-        // If an employee is selected, show their availability
-        setTimeout(() => {
-            const select = document.getElementById('shiftEmployee');
-            if (select && select.value) {
-                showSelectedEmployeeAvailability();
+            editingShiftId = null;
+            document.getElementById('shiftModalTitle').textContent = 'Create New Shift';
+            document.getElementById('shiftForm').reset();
+            document.getElementById('shiftModal').style.display = 'block';
+            // Remove previous warning if present
+            let warning = document.getElementById('dateWarning');
+            if (warning) warning.remove();
+            // Attach submit event listener robustly
+            const shiftForm = document.getElementById('shiftForm');
+            if (shiftForm) {
+                shiftForm.removeEventListener('submit', handleShiftSubmit);
+                shiftForm.addEventListener('submit', handleShiftSubmit);
             }
-        }, 10);
+            // Add listener to start date input for past date check
+            setTimeout(() => {
+                const startInput = document.getElementById('shiftStartTime');
+                if (startInput) {
+                    startInput.addEventListener('change', function () {
+                        let selected = new Date(startInput.value);
+                        let now = new Date();
+                        let warning = document.getElementById('dateWarning');
+                        if (warning) warning.remove();
+                        if (selected < now) {
+                            let warnDiv = document.createElement('div');
+                            warnDiv.id = 'dateWarning';
+                            warnDiv.style.color = 'red';
+                            warnDiv.style.margin = '8px 0';
+                            warnDiv.textContent = 'That day has passed. Please choose a day in the future.';
+                            startInput.parentNode.insertBefore(warnDiv, startInput.nextSibling);
+                        }
+                    });
+                }
+            }, 10);
+            // If admin, show building select and filter employees by building/department
+            if (currentUser?.role === 'ADMIN') {
+                let form = document.getElementById('shiftForm');
+                let buildingGroup = document.getElementById('buildingGroup');
+                if (!buildingGroup) {
+                    buildingGroup = document.createElement('div');
+                    buildingGroup.className = 'form-group';
+                    buildingGroup.id = 'buildingGroup';
+                    buildingGroup.innerHTML = `
+                    <label for="shiftBuilding">Building</label>
+                    <select id="shiftBuilding" name="buildingId" required>
+                        <option value="">Select Building</option>
+                    </select>
+                `;
+                    form.insertBefore(buildingGroup, form.firstChild);
+                }
+                // Fetch buildings for admin and populate select
+                const buildingSelect = document.getElementById('shiftBuilding');
+                buildingSelect.innerHTML = '<option value="">Select Building</option>';
+                (async function () {
+                    try {
+                        const token = localStorage.getItem('authToken');
+                        const response = await fetch(`${API_BASE_URL}/buildings/my-buildings`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        if (response.ok) {
+                            const buildings = await response.json();
+                            if (Array.isArray(buildings)) {
+                                const seenBuildingIds = new Set();
+                                buildings.forEach(b => {
+                                    if (!seenBuildingIds.has(b.id)) {
+                                        const option = document.createElement('option');
+                                        option.value = b.id;
+                                        option.textContent = b.name;
+                                        buildingSelect.appendChild(option);
+                                        seenBuildingIds.add(b.id);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        // Optionally show error
+                    }
+                })();
+                buildingSelect.style.display = '';
+                // Add change listener to building and department selects to filter employees and departments
+                buildingSelect.addEventListener('change', function () {
+                    populateDepartmentsForBuilding();
+                    filterEmployeeOptionsByBuildingDept();
+                });
+                const deptSelect = document.getElementById('shiftDepartment');
+                deptSelect.addEventListener('change', function () {
+                    filterEmployeeOptionsByBuildingDept();
+                });
+                // Initial filter for departments and employees
+                setTimeout(() => {
+                    populateDepartmentsForBuilding();
+                    filterEmployeeOptionsByBuildingDept();
+                }, 10);
+                // Helper to filter departments by selected building (for admin)
+                function populateDepartmentsForBuilding() {
+                    const deptSelect = document.getElementById('shiftDepartment');
+                    if (!deptSelect) return;
+                    deptSelect.innerHTML = '<option value="">Select Department</option>';
+                    let buildingId = document.getElementById('shiftBuilding')?.value;
+                    const seenDeptIds = new Set();
+                    departments.forEach(dept => {
+                        if (buildingId && String(dept.buildingId) !== String(buildingId)) return;
+                        if (seenDeptIds.has(dept.id)) return;
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name;
+                        deptSelect.appendChild(option);
+                        seenDeptIds.add(dept.id);
+                    });
+                    // If no departments for building, keep only default option
+                    if (deptSelect.options.length === 1) {
+                        deptSelect.selectedIndex = 0;
+                    }
+                }
+            } else if (currentUser?.role === 'MANAGER') {
+                let buildingGroup = document.getElementById('buildingGroup');
+                if (buildingGroup) {
+                    buildingGroup.style.display = 'none';
+                }
+                const deptSelect = document.getElementById('shiftDepartment');
+                deptSelect.innerHTML = '<option value="">Select Department</option>';
+                const seenDeptIds = new Set();
+                departments.forEach(dept => {
+                    if (String(dept.buildingId) === String(currentUser.buildingId) && !seenDeptIds.has(dept.id)) {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name;
+                        deptSelect.appendChild(option);
+                        seenDeptIds.add(dept.id);
+                    }
+                });
+                deptSelect.addEventListener('change', function () {
+                    filterEmployeeOptionsByBuildingDept(currentUser.buildingId);
+                });
+                setTimeout(() => {
+                    filterEmployeeOptionsByBuildingDept(currentUser.buildingId);
+                }, 10);
+            }
+            // If an employee is selected, show their availability
+            setTimeout(() => {
+                const select = document.getElementById('shiftEmployee');
+                if (select && select.value) {
+                    showSelectedEmployeeAvailability();
+                }
+            }, 10);
+        }
+
+        function filterEmployeeOptionsByBuildingDept() {
+            // Accept buildingId as argument for manager filtering
+            let buildingId = arguments.length > 0 ? arguments[0] : (document.getElementById('shiftBuilding')?.value);
+            const deptId = document.getElementById('shiftDepartment')?.value;
+            const select = document.getElementById('shiftEmployee');
+            if (!select) return;
+            select.innerHTML = '<option value="">Select Employee</option>';
+            const seenEmpIds = new Set();
+            employees.forEach(emp => {
+                // For admin, filter by selected building
+                if (currentUser?.role === 'ADMIN') {
+                    if (buildingId && String(emp.buildingId) !== String(buildingId)) return;
+                }
+                // For both admin/manager, filter by department if selected
+                if (deptId && String(emp.departmentId) !== String(deptId)) return;
+                if (seenEmpIds.has(emp.id)) return;
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.firstName} ${emp.lastName}`;
+                select.appendChild(option);
+                seenEmpIds.add(emp.id);
+            });
+            // Always update cache after changing options
+            updateEmployeeOptionsCache();
         }
 
         // Show selected employee's availability in modal
@@ -863,21 +1076,21 @@
             try {
                 const shift = await apiRequest(`/shifts/${shiftId}`);
                 editingShiftId = shiftId;
-                
+
                 document.getElementById('shiftModalTitle').textContent = 'Edit Shift';
                 document.getElementById('shiftStartTime').value = formatForInput(shift.startTime);
                 document.getElementById('shiftEndTime').value = formatForInput(shift.endTime);
                 document.getElementById('shiftEmployee').value = shift.employeeId || '';
                 document.getElementById('shiftDepartment').value = shift.departmentId;
                 document.getElementById('shiftNotes').value = shift.notes || '';
-                
-            document.getElementById('shiftModal').style.display = 'block';
-            // Attach submit event listener robustly
-            const shiftForm = document.getElementById('shiftForm');
-            if (shiftForm) {
-                shiftForm.removeEventListener('submit', handleShiftSubmit);
-                shiftForm.addEventListener('submit', handleShiftSubmit);
-            }
+
+                document.getElementById('shiftModal').style.display = 'block';
+                // Attach submit event listener robustly
+                const shiftForm = document.getElementById('shiftForm');
+                if (shiftForm) {
+                    shiftForm.removeEventListener('submit', handleShiftSubmit);
+                    shiftForm.addEventListener('submit', handleShiftSubmit);
+                }
             } catch (error) {
                 showAlert('Failed to load shift details', 'error');
             }
@@ -1056,7 +1269,7 @@
                     try {
                         const error = await response.json();
                         if (error && error.message) errorMsg = error.message;
-                    } catch (e) {}
+                    } catch (e) { }
                     showAlert(errorMsg, 'error');
                 }
             } catch (error) {
@@ -1086,7 +1299,7 @@
                     try {
                         const error = await response.json();
                         if (error && error.message) errorMsg = error.message;
-                    } catch (e) {}
+                    } catch (e) { }
                     showAlert(errorMsg, 'error');
                 }
             } catch (error) {
@@ -1103,25 +1316,25 @@
             const today = new Date();
             const nextWeek = new Date(today);
             nextWeek.setDate(today.getDate() + 7);
-            
+
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
             document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
         }
 
         // Ensure all filter controls trigger loadShifts and preserve selections
-        document.getElementById('startDate').addEventListener('change', function() {
+        document.getElementById('startDate').addEventListener('change', function () {
             loadShifts();
         });
-        document.getElementById('endDate').addEventListener('change', function() {
+        document.getElementById('endDate').addEventListener('change', function () {
             loadShifts();
         });
-        document.getElementById('departmentFilter').addEventListener('change', function() {
+        document.getElementById('departmentFilter').addEventListener('change', function () {
             loadShifts();
         });
-        document.getElementById('employeeFilter').addEventListener('change', function() {
+        document.getElementById('employeeFilter').addEventListener('change', function () {
             loadShifts();
         });
-        document.getElementById('statusFilter').addEventListener('change', function() {
+        document.getElementById('statusFilter').addEventListener('change', function () {
             loadShifts();
         });
         // On page load, set default dates and load selections
@@ -1132,7 +1345,7 @@
             document.getElementById('startDate').value = today.toISOString().split('T')[0];
             document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
         }
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             setDefaultDatesAndSelections();
             loadShifts();
         });
@@ -1189,13 +1402,13 @@
         function showAlert(message, type = 'info') {
             const alertContainer = document.getElementById('alertContainer');
             const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
-            
+
             alertContainer.innerHTML = `
                 <div class="alert ${alertClass}">
                     ${message}
                 </div>
             `;
-            
+
             setTimeout(() => {
                 alertContainer.innerHTML = '';
             }, 5000);
@@ -1237,7 +1450,7 @@
         }
 
         // Close modal when clicking outside
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const shiftModal = document.getElementById('shiftModal');
             if (event.target === shiftModal) {
                 closeShiftModal();
@@ -1247,27 +1460,27 @@
                 closeTradePostModal();
             }
         }
- 
+
         function updateEmployeeOptionsCache() {
             const select = document.getElementById('shiftEmployee');
             if (select) {
-                allEmployeeOptions = Array.from(select.options).map(opt => ({value: opt.value, text: opt.textContent}));
+                allEmployeeOptions = Array.from(select.options).map(opt => ({ value: opt.value, text: opt.textContent }));
             }
         }
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // After employees are loaded, cache all options
             setTimeout(() => {
                 updateEmployeeOptionsCache();
                 const select = document.getElementById('shiftEmployee');
                 if (select) {
-                    select.addEventListener('change', function() {
+                    select.addEventListener('change', function () {
                         showSelectedEmployeeAvailability();
                     });
                 }
             }, 500);
             const searchInput = document.getElementById('employeeSearch');
             if (searchInput) {
-                searchInput.addEventListener('input', function() {
+                searchInput.addEventListener('input', function () {
                     const term = searchInput.value.toLowerCase();
                     const select = document.getElementById('shiftEmployee');
                     if (!select) return;
@@ -1335,4 +1548,5 @@
         }
     </script>
 </body>
+
 </html>

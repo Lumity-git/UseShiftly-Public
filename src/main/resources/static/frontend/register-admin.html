@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Building Admin - Shiftly Scheduler</title>
+    <link rel="stylesheet" href="style.css">
+    </style>
+</head>
+<body>
+    <body class="login-page">
+    <div class="login-container">
+      <div class="login-left">
+        <div class="logo">🏨 Shiftly Scheduler</div>
+        <div class="tagline">
+          Professional employee scheduling made simple. Streamline your operations with our comprehensive shift management system.
+        </div>
+      </div>
+      <div class="login-right">
+        <div class="login-header">
+          <h2>Request Admin Access</h2>
+          <p>Enter your details below. We'll send a verification code to your email to continue registration.</p>
+        </div>
+        <form id="adminAccessForm" class="form-card">
+          <div class="form-group">
+            <label for="firstName">First Name <span class="required">*</span></label>
+            <input type="text" id="firstName" name="firstName" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name <span class="required">*</span></label>
+            <input type="text" id="lastName" name="lastName" required>
+          </div>
+          <div class="form-group">
+            <label for="businessName">Business Name <span class="required">*</span></label>
+            <input type="text" id="businessName" name="businessName" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Business Email <span class="required">*</span></label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="requestAccessBtn">Request Access</button>
+          </div>
+        </form>
+        <div id="tosModal" class="modal" style="display:none;">
+          <div class="modal-content">
+            <span class="close" onclick="closeTosModal()">&times;</span>
+            <h3>Terms of Service</h3>
+            <p>By registering, you agree to abide by all local laws and regulations, provide accurate information, and use Shiftly Scheduler responsibly. Full terms coming soon.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </main>
+    <script>
+        const form = document.getElementById('adminAccessForm');
+        const loginRight = document.querySelector('.login-right');
+        let requestedEmail = '';
+
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const firstName = document.getElementById('firstName').value.trim();
+          const lastName = document.getElementById('lastName').value.trim();
+          const businessName = document.getElementById('businessName').value.trim();
+          const email = document.getElementById('email').value.trim();
+          if (!firstName || !lastName || !businessName || !email) {
+            alert('Please fill in all required fields.');
+            return;
+          }
+          try {
+            const response = await fetch(window.location.origin + '/api/auth/request-admin-access', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ firstName, lastName, businessName, email })
+            });
+            if (response.ok) {
+              requestedEmail = email;
+              showCodeEntry();
+            } else {
+              const error = await response.text();
+              alert(error || 'Request failed. Please try again.');
+            }
+          } catch (err) {
+            alert('Request failed. Please try again.');
+          }
+        });
+
+        function showCodeEntry() {
+          // Replace form with 6 code boxes, styled for clean, centered look
+          loginRight.innerHTML = `
+            <div class="login-header" style="background: linear-gradient(90deg, #e0ecff 0%, #f7fafd 100%); border-radius: 12px; padding: 2rem 1rem; margin-bottom: 2rem; text-align: center;">
+              <h2 style="font-size:2rem; font-weight:600; color:#2d3a4a; margin-bottom:0.5rem;">Enter Verification Code</h2>
+              <p style="color:#4a5a6a; font-size:1.1rem; margin-bottom:0;">We've sent a 6-digit code to your email. Enter it below to continue registration.</p>
+            </div>
+            <form id="codeForm" class="form-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:transparent; box-shadow:none;">
+              <div class="code-inputs" style="display:flex; gap:10px; justify-content:center; margin-bottom:24px;">
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+                <input type="text" maxlength="1" class="code-box" required pattern="[0-9]" style="width:32px;height:32px;font-size:1.2rem;text-align:center;border:1px solid #bcd0ee;border-radius:6px;outline:none;box-shadow:0 1px 4px rgba(44,62,80,0.07);background:#f7fafd;transition:border-color 0.2s;" />
+              </div>
+              <div class="form-actions" style="width:100%;display:flex;justify-content:center;">
+                <button type="submit" class="btn-primary" id="verifyCodeBtn" style="min-width:120px;font-size:1rem;">Verify Code</button>
+              </div>
+            </form>
+          `;
+          setupCodeForm();
+        }
+
+        function setupCodeForm() {
+          const codeBoxes = document.querySelectorAll('.code-box');
+          codeBoxes.forEach((box, idx) => {
+            box.addEventListener('input', function() {
+              if (box.value.length === 1 && idx < codeBoxes.length - 1) {
+                codeBoxes[idx + 1].focus();
+              }
+            });
+            box.addEventListener('keydown', function(e) {
+              if (e.key === 'Backspace' && box.value === '' && idx > 0) {
+                codeBoxes[idx - 1].focus();
+              }
+            });
+          });
+          document.getElementById('codeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            let code = '';
+            codeBoxes.forEach(box => code += box.value);
+            if (code.length !== 6 || !/^[0-9]{6}$/.test(code)) {
+              alert('Please enter the 6-digit code sent to your email.');
+              return;
+            }
+            try {
+              const response = await fetch(window.location.origin + '/api/auth/verify-admin-code', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: requestedEmail, code })
+              });
+              if (response.ok) {
+                // Set adminVerifiedEmail in localStorage for register.html detection
+                localStorage.setItem('adminVerifiedEmail', requestedEmail);
+                console.log('[register-admin.html] Set adminVerifiedEmail:', localStorage.getItem('adminVerifiedEmail'));
+                // Add a short delay to ensure localStorage is written before redirect
+                setTimeout(() => {
+                  window.location.href = 'register.html';
+                }, 300);
+              } else {
+                const error = await response.text();
+                alert(error || 'Invalid or expired code. Please try again.');
+              }
+            } catch (err) {
+              alert('Verification failed. Please try again.');
+            }
+          });
+        }
+    </script>
+</body>
+</html>

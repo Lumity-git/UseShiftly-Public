@@ -309,7 +309,6 @@
             // Show actionable shifts/trades and also show PENDING_APPROVAL for sender
             const visibleShifts = shifts.filter(shift => {
                 if (shift.tradeStatus) {
-                    // Show if tradeStatus is PENDING, POSTED, or PENDING_APPROVAL and current user is sender
                     if (["PENDING", "POSTED"].includes(shift.tradeStatus)) return true;
                     if (shift.tradeStatus === "PENDING_APPROVAL" && shift.postedBy === currentUser.id) return true;
                     return false;
@@ -318,38 +317,34 @@
             });
             visibleShifts.forEach(shift => {
                 const item = document.createElement('div');
-                item.className = 'shift-item';
+                let isCompleted = shift.status === 'COMPLETED' || new Date(shift.endTime) < new Date();
+                item.className = 'shift-item' + (isCompleted ? ' shift-completed' : '');
                 let badgeText = shift.status;
                 let badgeClass = getStatusClass(shift.status);
-                // Show special badge for both sender and receiver if tradeStatus is PENDING_APPROVAL
                 if (shift.tradeStatus === "PENDING_APPROVAL") {
                     badgeText = "Pending Approval by Manager";
                     badgeClass = "status-pending-approval";
                 }
                 let actions = `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
-                // Show Trade/Post button for scheduled shifts and not part of a trade
-                if (shift.status === 'SCHEDULED' && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
-                    actions += `<button class="btn btn-warning btn-small" onclick="openTradePostModal(${shift.id})">Trade / Post Shift</button>`;
-                }
-                // Show Cancel Post button for posted shifts by current user, not yet picked up/confirmed, and tradeStatus is POSTED
-                if (shift.status === 'POSTED' && shift.postedBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
-                    actions += `<button class="btn btn-danger btn-small" onclick="cancelPost(${shift.id})">Cancel Post</button>`;
-                }
-                // Show Cancel Trade button for posted trades to everyone or specific employee, if current user is the posting employee and tradeStatus is PENDING
-                if (shift.tradeStatus === 'PENDING' && shift.postedBy === currentUser.id) {
-                    actions += `<button class="btn btn-danger btn-small" onclick="cancelTrade(${shift.tradeId})">Cancel Trade</button>`;
-                }
-                // Show Cancel Pickup button for picked up but not confirmed shifts
-                if (shift.status === 'PICKED_UP' && shift.pickedUpBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'PENDING')) {
-                    actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
-                }
-                // Show Pick Up button for available shifts not assigned to current user and not posted by current user, and tradeStatus is POSTED
-                if (shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser.id && shift.postedBy !== currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
-                    actions += `<button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">Pick Up</button>`;
-                }
-                // Always show Cancel Pickup button for AVAILABLE_FOR_PICKUP shifts
-                if (shift.status === 'AVAILABLE_FOR_PICKUP') {
-                    actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
+                if (!isCompleted) {
+                    if (shift.status === 'SCHEDULED' && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
+                        actions += `<button class="btn btn-warning btn-small" onclick="openTradePostModal(${shift.id})">Trade / Post Shift</button>`;
+                    }
+                    if (shift.status === 'POSTED' && shift.postedBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
+                        actions += `<button class="btn btn-danger btn-small" onclick="cancelPost(${shift.id})">Cancel Post</button>`;
+                    }
+                    if (shift.tradeStatus === 'PENDING' && shift.postedBy === currentUser.id) {
+                        actions += `<button class="btn btn-danger btn-small" onclick="cancelTrade(${shift.tradeId})">Cancel Trade</button>`;
+                    }
+                    if (shift.status === 'PICKED_UP' && shift.pickedUpBy === currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'PENDING')) {
+                        actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
+                    }
+                    if (shift.status === 'AVAILABLE_FOR_PICKUP' && shift.employeeId !== currentUser.id && shift.postedBy !== currentUser.id && (!shift.tradeStatus || shift.tradeStatus === 'POSTED')) {
+                        actions += `<button class="btn btn-success btn-small" onclick="pickupShift(${shift.id})">Pick Up</button>`;
+                    }
+                    if (shift.status === 'AVAILABLE_FOR_PICKUP') {
+                        actions += `<button class="btn btn-danger btn-small" onclick="cancelPickup(${shift.id})">Cancel Pickup</button>`;
+                    }
                 }
                 item.innerHTML = `
                     <div class="shift-details">
@@ -359,6 +354,10 @@
                     </div>
                     <div class="shift-actions">${actions}</div>
                 `;
+                if (isCompleted) {
+                    item.style.background = '#eee';
+                    item.style.color = '#888';
+                }
                 list.appendChild(item);
             });
         }
@@ -836,5 +835,13 @@
             }, delay);
         }
     </script>
+    <style>
+.shift-completed {
+    background: #eee !important;
+    color: #888 !important;
+    pointer-events: none;
+    opacity: 0.7;
+}
+    </style>
 </body>
 </html>
