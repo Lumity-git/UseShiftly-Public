@@ -382,7 +382,13 @@
             loadUserInfo();
             setDefaultDates();
             await loadDepartments();
-            await loadEmployees();
+            if (currentUser?.role === 'ADMIN') {
+                // For admins, do not load employees until a building is selected
+                employees = [];
+                populateEmployeeSelects(true); // disable
+            } else {
+                await loadEmployees();
+            }
             await loadShifts();
 
             // Add event listeners
