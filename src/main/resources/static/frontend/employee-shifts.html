@@ -245,8 +245,15 @@
             const currentPeriod = document.getElementById('currentPeriod');
             calendarGrid.innerHTML = '';
 
-            // Calculate the two-week period
-            const startDate = new Date(currentWeekStart);
+            // Always start from Monday of the current week (not previous week)
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            let offset = (today.getDay() === 0) ? 6 : today.getDay() - 1;
+            // If today is Monday, offset is 0, so startDate = today
+            // If today is after Monday, offset is >0, so startDate = today - offset
+            const startDate = new Date(today);
+            startDate.setDate(today.getDate() - offset);
+            startDate.setHours(0,0,0,0);
             const endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + 13); // 14 days total
 
@@ -257,8 +264,8 @@
             const endStr = `${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${endDate.getFullYear()}`;
             currentPeriod.textContent = `${startStr} - ${endStr}`;
 
-            // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            // Add day headers (Monday to Sunday)
+            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             dayHeaders.forEach(day => {
                 const dayHeader = document.createElement('div');
                 dayHeader.className = 'calendar-day-header';
@@ -266,7 +273,7 @@
                 calendarGrid.appendChild(dayHeader);
             });
 
-            // Generate 14 days in 2 weeks
+            // Generate 14 days in 2 weeks, starting from current Monday
             for (let i = 0; i < 14; i++) {
                 const dayDate = new Date(startDate);
                 dayDate.setDate(startDate.getDate() + i);
@@ -274,14 +281,14 @@
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day two-week-day';
 
-                if (dayDate.toDateString() === new Date().toDateString()) {
+                if (dayDate.toDateString() === today.toDateString()) {
                     dayElement.classList.add('today');
                 }
 
-                // Find shifts for this day
+                // Find shifts for this day (only future or today)
                 const dayShifts = shifts.filter(shift => {
                     const shiftDate = new Date(shift.startTime);
-                    return shiftDate.toDateString() === dayDate.toDateString();
+                    return shiftDate.toDateString() === dayDate.toDateString() && shiftDate >= startDate;
                 });
 
                 dayElement.innerHTML = `
@@ -306,8 +313,12 @@
                 list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
                 return;
             }
-            // Show actionable shifts/trades and also show PENDING_APPROVAL for sender
+            // Only show shifts that are today or in the future (not old shifts)
+            const today = new Date();
+            today.setHours(0,0,0,0);
             const visibleShifts = shifts.filter(shift => {
+                const shiftDate = new Date(shift.startTime);
+                if (shiftDate < today) return false;
                 if (shift.tradeStatus) {
                     if (["PENDING", "POSTED"].includes(shift.tradeStatus)) return true;
                     if (shift.tradeStatus === "PENDING_APPROVAL" && shift.postedBy === currentUser.id) return true;
@@ -640,41 +651,43 @@
                 "July", "August", "September", "October", "November", "December"];
             currentPeriod.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
             
-            // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            // Add day headers (Monday to Sunday)
+            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             dayHeaders.forEach(day => {
                 const dayHeader = document.createElement('div');
                 dayHeader.className = 'calendar-day-header';
                 dayHeader.textContent = day;
                 calendarGrid.appendChild(dayHeader);
             });
-            
+
             // Get first day of month and number of days
             const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            // Calculate offset to previous Monday
+            let offset = (firstDay.getDay() === 0) ? 6 : firstDay.getDay() - 1;
             const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-            
-            // Generate 42 days (6 weeks)
+            startDate.setDate(startDate.getDate() - offset);
+
+            // Generate 42 days (6 weeks, Monday-Sunday rows)
             for (let i = 0; i < 42; i++) {
                 const dayDate = new Date(startDate);
                 dayDate.setDate(startDate.getDate() + i);
-                
+
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day';
-                
+
                 if (dayDate.getMonth() !== currentDate.getMonth()) {
                     dayElement.classList.add('other-month');
                 }
-                
+
                 if (dayDate.toDateString() === new Date().toDateString()) {
                     dayElement.classList.add('today');
                 }
-                
+
                 dayElement.innerHTML = `
                     <div class="day-number">${dayDate.getDate()}</div>
                     ${getShiftIndicators(dayDate)}
                 `;
-                
+
                 calendarGrid.appendChild(dayElement);
             }
         }
@@ -692,27 +705,31 @@
             const endStr = `${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${endDate.getFullYear()}`;
             currentPeriod.textContent = `${startStr} - ${endStr}`;
             
-            // Add day headers
-            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            // Add day headers (Monday to Sunday)
+            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
             dayHeaders.forEach(day => {
                 const dayHeader = document.createElement('div');
                 dayHeader.className = 'calendar-day-header';
                 dayHeader.textContent = day;
                 calendarGrid.appendChild(dayHeader);
             });
-            
-            // Generate 14 days in 2 weeks
+
+            // Generate 14 days in 2 weeks, starting from Monday
+            let offset = (startDate.getDay() === 0) ? 6 : startDate.getDay() - 1;
+            const firstMonday = new Date(startDate);
+            firstMonday.setDate(startDate.getDate() - offset);
+
             for (let i = 0; i < 14; i++) {
-                const dayDate = new Date(startDate);
-                dayDate.setDate(startDate.getDate() + i);
-                
+                const dayDate = new Date(firstMonday);
+                dayDate.setDate(firstMonday.getDate() + i);
+
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day two-week-day';
-                
+
                 if (dayDate.toDateString() === new Date().toDateString()) {
                     dayElement.classList.add('today');
                 }
-                
+
                 // Different layout for 2-week view with more detail
                 const shifts = getDetailedShiftInfo(dayDate);
                 dayElement.innerHTML = `
@@ -720,7 +737,7 @@
                     <div class="day-name">${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                     ${shifts}
                 `;
-                
+
                 calendarGrid.appendChild(dayElement);
             }
         }

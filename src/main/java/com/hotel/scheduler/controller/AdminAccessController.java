@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.hotel.scheduler.dto.AdminAccessRequest;
@@ -13,6 +12,8 @@ import com.hotel.scheduler.service.AdminAccessService;
 @RestController
 @RequestMapping("/api/auth")
 public class AdminAccessController {
+    @Autowired
+    private com.hotel.scheduler.service.EmployeeService employeeService;
     // Simple in-memory rate limiting: max 5 requests per 5 minutes per IP
     private final java.util.concurrent.ConcurrentHashMap<String, java.util.List<Long>> requestTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
     private static final int MAX_REQUESTS = 5;
@@ -37,13 +38,22 @@ public class AdminAccessController {
     public ResponseEntity<?> requestAdminAccess(@RequestBody AdminAccessRequest request) {
         String ip = getClientIp();
         if (isRateLimited(ip)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded. Please wait before trying again.");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("error", "Rate limit exceeded. Please wait before trying again."));
+        }
+        String email = request.getEmail() != null ? request.getEmail().trim() : "";
+        if (email.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Email is required."));
+        }
+        if (employeeService.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "This email is already registered. Please use a different email."));
         }
         boolean sent = adminAccessService.sendVerificationCode(request);
         if (sent) {
-            return ResponseEntity.ok("Verification code sent to email.");
+            return ResponseEntity.ok(java.util.Map.of("message", "Verification code sent to email."));
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to send verification code.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(java.util.Map.of("error", "Failed to send verification code."));
         }
     }
 
@@ -71,4 +81,5 @@ public class AdminAccessController {
             return "unknown";
         }
     }
+
 }

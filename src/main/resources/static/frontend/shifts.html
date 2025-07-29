@@ -204,13 +204,12 @@
 
                 async function handleAutoScheduleSubmit(e) {
                     e.preventDefault();
-                    console.log('handleAutoScheduleSubmit fired');
+                    
                     const deptId = document.getElementById('autoScheduleDepartment').value;
                     const startDate = document.getElementById('autoScheduleStart').value;
                     const endDate = document.getElementById('autoScheduleEnd').value;
                     let shiftStartTime = document.getElementById('autoScheduleShiftStartTime').value;
                     let shiftEndTime = document.getElementById('autoScheduleShiftEndTime').value;
-                    console.log('Auto-schedule params:', { deptId, startDate, endDate, shiftStartTime, shiftEndTime, API_BASE_URL });
                     if (!deptId || !startDate || !endDate || !shiftStartTime || !shiftEndTime) {
                         showAlert('Please fill out all fields for auto-scheduling.', 'error');
                         return;
@@ -238,8 +237,7 @@
                         resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Running auto-scheduling...</div>';
                         const token = localStorage.getItem('authToken');
                         const url = `${API_BASE_URL}/auto-scheduling`;
-                        console.log('POSTing to:', url);
-                        // If "00:00", send as "23:59" for backend compatibility
+            
                         let sendEndTime = shiftEndTime;
                         if (shiftEndTime === "00:00") {
                             sendEndTime = "23:59";
@@ -251,7 +249,7 @@
                             shiftStartTime,
                             shiftEndTime: sendEndTime
                         };
-                        console.log('Request body:', body);
+                     
                         const response = await fetch(url, {
                             method: 'POST',
                             headers: {
@@ -260,7 +258,7 @@
                             },
                             body: JSON.stringify(body)
                         });
-                        console.log('Response status:', response.status);
+                
                         if (response.status === 401 || response.status === 403) {
                             logout();
                             return;
@@ -275,7 +273,7 @@
                             return;
                         }
                         const data = await response.json();
-                        console.log('Auto-schedule result:', data);
+               
                         if (data.totalShiftsScheduled === 0) {
                             resultDiv.innerHTML = `<div class="alert alert-error">No shifts were scheduled. Please check your department, date range, and shift times. Try adjusting the start/end time or ensure employees are available.</div>`;
                         } else {

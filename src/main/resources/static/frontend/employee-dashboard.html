@@ -281,8 +281,8 @@
             <div class="logo">🏨 Shiftly Scheduler</div>
             <div class="user-info">
                 <div class="user-details">
-                    <div class="user-name" id="userName">Loading...</div>
-                    <div class="user-role" id="userRole">Loading...</div>
+                    <div class="user-name" id="userName"></div>
+                    <div class="user-role" id="userRole"></div>
                 </div>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
@@ -329,6 +329,38 @@
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script>
+        function loadUserInfo() {
+            const userNameEl = document.getElementById('userName');
+            const userRoleEl = document.getElementById('userRole');
+            const userInfo = localStorage.getItem('userInfo');
+            if (userInfo) {
+                currentUser = JSON.parse(userInfo);
+                let nameDisplay = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim();
+                let roleDisplay = `${currentUser.role || ''}`;
+                if (currentUser.departmentName) {
+                    roleDisplay += ` (${currentUser.departmentName})`;
+                }
+                if (currentUser.buildingName) {
+                    roleDisplay += ` - ${currentUser.buildingName}`;
+                }
+                userNameEl.textContent = nameDisplay || 'Employee';
+                userRoleEl.textContent = roleDisplay || '';
+            } else {
+                userNameEl.textContent = 'Loading...';
+                userRoleEl.textContent = 'Loading...';
+            }
+        }
+
+        async function initEmployeeDashboardPage() {
+            loadUserInfo();
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) return;
+            loadUserInfo();
+            await loadQuickStats();
+            loadUpcomingShifts();
+        }
+
+        window.addEventListener('DOMContentLoaded', initEmployeeDashboardPage);
         const API_BASE_URL = window.location.origin + '/api';
         let currentUser = null;
 
@@ -497,7 +529,18 @@
                 list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
                 return;
             }
-            shifts.forEach(shift => {
+            // Only show shifts that are today or in the future
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const upcoming = shifts.filter(shift => {
+                const shiftDate = new Date(shift.startTime);
+                return shiftDate >= today;
+            });
+            if (upcoming.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;">No upcoming shifts found.</div>';
+                return;
+            }
+            upcoming.forEach(shift => {
                 const item = document.createElement('div');
                 item.className = 'shift-item';
                 const dateStr = new Date(shift.startTime).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
