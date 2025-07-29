@@ -179,9 +179,9 @@
             if (response.ok) {
               requestedEmail = email;
               errorDiv.textContent = '';
-              showAlert('Code sent! Please check your email for the 6-digit verification code.', 'success', function() {
-                showCodeEntry();
-              });
+              // Show code entry UI immediately for snappier UX
+              showCodeEntry();
+              showAlert('Code sent! Please check your email for the 6-digit verification code.', 'success');
             } else if (response.status === 400) {
               const error = await response.text();
               if (error && error.toLowerCase().includes('already registered')) {

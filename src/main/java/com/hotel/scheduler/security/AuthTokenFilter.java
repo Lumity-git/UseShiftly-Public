@@ -81,6 +81,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 path.equals("/api/super-admin/auth/login") ||
                 path.equals("/api/auth/request-admin-access") ||
                 path.equals("/api/auth/verify-admin-code") ||
+                path.equals("/api/auth/register-admin") ||
                 path.equals("/api/auth/check-email")) {
             filterChain.doFilter(request, response);
             return;

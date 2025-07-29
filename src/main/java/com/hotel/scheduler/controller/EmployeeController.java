@@ -366,6 +366,15 @@ public class EmployeeController {
     public ResponseEntity<?> createEmployee(@RequestBody Map<String, Object> employeeData,
                                           @AuthenticationPrincipal Employee currentUser) {
         try {
+            // Require buildingId
+            if (!employeeData.containsKey("buildingId")) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: buildingId is required for employee creation."));
+            }
+            Long buildingId = Long.valueOf(employeeData.get("buildingId").toString());
+            var buildingOpt = employeeService.getBuildingById(buildingId);
+            if (buildingOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Building not found."));
+            }
             Employee newEmployee = new Employee();
             newEmployee.setId(null); // Always null, let JPA generate
             newEmployee.setUuid(java.util.UUID.randomUUID().toString()); // Always new UUID
@@ -384,6 +393,9 @@ public class EmployeeController {
             // Set active status
             newEmployee.setActive(true);
 
+            // Assign building before saving
+            newEmployee.setBuilding(buildingOpt.get());
+
             // Generate a secure temporary password
             String tempPassword = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12) + "!";
             newEmployee.setPassword(tempPassword); // Will be hashed by service
@@ -396,11 +408,6 @@ public class EmployeeController {
             if (employeeData.containsKey("departmentId")) {
                 Long deptId = Long.valueOf(employeeData.get("departmentId").toString());
                 employeeService.assignEmployeeToDepartment(saved, deptId);
-            }
-            // Assign building if provided
-            if (employeeData.containsKey("buildingId")) {
-                Long buildingId = Long.valueOf(employeeData.get("buildingId").toString());
-                employeeService.assignEmployeeToBuilding(saved, buildingId);
             }
 
             // Send registration email with temp password

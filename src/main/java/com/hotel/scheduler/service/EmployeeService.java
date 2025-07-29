@@ -35,6 +35,22 @@ import org.springframework.context.annotation.Primary;
 @Transactional
 public class EmployeeService implements UserDetailsService {
     /**
+     * Creates a new employee (admin or employee) using the password provided by the user,
+     * and does NOT set mustChangePassword to true. Used for self-registration flows.
+     *
+     * @param employee the employee to create
+     * @return the saved Employee
+     * @throws RuntimeException if the email is already taken
+     */
+    public Employee createEmployeeWithUserPassword(Employee employee) {
+        if (employeeRepository.existsByEmail(employee.getEmail())) {
+            throw new RuntimeException("Error: Email is already taken!");
+        }
+        employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+        employee.setMustChangePassword(false);
+        return employeeRepository.save(employee);
+    }
+    /**
      * Sends a Stripe invoice email to the given admin.
      * This should generate a Stripe payment link and email it to the admin.
      */
@@ -59,8 +75,20 @@ public class EmployeeService implements UserDetailsService {
         if (buildings == null || buildings.isEmpty()) return Optional.empty();
         return Optional.of(buildings.get(0));
     }
+    /**
+     * Returns all employees for all buildings owned by this admin.
+     * Only employees for the admin's buildings are returned.
+     */
     public List<Employee> getAllByAdminId(Long adminId) {
-        return employeeRepository.findAllByAdminId(adminId);
+        // Defensive: fallback to repository query in case JPA relationships are not always populated
+        List<Employee> all = employeeRepository.findAll();
+        java.util.List<Employee> result = new java.util.ArrayList<>();
+        for (Employee e : all) {
+            if (e.getBuilding() != null && e.getBuilding().getAdmin() != null && e.getBuilding().getAdmin().getId().equals(adminId)) {
+                result.add(e);
+            }
+        }
+        return result;
     }
 
     public Optional<com.hotel.scheduler.model.Building> getBuildingById(Long buildingId) {

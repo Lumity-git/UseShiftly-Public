@@ -637,8 +637,6 @@
                 const response = await authManager.apiRequest('/shifts/statistics');
                 const stats = await response.json();
                 
-                // Update dashboard with real data (placeholder for now)
-                console.log('Dashboard stats loaded:', stats);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
             }
@@ -895,16 +893,16 @@
                 const container = modal.querySelector('#activeInvitationsList');
                 container.innerHTML = '<div style="color:#888;">Loading...</div>';
                 try {
-                    logDebug('[DEBUG] Loading active invitations...');
+                 
                     const response = await window.authManager.apiRequest('/auth/active-invitations', 'GET', null, { suppressLogout: true });
-                    logDebug('[DEBUG] Active invitations response: ' + JSON.stringify({status: response.status, statusText: response.statusText}));
+    
                     if (response.status === 401) {
-                        logDebug('[DEBUG] Received 401 Unauthorized from /auth/active-invitations');
+                        
                         container.innerHTML = '<div style="color:#e74c3c;">Not authorized. Please refresh or log in again.</div>';
                         return;
                     }
                     const invitations = response;
-                    logDebug('[DEBUG] Invitations data: ' + JSON.stringify(invitations));
+                    
                     if (!invitations.length) {
                         container.innerHTML = '<div style="color:#888;">No active invitations.</div>';
                         return;
@@ -920,7 +918,7 @@
                         </div>
                     `).join('');
                 } catch (err) {
-                    logDebug('[DEBUG] Error loading invitations: ' + err);
+                    
                     container.innerHTML = '<div style="color:#e74c3c;">Failed to load invitations.</div>';
                 }
             }
@@ -929,17 +927,17 @@
             window.deleteInvitation = async function(invitationCode) {
                 if (!confirm('Delete this invitation?')) return;
                 try {
-                    logDebug('[DEBUG] Deleting invitation: ' + invitationCode);
+                    
                     const response = await window.authManager.apiRequest(`/auth/delete-invitation/${invitationCode}`, 'DELETE', null, { suppressLogout: true });
-                    logDebug('[DEBUG] Delete response: ' + JSON.stringify({status: response.status, statusText: response.statusText}));
+                    
                     if (response.status === 401) {
-                        logDebug('[DEBUG] Received 401 Unauthorized from /auth/delete-invitation');
+               
                         alert('Not authorized to delete invitation. Please refresh or log in again.');
                         return;
                     }
                     loadActiveInvitations();
                 } catch (err) {
-                    logDebug('[DEBUG] Error deleting invitation: ' + err);
+
                     alert('Failed to delete invitation.');
                 }
             };
@@ -1007,7 +1005,7 @@
                 if (response.ok) {
                     console.log('✅ API connection successful');
                 } else if (response.status === 401) {
-                    console.log('⚠️ Token expired, redirecting to login');
+                
                     localStorage.removeItem('authToken');
                     localStorage.removeItem('userInfo');
                     window.location.href = 'login.html';

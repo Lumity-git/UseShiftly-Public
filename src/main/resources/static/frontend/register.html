@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <main class="container registration-container" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0ecff 0%,#f7fafd 100%);">
+    <main class="container registration-container"
+        style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e0ecff 0%,#f7fafd 100%);">
         <div style="width:100%;max-width:700px;margin:auto;">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
@@ -16,10 +19,14 @@
             <div id="alertContainer"></div>
             <section class="invitation-info card" id="invitationInfo" style="display: none;">
                 <h3><i class="fas fa-envelope-open"></i> Invitation Details</h3>
-                <p>You've been invited to join <strong id="buildingName">Grand Hotel</strong> as a <strong id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong> department.</p>
-                <p>Invited by: <strong id="invitedBy">Manager Name</strong> on <strong id="invitationDate">March 15, 2024</strong></p>
+                <p>You've been invited to join <strong id="buildingName">Grand Hotel</strong> as a <strong
+                        id="invitedRole">Employee</strong> in the <strong id="invitedDepartment">Front Desk</strong>
+                    department.</p>
+                <p>Invited by: <strong id="invitedBy">Manager Name</strong> on <strong id="invitationDate">March 15,
+                        2024</strong></p>
             </section>
-            <form id="registrationForm" class="card form-card" style="margin:auto;box-shadow:0 8px 32px rgba(44,62,80,0.09);border-radius:18px;padding:2.5rem 2.5rem;background:#fff;">
+            <form id="registrationForm" class="card form-card"
+                style="margin:auto;box-shadow:0 8px 32px rgba(44,62,80,0.09);border-radius:18px;padding:2.5rem 2.5rem;background:#fff;">
                 <input type="hidden" id="invitationCode" name="invitationCode">
                 <input type="hidden" id="invitationToken" name="invitationToken">
                 <div class="dashboard-grid">
@@ -29,32 +36,48 @@
                             <h3><i class="fas fa-user"></i> Personal Info</h3>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="firstName">First Name <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="firstName">First Name <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="text" id="firstName" name="firstName" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="lastName">Last Name <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="lastName">Last Name <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="text" id="lastName" name="lastName" required>
+                                </div>
+                            </div>
+                            <!-- Business Name (Admin only) -->
+                            <div class="form-row" id="businessNameRow" style="display:none;">
+                                <div class="form-group" style="width:100%;">
+                                    <label for="businessName">Business Name <span class="required"
+                                            style="color:#e74c3c">*</span></label>
+                                    <input type="text" id="businessName" name="businessName" autocomplete="organization"
+                                        required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="email">Email <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="email">Email <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="email" id="email" name="email" required readonly>
                                 </div>
                                 <div class="form-group">
-                                    <label for="phone">Phone <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="phone">Phone <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="tel" id="phone" name="phone" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="dateOfBirth">DOB <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="dateOfBirth">DOB <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="date" id="dateOfBirth" name="dateOfBirth" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="address">Address <span class="required" style="color:#e74c3c">*</span></label>
-                                    <textarea id="address" name="address" placeholder="Street address, city, state, ZIP code" required></textarea>
+                                    <label for="address" id="addressLabel">Address <span class="required"
+                                            style="color:#e74c3c">*</span></label>
+                                    <textarea id="address" name="address"
+                                        placeholder="Street address, city, state, ZIP code" required></textarea>
                                 </div>
                             </div>
                         </section>
@@ -63,11 +86,13 @@
                             <h3><i class="fas fa-phone"></i> Emergency Contact</h3>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="emergencyName">Contact Name <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="emergencyName">Contact Name <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <input type="text" id="emergencyName" name="emergencyName" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="emergencyRelation">Relationship <span class="required" style="color:#e74c3c">*</span></label>
+                                    <label for="emergencyRelation">Relationship <span class="required"
+                                            style="color:#e74c3c">*</span></label>
                                     <select id="emergencyRelation" name="emergencyRelation" required>
                                         <option value="">Select relationship</option>
                                         <option value="spouse">Spouse</option>
@@ -80,24 +105,54 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="emergencyPhone">Emergency Phone <span class="required" style="color:#e74c3c">*</span></label>
+                                <label for="emergencyPhone">Emergency Phone <span class="required"
+                                        style="color:#e74c3c">*</span></label>
                                 <input type="tel" id="emergencyPhone" name="emergencyPhone" required>
                             </div>
                         </section>
+                    </div>
+                    <!-- Package selection (Admin only) -->
+                    <div class="form-row" id="packageNameRow" style="display:none;">
+                        <div class="form-group" style="width:100%;">
+                            <label for="packageName">Select Package <span class="required"
+                                    style="color:#e74c3c">*</span></label>
+                            <select id="packageName" name="packageName" required>
+                                <option value="">Choose a package</option>
+                                <option value="basic">Basic (Free first 5 users / $6 Per User per month)</option>
+                                <option value="pro" disabled>Pro (Coming soon - join waitlist below)</option>
+                            </select>
+                            <div id="proWaitlistMsg" style="display:none;color:#888;font-size:0.97em;margin-top:0.5em;">
+                                Pro is coming soon! <a
+                                    href="mailto:support@useshiftly.com?subject=Join%20Pro%20Waitlist">Contact the developer
+                                    to
+                                    join the waitlist</a>.
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <!-- Account Setup -->
                         <section class="form-section">
                             <h3><i class="fas fa-key"></i> Account Setup</h3>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label for="password">Password <span class="required" style="color:#e74c3c">*</span></label>
-                                    <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
-                                    <small class="form-hint">Min 8 chars, include uppercase, lowercase, number, special</small>
+                                <div class="form-group" style="position:relative;">
+                                    <label for="password">Password <span class="required"
+                                            style="color:#e74c3c">*</span></label>
+                                    <input type="password" id="password" name="password" required minlength="8"
+                                        autocomplete="new-password" style="padding-right:38px;">
+                                    <button type="button" id="togglePassword" tabindex="-1"
+                                        style="position:absolute;right:8px;top:34px;background:none;border:none;cursor:pointer;padding:0 6px;color:#888;font-size:1.1rem;"
+                                        aria-label="Show password"><i class="fas fa-eye"></i></button>
+                                    <small class="form-hint">Min 8 chars, include uppercase, lowercase, number,
+                                        special</small>
                                 </div>
-                                <div class="form-group">
-                                    <label for="confirmPassword">Confirm Password <span class="required" style="color:#e74c3c">*</span></label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                                <div class="form-group" style="position:relative;">
+                                    <label for="confirmPassword">Confirm Password <span class="required"
+                                            style="color:#e74c3c">*</span></label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" required
+                                        autocomplete="new-password" style="padding-right:38px;">
+                                    <button type="button" id="toggleConfirmPassword" tabindex="-1"
+                                        style="position:absolute;right:8px;top:34px;background:none;border:none;cursor:pointer;padding:0 6px;color:#888;font-size:1.1rem;"
+                                        aria-label="Show password"><i class="fas fa-eye"></i></button>
                                 </div>
                             </div>
                         </section>
@@ -111,6 +166,7 @@
                         <i class="fas fa-user-plus"></i> Complete Registration
                     </button>
                 </div>
+
             </form>
         </div>
     </main>
@@ -119,7 +175,7 @@
         let invitationData = null;
         let uploadedFiles = {};
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             // Block registration if completed or exited previously
             if (localStorage.getItem('registrationCompleted') === 'true') {
                 disablePage('Registration already completed or exited. Please log in.');
@@ -127,35 +183,27 @@
             }
             const regForm = document.getElementById('registrationForm');
             const inviteInfo = document.getElementById('invitationInfo');
-            const isAuthenticated = await checkAuth();
-         
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const token = urlParams.get('token');
-
             let adminEmail = localStorage.getItem('adminVerifiedEmail');
-            let isAdminMode = !code && !token && adminEmail;
-            if (!isAdminMode && adminEmail) {
-                isAdminMode = true;
-               
-            }
-            console.log('isAdminMode:', isAdminMode, 'adminEmail:', adminEmail);
+            let isAdminMode = !code && !token && !!adminEmail;
+            console.log('[DEBUG] isAdminMode:', isAdminMode, 'adminEmail:', adminEmail);
             if (isAdminMode) {
                 if (regForm) {
                     regForm.style.display = '';
-                   
-                } 
+                }
                 setupAdminRegistration(adminEmail);
-        
+                // Do NOT call checkAuth or validateInvitation for admin registration
             } else if (code && token) {
-            
+                // Only for employee registration, validate invitation
                 validateInvitation();
             } else {
-           
                 disablePage('Invalid registration link or session. Please use a valid invitation or admin code.');
             }
             setupEventListeners();
             updateProgress();
+            console.log('[DEBUG] setupEventListeners and updateProgress called');
         });
 
         async function checkAuth() {
@@ -233,28 +281,42 @@
                 document.getElementById('invitationInfo').style.display = 'none';
                 return;
             }
+            // Restore required for emergency fields (employee mode)
+            restoreEmergencyRequired();
             // Validate invitation code
             validateInvitationCode(code, token);
         }
-
+        function restoreEmergencyRequired() {
+            // Restore required attribute for emergency fields (employee mode)
+            const emergencyFields = [
+                document.getElementById('emergencyName'),
+                document.getElementById('emergencyRelation'),
+                document.getElementById('emergencyPhone')
+            ];
+            emergencyFields.forEach(f => { if (f) f.required = true; });
+        }
         function setupAdminRegistration() {
-       
             const inviteInfo = document.getElementById('invitationInfo');
             if (inviteInfo) {
                 inviteInfo.style.display = 'none';
-      
             }
             const registrationForm = document.getElementById('registrationForm');
             if (registrationForm) {
                 registrationForm.style.display = '';
-      
             }
             // Hide emergency contact section for admin registration
             const emergencySection = document.querySelector('section.form-section h3 i.fa-phone')?.parentElement?.parentElement;
             if (emergencySection) {
                 emergencySection.style.display = 'none';
-          
             }
+
+            // Remove required attribute from emergency contact fields for admin
+            const emergencyFields = [
+                document.getElementById('emergencyName'),
+                document.getElementById('emergencyRelation'),
+                document.getElementById('emergencyPhone')
+            ];
+            emergencyFields.forEach(f => { if (f) f.required = false; });
             const invitationCode = document.getElementById('invitationCode');
             const invitationToken = document.getElementById('invitationToken');
             if (invitationCode) invitationCode.value = '';
@@ -264,46 +326,75 @@
                 emailInput.value = arguments[0] || '';
                 emailInput.readOnly = true;
             }
+            // Show business name row and update address label
+            const businessNameRow = document.getElementById('businessNameRow');
+            if (businessNameRow) {
+                businessNameRow.style.display = '';
+                // Make businessName required for admin
+                document.getElementById('businessName').required = true;
+            }
+            const packageNameRow = document.getElementById('packageNameRow');
+            if (packageNameRow) {
+                packageNameRow.style.display = '';
+                document.getElementById('packageName').required = true;
+                document.getElementById('packageName').addEventListener('change', function () {
+                    const proMsg = document.getElementById('proWaitlistMsg');
+                    if (this.value === 'pro') {
+                        proMsg.style.display = '';
+                    } else {
+                        proMsg.style.display = 'none';
+                    }
+                });
+            }
+            const addressLabel = document.getElementById('addressLabel');
+            if (addressLabel) {
+                addressLabel.textContent = 'Business Address '; // Remove required asterisk, add below
+                const requiredSpan = document.createElement('span');
+                requiredSpan.className = 'required';
+                requiredSpan.style.color = '#e74c3c';
+                requiredSpan.textContent = '*';
+                addressLabel.appendChild(requiredSpan);
+            }
         }
 
         const API_BASE_URL = window.location.origin + '/api';
 
         async function validateInvitationCode(code, token) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/validate-invitation?code=${encodeURIComponent(code)}&token=${encodeURIComponent(token)}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate-invitation?code=${encodeURIComponent(code)}&token=${encodeURIComponent(token)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const registrationForm = document.getElementById('registrationForm');
+                if (response.ok) {
+                    invitationData = await response.json();
+                    displayInvitationInfo();
+                    if (document.getElementById('invitationCode')) document.getElementById('invitationCode').value = code;
+                    if (document.getElementById('invitationToken')) document.getElementById('invitationToken').value = invitationData.invitationToken || token;
+                    if (document.getElementById('email')) {
+                        document.getElementById('email').value = invitationData.email || '';
+                        document.getElementById('email').readOnly = true;
+                    }
+                    // Show emergency contact section for employee registration
+                    const emergencySection = document.querySelector('section.form-section h3 i.fa-phone')?.parentElement?.parentElement;
+                    if (emergencySection) {
+                        emergencySection.style.display = '';
+                        console.log('Showed emergency contact section for employee registration');
+                    }
+                    // Show message for employee registration with valid code/token
+                    showAlert('Employee registration: Emergency contact information is required.', 'info');
+                    if (registrationForm) registrationForm.style.display = '';
+                } else {
+                    const error = await response.text();
+                    disablePage(error || 'Invalid or expired invitation. Please contact your manager.');
+                }
+            } catch (error) {
+                console.error('Error validating invitation:', error);
+                disablePage('Unable to validate invitation. Please contact your manager for a valid invitation.');
             }
-        });
-        const registrationForm = document.getElementById('registrationForm');
-        if (response.ok) {
-            invitationData = await response.json();
-            displayInvitationInfo();
-            if (document.getElementById('invitationCode')) document.getElementById('invitationCode').value = code;
-            if (document.getElementById('invitationToken')) document.getElementById('invitationToken').value = invitationData.invitationToken || token;
-            if (document.getElementById('email')) {
-                document.getElementById('email').value = invitationData.email || '';
-                document.getElementById('email').readOnly = true;
-            }
-            // Show emergency contact section for employee registration
-            const emergencySection = document.querySelector('section.form-section h3 i.fa-phone')?.parentElement?.parentElement;
-            if (emergencySection) {
-                emergencySection.style.display = '';
-                console.log('Showed emergency contact section for employee registration');
-            }
-            // Show message for employee registration with valid code/token
-            showAlert('Employee registration: Emergency contact information is required.', 'info');
-            if (registrationForm) registrationForm.style.display = '';
-        } else {
-            const error = await response.text();
-            disablePage(error || 'Invalid or expired invitation. Please contact your manager.');
         }
-    } catch (error) {
-        console.error('Error validating invitation:', error);
-        disablePage('Unable to validate invitation. Please contact your manager for a valid invitation.');
-    }
-}
         function displayInvitationInfo() {
             document.getElementById('buildingName').textContent = invitationData.buildingName;
             document.getElementById('invitedRole').textContent = invitationData.role;
@@ -315,6 +406,7 @@
 
         function setupEventListeners() {
             // Defensive: only add listeners if elements exist
+            console.log('[DEBUG] setupEventListeners running');
             const passwordInput = document.getElementById('password');
             if (passwordInput) passwordInput.addEventListener('input', validatePassword);
             const confirmPasswordInput = document.getElementById('confirmPassword');
@@ -323,21 +415,45 @@
             if (phoneInput) phoneInput.addEventListener('input', formatPhoneNumber);
             const emergencyPhoneInput = document.getElementById('emergencyPhone');
             if (emergencyPhoneInput) emergencyPhoneInput.addEventListener('input', formatPhoneNumber);
+            // Password visibility toggles
+            const togglePassword = document.getElementById('togglePassword');
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', function () {
+                    const type = passwordInput.type === 'password' ? 'text' : 'password';
+                    passwordInput.type = type;
+                    this.innerHTML = `<i class="fas fa-${type === 'password' ? 'eye' : 'eye-slash'}"></i>`;
+                });
+            }
+            if (toggleConfirmPassword && confirmPasswordInput) {
+                toggleConfirmPassword.addEventListener('click', function () {
+                    const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+                    confirmPasswordInput.type = type;
+                    this.innerHTML = `<i class="fas fa-${type === 'password' ? 'eye' : 'eye-slash'}"></i>`;
+                });
+            }
             const registrationForm = document.getElementById('registrationForm');
             if (registrationForm) {
                 registrationForm.addEventListener('input', validateForm);
                 registrationForm.addEventListener('change', validateForm);
-                registrationForm.addEventListener('submit', function(event) {
+                // Remove any previous submit event listeners to avoid double handling
+                registrationForm.onsubmit = null;
+                registrationForm.addEventListener('submit', function (event) {
                     event.preventDefault();
                     handleSubmit(event);
                 });
+            }
+            // Always enable submit button for admin mode (let backend validate)
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
             }
         }
 
         function handleFileUpload(input, listId) {
             const file = input.files[0];
             const listContainer = document.getElementById(listId);
-            
+
             if (file) {
                 // Validate file
                 if (!validateFile(file)) {
@@ -346,7 +462,7 @@
                 }
 
                 uploadedFiles[input.name] = file;
-                
+
                 listContainer.innerHTML = `
                     <div class="file-item">
                         <span><i class="fas fa-file"></i> ${file.name} (${formatFileSize(file.size)})</span>
@@ -408,10 +524,11 @@
             const hasUpper = /[A-Z]/.test(password);
             const hasLower = /[a-z]/.test(password);
             const hasNumber = /\d/.test(password);
-            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+            // Allow underscore as special character
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>_]/.test(password);
 
             const isValid = minLength && hasUpper && hasLower && hasNumber && hasSpecial;
-            
+
             const input = document.getElementById('password');
             if (password && !isValid) {
                 input.style.borderColor = '#dc3545';
@@ -441,7 +558,7 @@
             const form = document.getElementById('registrationForm');
             const requiredFields = form.querySelectorAll('[required]');
             const checkboxes = form.querySelectorAll('input[type="checkbox"][required]');
-            
+
             let allValid = true;
 
             // Check required fields
@@ -484,100 +601,78 @@
         }
 
         async function handleSubmit(event) {
-            // Validate and highlight missing fields
+
+            console.log('[DEBUG] handleSubmit called');
+
+            // Always allow admin registration to submit, let backend validate
+
             const form = document.getElementById('registrationForm');
-            const requiredFields = form.querySelectorAll('[required]');
-            let allValid = true;
-            requiredFields.forEach(field => {
-                field.style.borderColor = '#ddd';
-                if (field.type === 'checkbox') {
-                    if (!field.checked) {
-                        allValid = false;
-                        field.focus();
-                        field.parentElement.style.boxShadow = '0 0 0 2px #e74c3c';
-                    } else {
-                        field.parentElement.style.boxShadow = '';
-                    }
-                } else if (field.type === 'file') {
-                    if (!uploadedFiles[field.name]) {
-                        allValid = false;
-                        field.parentElement.style.boxShadow = '0 0 0 2px #e74c3c';
-                    } else {
-                        field.parentElement.style.boxShadow = '';
-                    }
-                } else {
-                    if (!field.value.trim()) {
-                        allValid = false;
-                        field.style.borderColor = '#e74c3c';
-                        field.focus();
-                    }
-                }
-            });
-
-            if (!validatePassword() || !validatePasswordMatch()) {
-                allValid = false;
-                document.getElementById('password').style.borderColor = '#e74c3c';
-                document.getElementById('confirmPassword').style.borderColor = '#e74c3c';
-            }
-
-            // Debug: log all field values and registration mode
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             const token = urlParams.get('token');
             const adminEmail = localStorage.getItem('adminVerifiedEmail');
-            const isAdminMode = !code && !token && adminEmail;
 
-            if (!allValid) {
-                showAlert('Please complete all required fields before submitting.', 'error');
-                var loadingOverlay = document.getElementById('loadingOverlay');
-                if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'none';
-                return;
-            }
+            const isAdminMode = !code && !token && adminEmail;
+            console.log('[DEBUG] handleSubmit isAdminMode:', isAdminMode);
 
             var loadingOverlay = document.getElementById('loadingOverlay');
             if (loadingOverlay && loadingOverlay.style) loadingOverlay.style.display = 'flex';
 
-            try {
-                const formData = new FormData();
-                const inputs = form.querySelectorAll('input, select, textarea');
-                inputs.forEach(input => {
-                    if (input.type === 'file') {
-                        if (uploadedFiles[input.name]) {
-                            formData.append(input.name, uploadedFiles[input.name]);
-                        }
-                    } else if (input.type === 'checkbox') {
-                        formData.append(input.name, input.checked);
-                    } else if (input.name === 'invitationToken' || input.name === 'invitationCode') {
-                        // Skip hidden input, will set below
-                    } else if (input.name === 'emergencyName') {
-                        formData.append('emergencyContactName', input.value);
-                    } else if (input.name === 'emergencyRelation') {
-                        formData.append('emergencyContactRelation', input.value);
-                    } else if (input.name === 'emergencyPhone') {
-                        formData.append('emergencyContactPhone', input.value);
-                    } else {
-                        formData.append(input.name, input.value);
-                    }
-                });
 
-                if (!isAdminMode) {
+            try {
+                let response;
+                if (isAdminMode) {
+                    // Admin registration: send JSON to /auth/register-admin
+                    const adminPayload = {
+                        ownerEmail: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        ownerName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
+                        buildingName: document.getElementById('businessName').value,
+                        buildingAddress: document.getElementById('address').value,
+                        packageName: document.getElementById('packageName').value
+                    };
+                    response = await fetch(`${API_BASE_URL}/auth/register-admin`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(adminPayload),
+                        credentials: 'omit'
+                    });
+                } else {
+                    // Employee registration: use FormData and /auth/register
+                    const formData = new FormData();
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        if (input.type === 'file') {
+                            if (uploadedFiles[input.name]) {
+                                formData.append(input.name, uploadedFiles[input.name]);
+                            }
+                        } else if (input.type === 'checkbox') {
+                            formData.append(input.name, input.checked);
+                        } else if (input.name === 'invitationToken' || input.name === 'invitationCode') {
+                            // Skip hidden input, will set below
+                        } else if (input.name === 'emergencyName') {
+                            formData.append('emergencyContactName', input.value);
+                        } else if (input.name === 'emergencyRelation') {
+                            formData.append('emergencyContactRelation', input.value);
+                        } else if (input.name === 'emergencyPhone') {
+                            formData.append('emergencyContactPhone', input.value);
+                        } else {
+                            formData.append(input.name, input.value);
+                        }
+                    });
                     // Employee registration: set invitationCode and invitationToken
                     const invitationCodeValue = (invitationData && invitationData.invitationCode) ? invitationData.invitationCode : document.getElementById('invitationCode').value;
                     const invitationTokenValue = (invitationData && invitationData.invitationToken) ? invitationData.invitationToken : document.getElementById('invitationToken').value;
                     formData.append('invitationCode', invitationCodeValue);
                     formData.append('invitationToken', invitationTokenValue);
-                } else {
-                    // Admin registration: remove invitation fields, add admin flag
-                    formData.append('adminRegistration', 'true');
-                    // Always send the email field for admin registration
-                    formData.set('email', document.getElementById('email').value);
+                    response = await fetch(`${API_BASE_URL}/auth/register`, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'omit'
+                    });
                 }
-
-                const response = await fetch(`${API_BASE_URL}/auth/register`, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'omit'
-                });
 
                 if (response.ok) {
                     // Mark registration as completed
@@ -592,7 +687,7 @@
                             let savedInvites = JSON.parse(localStorage.getItem('invitationLinks') || '[]');
                             savedInvites = savedInvites.filter(link => !link.includes(code));
                             localStorage.setItem('invitationLinks', JSON.stringify(savedInvites));
-                        } catch (e) {}
+                        } catch (e) { }
                     } else {
                         localStorage.removeItem('adminVerifiedEmail');
                     }
@@ -653,4 +748,5 @@
         }
     </script>
 </body>
+
 </html>

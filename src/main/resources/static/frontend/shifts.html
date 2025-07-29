@@ -537,15 +537,21 @@
             }
         }
 
-        async function loadEmployees() {
+        async function loadEmployees(buildingId = null) {
             try {
-                // Use correct API for managers and admins
                 let endpoint = '/employees';
                 if (currentUser?.role === 'MANAGER') {
                     endpoint = '/employees/my-building';
+                } else if (currentUser?.role === 'ADMIN' && buildingId) {
+                    endpoint = `/employees/by-building/${buildingId}`;
+                }
+                if (currentUser?.role === 'ADMIN' && !buildingId) {
+                    employees = [];
+                    populateEmployeeSelects(true); // true = disable
+                    return;
                 }
                 employees = await apiRequest(endpoint);
-                populateEmployeeSelects();
+                populateEmployeeSelects(false); // false = enable
             } catch (error) {
                 console.error('Failed to load employees:', error);
             }
@@ -672,7 +678,7 @@
             }
         });
         // Update cache after employees are loaded
-        function populateEmployeeSelects() {
+        function populateEmployeeSelects(disable = false) {
             const selects = ['employeeFilter', 'shiftEmployee'];
             selects.forEach(selectId => {
                 const select = document.getElementById(selectId);
@@ -681,12 +687,17 @@
                 } else {
                     select.innerHTML = '<option value="">Select Employee</option>';
                 }
-                employees.forEach(emp => {
-                    const option = document.createElement('option');
-                    option.value = emp.id;
-                    option.textContent = `${emp.firstName} ${emp.lastName}`;
-                    select.appendChild(option);
-                });
+                if (employees.length > 0) {
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.textContent = `${emp.firstName} ${emp.lastName}`;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.disabled = disable;
+                }
             });
             updateEmployeeOptionsCache();
         }
@@ -862,8 +873,16 @@
                 })();
                 buildingSelect.style.display = '';
                 // Add change listener to building and department selects to filter employees and departments
-                buildingSelect.addEventListener('change', function () {
+                buildingSelect.addEventListener('change', async function () {
                     populateDepartmentsForBuilding();
+                    // Fetch employees for selected building and update dropdown
+                    const selectedBuildingId = buildingSelect.value;
+                    if (selectedBuildingId) {
+                        await loadEmployees(selectedBuildingId);
+                    } else {
+                        employees = [];
+                        populateEmployeeSelects();
+                    }
                     filterEmployeeOptionsByBuildingDept();
                 });
                 const deptSelect = document.getElementById('shiftDepartment');
@@ -871,8 +890,15 @@
                     filterEmployeeOptionsByBuildingDept();
                 });
                 // Initial filter for departments and employees
-                setTimeout(() => {
+                setTimeout(async () => {
                     populateDepartmentsForBuilding();
+                    const selectedBuildingId = document.getElementById('shiftBuilding')?.value;
+                    if (selectedBuildingId) {
+                        await loadEmployees(selectedBuildingId);
+                    } else {
+                        employees = [];
+                        populateEmployeeSelects(true); // disable
+                    }
                     filterEmployeeOptionsByBuildingDept();
                 }, 10);
                 // Helper to filter departments by selected building (for admin)
