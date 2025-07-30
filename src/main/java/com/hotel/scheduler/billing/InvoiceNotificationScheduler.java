@@ -72,7 +72,7 @@ public class InvoiceNotificationScheduler {
                     body.append("Includes website and email access only.\n\n");
                 }
                 body.append("Please ensure payment to avoid service interruption.\n\n");
-                body.append("Thank you,\nHotel Scheduler Team");
+                body.append("Thank you,\nShiftly Scheduler Team");
                 // Send email
                 notificationService.sendEmail(admin.getEmail(), "Upcoming Invoice Notification", body.toString());
                 // Log notification event in audit log

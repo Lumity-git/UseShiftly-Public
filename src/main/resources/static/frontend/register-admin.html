@@ -151,6 +151,10 @@
             document.getElementById('requestAccessBtn').disabled = true;
             return;
           }
+          // Show loading/submitted message immediately
+          document.getElementById('requestAccessBtn').disabled = true;
+          document.getElementById('requestAccessBtn').textContent = 'Submitting...';
+          showAlert('Submitting your request. Please wait and check your inbox for the code.', 'info');
           try {
             // Double-check email before submit to avoid 400
             const checkResp = await fetch(window.location.origin + '/api/auth/check-email?email=' + encodeURIComponent(email));
@@ -158,6 +162,7 @@
               errorDiv.textContent = 'Unable to check email availability. Please try again later.';
               emailInput.classList.add('input-error');
               document.getElementById('requestAccessBtn').disabled = true;
+              document.getElementById('requestAccessBtn').textContent = 'Request Access';
               return;
             }
             if (checkResp.ok) {
@@ -166,6 +171,7 @@
                 errorDiv.textContent = 'This email is already registered. Please use a different email.';
                 emailInput.classList.add('input-error');
                 document.getElementById('requestAccessBtn').disabled = true;
+                document.getElementById('requestAccessBtn').textContent = 'Request Access';
                 return;
               }
             }
@@ -187,16 +193,20 @@
               if (error && error.toLowerCase().includes('already registered')) {
                 errorDiv.textContent = 'This email is already registered. Please use a different email.';
                 document.getElementById('requestAccessBtn').disabled = true;
+                document.getElementById('requestAccessBtn').textContent = 'Request Access';
                 emailInput.classList.add('input-error');
               } else {
                 errorDiv.textContent = error || 'Invalid data. Please check your details and try again.';
+                document.getElementById('requestAccessBtn').textContent = 'Request Access';
               }
             } else {
               const error = await response.text();
               errorDiv.textContent = error || 'Request failed. Please try again.';
+              document.getElementById('requestAccessBtn').textContent = 'Request Access';
             }
           } catch (err) {
             errorDiv.textContent = 'Request failed. Please try again.';
+            document.getElementById('requestAccessBtn').textContent = 'Request Access';
           }
         });
 
