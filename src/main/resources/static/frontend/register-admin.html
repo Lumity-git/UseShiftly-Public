@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register Building Admin - Shiftly Scheduler</title>
-    <link rel="stylesheet" href="style.css">
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register Building Admin - Shiftly Scheduler</title>
+  <link rel="stylesheet" href="style.css">
+  </style>
 </head>
+
 <body>
-    <body class="login-page">
+
+  <body class="login-page">
     <div class="login-container">
       <div class="login-left">
         <div class="logo">🏨 Shiftly Scheduler</div>
         <div class="tagline">
-          Professional employee scheduling made simple. Streamline your operations with our comprehensive shift management system.
+          Professional employee scheduling made simple. Streamline your operations with our comprehensive shift
+          management system.
         </div>
       </div>
       <div class="login-right">
@@ -38,182 +42,233 @@
             <label for="email">Business Email <span class="required">*</span></label>
             <input type="email" id="email" name="email" required>
           </div>
+          <div class="form-group" style="margin-bottom:0.5em;">
+            <input type="checkbox" id="agreeTos" name="agreeTos" style="margin-right:8px;" required>
+            <label for="agreeTos" style="display:inline;font-weight:400;">I agree to the <a href="#"
+                onclick="openTosModal();return false;">Terms and Conditions</a> and Privacy Policy<span
+                class="required">*</span></label>
+          </div>
           <div class="form-actions">
-            <button type="submit" class="btn-primary" id="requestAccessBtn">Request Access</button>
+            <button type="submit" class="btn-primary" id="requestAccessBtn" disabled>Request Access</button>
+            <div style="text-align: center; margin: 1.5rem 0; color: #666; font-size: 0.9rem;">
+              <span style="position: relative;">
+                <span style="background: #fff; padding: 0 1rem;">or</span>
+                <hr style="position: absolute; top: 50%; left: 0; right: 0; margin: 0; border: none; border-top: 1px solid #ddd; z-index: -1;">
+              </span>
+            </div>
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                 data-context="signup"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleSignUp"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="signup_with"
+                 data-size="large"
+                 data-logo_alignment="left"
+                 style="width: 100%; display: flex; justify-content: center;">
+            </div>
           </div>
         </form>
         <div id="tosModal" class="modal" style="display:none;">
           <div class="modal-content">
             <span class="close" onclick="closeTosModal()">&times;</span>
             <h3>Terms of Service</h3>
-            <p>By registering, you agree to abide by all local laws and regulations, provide accurate information, and use Shiftly Scheduler responsibly. Full terms coming soon.</p>
+            <p>By registering, you agree to abide by all local laws and regulations, provide accurate information, and
+              use Shiftly Scheduler responsibly. Full terms coming soon.</p>
           </div>
         </div>
       </div>
     </div>
     </main>
     <script>
-        // Utility: show alert message above form, then callback
-        function showAlert(message, type, callback) {
-          // Re-enable request button when email changes
-          document.getElementById('email').addEventListener('input', function() {
-            document.getElementById('requestAccessBtn').disabled = false;
-            this.classList.remove('input-error');
-          });
-          // Remove any previous alert
-          let prev = document.getElementById('customAlert');
-          if (prev) prev.remove();
-          const alertDiv = document.createElement('div');
-          alertDiv.id = 'customAlert';
-          alertDiv.className = `alert alert-${type}`;
-          alertDiv.style = 'margin-bottom:18px;padding:1rem 1.5rem;border-radius:8px;font-size:1.1rem;text-align:center;background:#eaf6ea;color:#2d3a4a;border:1px solid #bcd0ee;box-shadow:0 2px 8px rgba(44,62,80,0.07);';
-          alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}" style="margin-right:8px;"></i> ${message}`;
-          loginRight.prepend(alertDiv);
-          setTimeout(() => {
-            alertDiv.remove();
-            if (callback) callback();
-          }, 1800);
-        }
-
-        // Real-time email availability check with 401 handling
-        let emailCheckTimeout = null;
-        document.getElementById('email').addEventListener('input', function() {
-          clearTimeout(emailCheckTimeout);
-          const emailInput = this;
-          const email = emailInput.value.trim();
+      // Utility: show alert message above form, then callback
+      function showAlert(message, type, callback) {
+        // Re-enable request button when email changes
+        document.getElementById('email').addEventListener('input', function () {
           document.getElementById('requestAccessBtn').disabled = false;
-          emailInput.classList.remove('input-error');
-          emailInput.dataset.registered = "false";
-          emailInput.dataset.checkerror = "false";
-          // Only check if email looks valid
-          if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-            emailCheckTimeout = setTimeout(async () => {
-              try {
-                const resp = await fetch(window.location.origin + '/api/auth/check-email?email=' + encodeURIComponent(email));
-                if (resp.status === 401) {
-                  showAlert('Unable to check email availability. Please try again later.', 'error');
-                  document.getElementById('requestAccessBtn').disabled = true;
-                  emailInput.classList.add('input-error');
-                  emailInput.dataset.checkerror = "true";
-                  return;
-                }
-                if (resp.ok) {
-                  const data = await resp.json();
-                  if (data.registered) {
-                    showAlert('This email is already registered. Please use a different email.', 'error');
-                    document.getElementById('requestAccessBtn').disabled = true;
-                    emailInput.classList.add('input-error');
-                    emailInput.dataset.registered = "true";
-                  }
-                }
-              } catch (err) {
+          this.classList.remove('input-error');
+        });
+        // Remove any previous alert
+        let prev = document.getElementById('customAlert');
+        if (prev) prev.remove();
+        const alertDiv = document.createElement('div');
+        alertDiv.id = 'customAlert';
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.style = 'margin-bottom:18px;padding:1rem 1.5rem;border-radius:8px;font-size:1.1rem;text-align:center;background:#eaf6ea;color:#2d3a4a;border:1px solid #bcd0ee;box-shadow:0 2px 8px rgba(44,62,80,0.07);';
+        alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}" style="margin-right:8px;"></i> ${message}`;
+        loginRight.prepend(alertDiv);
+        setTimeout(() => {
+          alertDiv.remove();
+          if (callback) callback();
+        }, 1800);
+      }
+
+      // Real-time email availability check with 401 handling
+      let emailCheckTimeout = null;
+      document.getElementById('email').addEventListener('input', function () {
+        clearTimeout(emailCheckTimeout);
+        const emailInput = this;
+        const email = emailInput.value.trim();
+        document.getElementById('requestAccessBtn').disabled = false;
+        emailInput.classList.remove('input-error');
+        emailInput.dataset.registered = "false";
+        emailInput.dataset.checkerror = "false";
+        // Only check if email looks valid
+        if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+          emailCheckTimeout = setTimeout(async () => {
+            try {
+              const resp = await fetch(window.location.origin + '/api/auth/check-email?email=' + encodeURIComponent(email));
+              if (resp.status === 401) {
                 showAlert('Unable to check email availability. Please try again later.', 'error');
                 document.getElementById('requestAccessBtn').disabled = true;
                 emailInput.classList.add('input-error');
                 emailInput.dataset.checkerror = "true";
+                return;
               }
-            }, 400);
-          }
-        });
-        const form = document.getElementById('adminAccessForm');
-        const loginRight = document.querySelector('.login-right');
-        let requestedEmail = '';
+              if (resp.ok) {
+                const data = await resp.json();
+                if (data.registered) {
+                  showAlert('This email is already registered. Please use a different email.', 'error');
+                  document.getElementById('requestAccessBtn').disabled = true;
+                  emailInput.classList.add('input-error');
+                  emailInput.dataset.registered = "true";
+                }
+              }
+            } catch (err) {
+              showAlert('Unable to check email availability. Please try again later.', 'error');
+              document.getElementById('requestAccessBtn').disabled = true;
+              emailInput.classList.add('input-error');
+              emailInput.dataset.checkerror = "true";
+            }
+          }, 400);
+        }
+      });
+      const form = document.getElementById('adminAccessForm');
+      const agreeTos = document.getElementById('agreeTos');
+      const loginRight = document.querySelector('.login-right');
+      let requestedEmail = '';
 
-        form.addEventListener('submit', async function(e) {
-          e.preventDefault();
-          const firstName = document.getElementById('firstName').value.trim();
-          const lastName = document.getElementById('lastName').value.trim();
-          const businessName = document.getElementById('businessName').value.trim();
-          const emailInput = document.getElementById('email');
-          const email = emailInput.value.trim();
-          const errorDivId = 'emailTakenError';
-          let errorDiv = document.getElementById(errorDivId);
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!agreeTos.checked) {
+          let errorDiv = document.getElementById('emailTakenError');
           if (!errorDiv) {
             errorDiv = document.createElement('div');
-            errorDiv.id = errorDivId;
+            errorDiv.id = 'emailTakenError';
             errorDiv.style = 'color:#e74c3c;font-size:1rem;margin-top:8px;text-align:center;';
             document.getElementById('requestAccessBtn').parentNode.appendChild(errorDiv);
           }
-          errorDiv.textContent = '';
-          if (!firstName || !lastName || !businessName || !email) {
-            errorDiv.textContent = 'Please fill in all required fields.';
-            return;
-          }
-          if (emailInput.dataset.checkerror === "true") {
+          errorDiv.textContent = 'You must agree to the Terms and Conditions to continue.';
+          return;
+        }
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const businessName = document.getElementById('businessName').value.trim();
+        const emailInput = document.getElementById('email');
+        const email = emailInput.value.trim();
+        const errorDivId = 'emailTakenError';
+        let errorDiv = document.getElementById(errorDivId);
+        if (!errorDiv) {
+          errorDiv = document.createElement('div');
+          errorDiv.id = errorDivId;
+          errorDiv.style = 'color:#e74c3c;font-size:1rem;margin-top:8px;text-align:center;';
+          document.getElementById('requestAccessBtn').parentNode.appendChild(errorDiv);
+        }
+        errorDiv.textContent = '';
+        if (!firstName || !lastName || !businessName || !email) {
+          errorDiv.textContent = 'Please fill in all required fields.';
+          return;
+        }
+        if (emailInput.dataset.checkerror === "true") {
+          errorDiv.textContent = 'Unable to check email availability. Please try again later.';
+          emailInput.classList.add('input-error');
+          document.getElementById('requestAccessBtn').disabled = true;
+          return;
+        }
+        if (emailInput.dataset.registered === "true") {
+          errorDiv.textContent = 'This email is already registered. Please use a different email.';
+          emailInput.classList.add('input-error');
+          document.getElementById('requestAccessBtn').disabled = true;
+          return;
+        }
+        // Show loading/submitted message immediately
+        document.getElementById('requestAccessBtn').disabled = true;
+        document.getElementById('requestAccessBtn').textContent = 'Submitting...';
+        showAlert('Submitting your request. Please wait and check your inbox for the code.', 'info');
+        // Enable/disable Request Access button based on TOS checkbox
+        agreeTos.addEventListener('change', function () {
+          document.getElementById('requestAccessBtn').disabled = !this.checked;
+        });
+        function openTosModal() {
+          document.getElementById('tosModal').style.display = 'block';
+        }
+        function closeTosModal() {
+          document.getElementById('tosModal').style.display = 'none';
+        }
+        try {
+          // Double-check email before submit to avoid 400
+          const checkResp = await fetch(window.location.origin + '/api/auth/check-email?email=' + encodeURIComponent(email));
+          if (checkResp.status === 401) {
             errorDiv.textContent = 'Unable to check email availability. Please try again later.';
             emailInput.classList.add('input-error');
             document.getElementById('requestAccessBtn').disabled = true;
+            document.getElementById('requestAccessBtn').textContent = 'Request Access';
             return;
           }
-          if (emailInput.dataset.registered === "true") {
-            errorDiv.textContent = 'This email is already registered. Please use a different email.';
-            emailInput.classList.add('input-error');
-            document.getElementById('requestAccessBtn').disabled = true;
-            return;
-          }
-          // Show loading/submitted message immediately
-          document.getElementById('requestAccessBtn').disabled = true;
-          document.getElementById('requestAccessBtn').textContent = 'Submitting...';
-          showAlert('Submitting your request. Please wait and check your inbox for the code.', 'info');
-          try {
-            // Double-check email before submit to avoid 400
-            const checkResp = await fetch(window.location.origin + '/api/auth/check-email?email=' + encodeURIComponent(email));
-            if (checkResp.status === 401) {
-              errorDiv.textContent = 'Unable to check email availability. Please try again later.';
+          if (checkResp.ok) {
+            const checkData = await checkResp.json();
+            if (checkData.registered) {
+              errorDiv.textContent = 'This email is already registered. Please use a different email.';
               emailInput.classList.add('input-error');
               document.getElementById('requestAccessBtn').disabled = true;
               document.getElementById('requestAccessBtn').textContent = 'Request Access';
               return;
             }
-            if (checkResp.ok) {
-              const checkData = await checkResp.json();
-              if (checkData.registered) {
-                errorDiv.textContent = 'This email is already registered. Please use a different email.';
-                emailInput.classList.add('input-error');
-                document.getElementById('requestAccessBtn').disabled = true;
-                document.getElementById('requestAccessBtn').textContent = 'Request Access';
-                return;
-              }
-            }
-            const response = await fetch(window.location.origin + '/api/auth/request-admin-access', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ firstName, lastName, businessName, email })
-            });
-            if (response.ok) {
-              requestedEmail = email;
-              errorDiv.textContent = '';
-              // Show code entry UI immediately for snappier UX
-              showCodeEntry();
-              showAlert('Code sent! Please check your email for the 6-digit verification code.', 'success');
-            } else if (response.status === 400) {
-              const error = await response.text();
-              if (error && error.toLowerCase().includes('already registered')) {
-                errorDiv.textContent = 'This email is already registered. Please use a different email.';
-                document.getElementById('requestAccessBtn').disabled = true;
-                document.getElementById('requestAccessBtn').textContent = 'Request Access';
-                emailInput.classList.add('input-error');
-              } else {
-                errorDiv.textContent = error || 'Invalid data. Please check your details and try again.';
-                document.getElementById('requestAccessBtn').textContent = 'Request Access';
-              }
+          }
+          const response = await fetch(window.location.origin + '/api/auth/request-admin-access', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ firstName, lastName, businessName, email })
+          });
+          if (response.ok) {
+            requestedEmail = email;
+            errorDiv.textContent = '';
+            // Show code entry UI immediately for snappier UX
+            showCodeEntry();
+            showAlert('Code sent! Please check your email for the 6-digit verification code.', 'success');
+          } else if (response.status === 400) {
+            const error = await response.text();
+            if (error && error.toLowerCase().includes('already registered')) {
+              errorDiv.textContent = 'This email is already registered. Please use a different email.';
+              document.getElementById('requestAccessBtn').disabled = true;
+              document.getElementById('requestAccessBtn').textContent = 'Request Access';
+              emailInput.classList.add('input-error');
             } else {
-              const error = await response.text();
-              errorDiv.textContent = error || 'Request failed. Please try again.';
+              errorDiv.textContent = error || 'Invalid data. Please check your details and try again.';
               document.getElementById('requestAccessBtn').textContent = 'Request Access';
             }
-          } catch (err) {
-            errorDiv.textContent = 'Request failed. Please try again.';
+          } else {
+            const error = await response.text();
+            errorDiv.textContent = error || 'Request failed. Please try again.';
             document.getElementById('requestAccessBtn').textContent = 'Request Access';
           }
-        });
+        } catch (err) {
+          errorDiv.textContent = 'Request failed. Please try again.';
+          document.getElementById('requestAccessBtn').textContent = 'Request Access';
+        }
+      });
 
-        function showCodeEntry() {
+      function showCodeEntry() {
         // ...existing code...
-          // Replace form with 6 code boxes, styled for clean, centered look
-          loginRight.innerHTML = `
+        // Replace form with 6 code boxes, styled for clean, centered look
+        loginRight.innerHTML = `
             <div class="login-header" style="background: linear-gradient(90deg, #e0ecff 0%, #f7fafd 100%); border-radius: 12px; padding: 2rem 1rem; margin-bottom: 2rem; text-align: center;">
               <h2 style="font-size:2rem; font-weight:600; color:#2d3a4a; margin-bottom:0.5rem;">Enter Verification Code</h2>
               <p style="color:#4a5a6a; font-size:1.1rem; margin-bottom:0;">We've sent a 6-digit code to your email. Enter it below to continue registration.</p>
@@ -232,77 +287,78 @@
               </div>
             </form>
           `;
-          setupCodeForm();
-        }
+        setupCodeForm();
+      }
 
-        function setupCodeForm() {
+      function setupCodeForm() {
         // ...existing code...
-          const codeBoxes = document.querySelectorAll('.code-box');
-          codeBoxes.forEach((box, idx) => {
-            box.addEventListener('input', function() {
-              if (box.value.length === 1 && idx < codeBoxes.length - 1) {
-                codeBoxes[idx + 1].focus();
-              }
-            });
-            box.addEventListener('keydown', function(e) {
-              if (e.key === 'Backspace' && box.value === '' && idx > 0) {
-                codeBoxes[idx - 1].focus();
-              }
-            });
+        const codeBoxes = document.querySelectorAll('.code-box');
+        codeBoxes.forEach((box, idx) => {
+          box.addEventListener('input', function () {
+            if (box.value.length === 1 && idx < codeBoxes.length - 1) {
+              codeBoxes[idx + 1].focus();
+            }
           });
-          document.getElementById('codeForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            let code = '';
-            codeBoxes.forEach(box => code += box.value);
-            if (code.length !== 6 || !/^[0-9]{6}$/.test(code)) {
-              alert('Please enter the 6-digit code sent to your email.');
-              return;
+          box.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && box.value === '' && idx > 0) {
+              codeBoxes[idx - 1].focus();
             }
-            try {
-              const response = await fetch(window.location.origin + '/api/auth/verify-admin-code', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email: requestedEmail, code })
-              });
-              if (response.ok) {
-                localStorage.setItem('adminVerifiedEmail', requestedEmail);
-                console.log('[register-admin.html] Set adminVerifiedEmail:', localStorage.getItem('adminVerifiedEmail'));
-                setTimeout(() => {
-                  window.location.href = 'register.html';
-                }, 300);
-              } else {
-                const error = await response.text();
-                alert(error || 'Invalid or expired code. Please try again.');
-              }
-            } catch (err) {
-              alert('Verification failed. Please try again.');
-            }
-        // Utility: show alert message above form, then callback
-        function showAlert(message, type, callback) {
-        // ...existing code...
-        // Re-enable request button when email changes
-        document.getElementById('email').addEventListener('input', function() {
-          document.getElementById('requestAccessBtn').disabled = false;
-          this.classList.remove('input-error');
+          });
         });
-          // Remove any previous alert
-          let prev = document.getElementById('customAlert');
-          if (prev) prev.remove();
-          const alertDiv = document.createElement('div');
-          alertDiv.id = 'customAlert';
-          alertDiv.className = `alert alert-${type}`;
-          alertDiv.style = 'margin-bottom:18px;padding:1rem 1.5rem;border-radius:8px;font-size:1.1rem;text-align:center;background:#eaf6ea;color:#2d3a4a;border:1px solid #bcd0ee;box-shadow:0 2px 8px rgba(44,62,80,0.07);';
-          alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}" style="margin-right:8px;"></i> ${message}`;
-          loginRight.prepend(alertDiv);
-          setTimeout(() => {
-            alertDiv.remove();
-            if (callback) callback();
-          }, 1800);
-        }
-          });
-        }
+        document.getElementById('codeForm').addEventListener('submit', async function (e) {
+          e.preventDefault();
+          let code = '';
+          codeBoxes.forEach(box => code += box.value);
+          if (code.length !== 6 || !/^[0-9]{6}$/.test(code)) {
+            alert('Please enter the 6-digit code sent to your email.');
+            return;
+          }
+          try {
+            const response = await fetch(window.location.origin + '/api/auth/verify-admin-code', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ email: requestedEmail, code })
+            });
+            if (response.ok) {
+              localStorage.setItem('adminVerifiedEmail', requestedEmail);
+              console.log('[register-admin.html] Set adminVerifiedEmail:', localStorage.getItem('adminVerifiedEmail'));
+              setTimeout(() => {
+                window.location.href = 'register.html';
+              }, 300);
+            } else {
+              const error = await response.text();
+              alert(error || 'Invalid or expired code. Please try again.');
+            }
+          } catch (err) {
+            alert('Verification failed. Please try again.');
+          }
+          // Utility: show alert message above form, then callback
+          function showAlert(message, type, callback) {
+            // ...existing code...
+            // Re-enable request button when email changes
+            document.getElementById('email').addEventListener('input', function () {
+              document.getElementById('requestAccessBtn').disabled = false;
+              this.classList.remove('input-error');
+            });
+            // Remove any previous alert
+            let prev = document.getElementById('customAlert');
+            if (prev) prev.remove();
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'customAlert';
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.style = 'margin-bottom:18px;padding:1rem 1.5rem;border-radius:8px;font-size:1.1rem;text-align:center;background:#eaf6ea;color:#2d3a4a;border:1px solid #bcd0ee;box-shadow:0 2px 8px rgba(44,62,80,0.07);';
+            alertDiv.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}" style="margin-right:8px;"></i> ${message}`;
+            loginRight.prepend(alertDiv);
+            setTimeout(() => {
+              alertDiv.remove();
+              if (callback) callback();
+            }, 1800);
+          }
+        });
+      }
     </script>
-</body>
+  </body>
+
 </html>
