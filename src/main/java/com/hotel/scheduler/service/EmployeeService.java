@@ -1,3 +1,4 @@
+
 package com.hotel.scheduler.service;
 
 import com.hotel.scheduler.model.Employee;
@@ -34,6 +35,15 @@ import org.springframework.context.annotation.Primary;
 @RequiredArgsConstructor
 @Transactional
 public class EmployeeService implements UserDetailsService {
+    // Helper to encode a password using the configured password encoder
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
+
+    // Helper to send an email to an admin (for super admin actions)
+    public void sendEmailToAdmin(Employee admin, String subject, String body) {
+        notificationService.sendEmail(admin.getEmail(), subject, body);
+    }
     /**
      * Creates a new employee (admin or employee) using the password provided by the user,
      * and does NOT set mustChangePassword to true. Used for self-registration flows.
@@ -414,6 +424,7 @@ public class EmployeeService implements UserDetailsService {
         admin.setPassword(passwordEncoder.encode(password));
         admin.setRole(Employee.Role.ADMIN);
         admin.setActive(true);
+        admin.setMustChangePassword(true); // Force password change on first login
         // Ensure packageType is set, default to Basic if missing
         if (admin.getPackageType() == null || admin.getPackageType().isEmpty()) {
             admin.setPackageType("Basic");

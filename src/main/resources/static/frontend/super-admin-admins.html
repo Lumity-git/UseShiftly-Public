@@ -197,8 +197,8 @@
       <div class="form-group">
         <label for="packageType">Package Type</label>
         <select id="packageType" name="packageType" required>
-          <option value="Basic">Basic ($4/user/month after 5 free, website/email)</option>
-          <option value="Pro">Pro ($7/user/month, website/email/mobile app)</option>
+          <option value="Basic">Basic (6/user/month after 5 free, website/email)</option>
+          <option value="Pro">Pro ($9/user/month, website/email/mobile app)</option>
         </select>
       </div>
       <button type="submit">Create Admin</button>
@@ -247,10 +247,69 @@
         tr.innerHTML = `<td>${a.id}</td><td>${a.firstName} ${a.lastName}</td><td>${a.email}</td><td>${a.active ? 'Yes' : 'No'}</td><td class="actions">
           <button onclick="deleteAdmin(${a.id})">Delete</button>
           <button onclick="showEditAdmin(${a.id})">Edit</button>
+          <button onclick="sendTempPassword(${a.id}, '${a.email}')">Send Temp Password</button>
+          <button onclick="generateCustomTempPassword('${a.email}')">Custom Email Temp Password</button>
         </td>`;
         tbody.appendChild(tr);
       });
     }
+
+// Helper to generate a random temp password
+function generateRandomPassword(length = 12) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+  let pwd = '';
+  for (let i = 0; i < length; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pwd;
+}
+
+// Send temp password to admin's email and set must_change_password=true
+async function sendTempPassword(adminId, email) {
+  if (!confirm(`Send a new temp password to ${email}? This will force a password change on next login.`)) return;
+  const tempPassword = generateRandomPassword();
+  const res = await fetch(`/api/super-admin/admins/${adminId}/send-temp-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ tempPassword })
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    showError(data.message || 'Failed to send temp password.');
+    return;
+  }
+  showSuccess('Temp password sent to admin email!');
+}
+
+// Generate temp password for custom email, display for manual use
+function generateCustomTempPassword(email) {
+  const tempPassword = generateRandomPassword();
+  // Find the admin by email to get their ID
+  const admins = Array.from(document.querySelectorAll('#adminsTable tbody tr')).map(tr => ({
+    id: parseInt(tr.children[0].textContent),
+    email: tr.children[2].textContent
+  }));
+  const admin = admins.find(a => a.email === email);
+  if (!admin) {
+    showError('Admin not found for custom password.');
+    return;
+  }
+  // Set the temp password in the backend (no email sent)
+  fetch(`/api/super-admin/admins/${admin.id}/set-temp-password-manual`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ tempPassword })
+  })
+  .then(async res => {
+    if (!res.ok) {
+      const data = await res.json();
+      showError(data.message || 'Failed to set temp password.');
+      return;
+    }
+    prompt(`Temp password for ${email} (copy and send manually):`, tempPassword);
+  })
+  .catch(() => showError('Failed to set temp password.'));
+}
     document.getElementById('createForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const firstName = document.getElementById('firstName').value;
@@ -362,8 +421,8 @@
             <div class="form-group">
               <label for="editPackageType">Package Type</label>
               <select id="editPackageType" name="packageType" required>
-                <option value="Basic" ${admin.packageType === 'Basic' ? 'selected' : ''}>Basic ($4/user/month after 5 free, website/email)</option>
-                <option value="Pro" ${admin.packageType === 'Pro' ? 'selected' : ''}>Pro ($7/user/month, website/email/mobile app)</option>
+                <option value="Basic" ${admin.packageType === 'Basic' ? 'selected' : ''}>Basic (6/user/month after 5 free, website/email)</option>
+                <option value="Pro" ${admin.packageType === 'Pro' ? 'selected' : ''}>Pro ($9/user/month, website/email/mobile app)</option>
               </select>
             </div>
             <button type="submit">Save</button>

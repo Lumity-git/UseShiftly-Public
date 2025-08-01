@@ -20,6 +20,13 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.web.filter.OncePerRequestFilter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Spring Security configuration for the Hotel Employee Scheduler application.
@@ -126,6 +133,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
                 .requestMatchers("/super-admin-login.html").permitAll()
                 .requestMatchers("/*.html", "/*.css", "/*.js", "/*.png", "/*.jpg", "/*.ico").permitAll()
+                .requestMatchers("/login").permitAll()
                 .requestMatchers("/api/super-admin/auth/login").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
@@ -148,6 +156,30 @@ public class WebSecurityConfig {
         http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
 
         http.authenticationProvider(authenticationProvider());
+        // Add custom redirect/rewrite filter before JWT filter
+        http.addFilterBefore(new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                    throws ServletException, IOException {
+                String path = request.getRequestURI();
+                // Redirect root '/' and '/login' to '/frontend/login'
+                if ("/".equals(path) || "/login".equals(path)) {
+                    response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+                    response.setHeader("Location", "/frontend/login");
+                    return;
+                }
+                // Rewrite extensionless frontend URLs to .html if file exists
+                if (path.matches("^/frontend/[a-zA-Z0-9_-]+$")) {
+                    String htmlPath = path + ".html";
+                    ClassPathResource resource = new ClassPathResource("static" + htmlPath);
+                    if (resource.exists()) {
+                        request.getRequestDispatcher(htmlPath).forward(request, response);
+                        return;
+                    }
+                }
+                filterChain.doFilter(request, response);
+            }
+        }, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

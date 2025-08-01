@@ -1,11 +1,12 @@
 package com.hotel.scheduler.controller;
 
+
+
 import com.hotel.scheduler.model.Employee;
 import com.hotel.scheduler.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,49 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SuperAdminController {
+
+    /**
+     * Sets a temporary password for the admin and sets mustChangePassword=true, but does NOT send an email.
+     * Endpoint: POST /api/super-admin/admins/{id}/set-temp-password-manual
+     * Body: { "tempPassword": "..." }
+     */
+    @PostMapping("/{id}/set-temp-password-manual")
+    public ResponseEntity<?> setTempPasswordManual(@PathVariable Long id, @RequestBody Map<String, String> req) {
+        Employee admin = employeeService.getAdminById(id)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        String tempPassword = req.get("tempPassword");
+        if (tempPassword == null || tempPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Temp password is required."));
+        }
+        admin.setPassword(employeeService.encodePassword(tempPassword));
+        admin.setMustChangePassword(true);
+        employeeService.updateEmployee(admin);
+        return ResponseEntity.ok(Map.of("message", "Temporary password set for admin (manual, no email sent)."));
+    }
+    /**
+     * Sends a temporary password to the admin's email and sets mustChangePassword=true.
+     * Endpoint: POST /api/super-admin/admins/{id}/send-temp-password
+     * Body: { "tempPassword": "..." }
+     */
+    @PostMapping("/{id}/send-temp-password")
+    public ResponseEntity<?> sendTempPasswordToAdmin(@PathVariable Long id, @RequestBody Map<String, String> req) {
+        Employee admin = employeeService.getAdminById(id)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+        String tempPassword = req.get("tempPassword");
+        if (tempPassword == null || tempPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Temp password is required."));
+        }
+        admin.setPassword(employeeService.encodePassword(tempPassword));
+        admin.setMustChangePassword(true);
+        employeeService.updateEmployee(admin);
+        // Send email to admin
+        String subject = "Your Temporary Admin Password";
+        String body = String.format(
+                "Hello %s,\n\nA new temporary password has been set for your admin account.\n\nTemporary password: %s\n\nYou will be required to change your password on your next login.\n\nIf you did not request this, please contact your super admin immediately.\n\nBest regards,\nHotel Scheduler Team",
+                admin.getFirstName(), tempPassword);
+        employeeService.sendEmailToAdmin(admin, subject, body);
+        return ResponseEntity.ok(Map.of("message", "Temporary password sent to admin email."));
+    }
     /**
      * Send Stripe invoice to all admins.
      */
