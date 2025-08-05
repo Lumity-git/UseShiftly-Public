@@ -429,7 +429,22 @@ public class EmployeeService implements UserDetailsService {
         if (admin.getPackageType() == null || admin.getPackageType().isEmpty()) {
             admin.setPackageType("Basic");
         }
-        return employeeRepository.save(admin);
+        Employee savedAdmin = employeeRepository.save(admin);
+        // Send welcome email after successful account creation
+        String subject = "Welcome to Shiftly Scheduler!";
+        String body = String.format(
+            "Hi %s,<br><br>" +
+            "Great news — you've successfully verified and created your admin account! 🎉<br>" +
+            "You can now start adding employees, setting up departments, and creating shifts with ease.<br><br>" +
+            "If you have any questions or need help getting started, feel free to reply to this email — I'm here to support you every step of the way.<br><br>" +
+            "Yours truly,<br>" +
+            "Shiftly Scheduler<br>" +
+            "~ The Developer<br><br>" +
+            "P.S. Phase 2 is almost here — full Android and iOS support is on the way!<br>" +
+            "Want early access? <a href='https://useshiftly.com/frontend/waitlist'>Join the waiting list here.</a>"
+            , savedAdmin.getFirstName());
+        notificationService.sendEmail(savedAdmin.getEmail(), subject, body);
+        return savedAdmin;
     }
 
     /**
