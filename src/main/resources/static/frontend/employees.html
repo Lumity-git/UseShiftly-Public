@@ -45,9 +45,68 @@
       #employeeModal .modal-content {
         border-radius: 16px !important;
       }
+      #debugPanel {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        width: 420px;
+        max-height: 40vh;
+        background: #222;
+        color: #eee;
+        font-size: 13px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+        z-index: 9999;
+        overflow-y: auto;
+        padding: 12px 8px 8px 12px;
+        opacity: 0.95;
+      }
+      #debugPanel h4 {
+        margin: 0 0 6px 0;
+        font-size: 14px;
+        color: #ffb300;
+      }
+      #debugPanel .debug-log {
+        font-family: monospace;
+        white-space: pre-wrap;
+        margin-bottom: 2px;
+      }
+      #debugPanel .debug-clear {
+        position: absolute;
+        top: 6px;
+        right: 12px;
+        background: #444;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        padding: 2px 8px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
+    <div id="debugPanel">
+      <h4>Debug Log <button class="debug-clear" onclick="window.clearDebugPanel()">Clear</button></h4>
+      <div id="debugPanelLogs"></div>
+    </div>
+    <script>
+      window.logToDebugPanel = function(...args) {
+        const logDiv = document.getElementById('debugPanelLogs');
+        if (!logDiv) return;
+        const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' ');
+        const entry = document.createElement('div');
+        entry.className = 'debug-log';
+        entry.textContent = msg;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+        if (window.console) console.log(...args);
+      };
+      window.clearDebugPanel = function() {
+        const logDiv = document.getElementById('debugPanelLogs');
+        if (logDiv) logDiv.innerHTML = '';
+      };
+    </script>
     <div id="headerContainer">
       <script>
           // Use nav-manager.js to load header and navigation
@@ -249,7 +308,7 @@
             </script>
             </div>
             <div class="form-group">
-              <label for="department">Department</label>
+              <label for="department">Department (Optional)</label>
               <select id="department" name="departmentId">
                 <option value="">Select Department</option>
               </select>
@@ -328,8 +387,8 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="inviteDepartment">Department</label>
-              <select id="inviteDepartment" name="departmentId" required>
+              <label for="inviteDepartment">Department (Optional)</label>
+              <select id="inviteDepartment" name="departmentId">
                 <option value="">Select Department</option>
               </select>
             </div>
@@ -686,7 +745,7 @@
           body: JSON.stringify(invitationData)
         });
         // Build the reset link
-        const resetUrl = `${window.location.origin}/change-password.html?code=${response.invitationCode}&token=${response.invitationToken}`;
+        const resetUrl = `${window.location.origin}/frontend/change-password.html?code=${response.invitationCode}&token=${response.invitationToken}`;
         // Show and set the link in the input for copy
         const linkInput = document.getElementById(`changePasswordLink_${employeeId}`);
         linkInput.value = resetUrl;
@@ -779,7 +838,8 @@
         } catch (error) {
           if (error && error.status === 401) {
             showAlert("Session expired. Please log in again.", "error");
-            setTimeout(() => logout(), 1200);
+            console.log("🚨 TIMEOUT LOGOUT SUPPRESSED FOR DEBUGGING - loadBuildings!");
+            // setTimeout(() => logout(), 1200);
           } else {
             console.error("Failed to load buildings:", error);
           }
@@ -1027,7 +1087,8 @@
         } catch (error) {
           if (error && error.status === 401) {
             showAlert("Session expired. Please log in again.", "error");
-            setTimeout(() => logout(), 1200);
+            console.log("🚨 TIMEOUT LOGOUT SUPPRESSED FOR DEBUGGING - loadBuildingsByAdmin!");
+            // setTimeout(() => logout(), 1200);
           } else {
             console.error("Failed to load buildings:", error);
           }
@@ -1035,9 +1096,12 @@
       }
 
       function logout() {
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userInfo");
-        window.location.href = "login.html";
+        console.log("🚨 LOGOUT CALLED - BUT SUPPRESSED FOR DEBUGGING!");
+        console.log("Stack trace:", new Error().stack);
+        // TEMPORARILY DISABLED FOR DEBUGGING
+        // localStorage.removeItem("authToken");
+        // localStorage.removeItem("userInfo");
+        // window.location.href = "login.html";
       }
 
       // API Helpers
@@ -1067,7 +1131,11 @@
 
           if (response.status === 401) {
             console.warn("apiRequest: Unauthorized (401)");
-            logout();
+            console.log("🚨 401 RESPONSE - BUT LOGOUT SUPPRESSED FOR DEBUGGING!");
+            console.log("Request details:", { endpoint, url, options });
+            console.log("Response headers:", [...response.headers.entries()]);
+            // TEMPORARILY DISABLED FOR DEBUGGING
+            // logout();
             return;
           }
 
@@ -1113,7 +1181,8 @@
         } catch (error) {
           if (error && error.status === 401) {
             showAlert("Session expired. Please log in again.", "error");
-            setTimeout(() => logout(), 1200);
+            console.log("🚨 TIMEOUT LOGOUT SUPPRESSED FOR DEBUGGING - loadDepartments!");
+            // setTimeout(() => logout(), 1200);
           } else {
             console.error("Failed to load departments:", error);
           }
@@ -1425,41 +1494,104 @@
           }
           // Add change event to buildingSelect to load departments for selected building
           buildingSelect.onchange = async function() {
+            logToDebugPanel("🔧 Building selection changed, buildingId:", buildingSelect.value);
+            logToDebugPanel("🔧 Current token:", localStorage.getItem("authToken")?.substring(0, 20) + "...");
+            
             const buildingId = buildingSelect.value;
             if (!buildingId || isNaN(buildingId)) {
+              logToDebugPanel("🔧 No valid building selected, clearing departments");
               if (departmentSelect) {
                 departmentSelect.innerHTML = '<option value="">Select Department</option>';
                 departmentSelect.disabled = true;
               }
               return;
             }
-            // Fetch departments for selected building
+            
+            console.log("🔧 Fetching departments for building:", buildingId);
+            logToDebugPanel("🔧 Fetching departments for building:", buildingId);
+            
+            // Fetch departments for selected building with refresh-on-401 logic
             try {
-              const token = localStorage.getItem("authToken");
-              const response = await fetch(`${API_BASE_URL}/departments/by-building/${buildingId}`, {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              });
+              async function fetchDepartmentsWithRefresh(bId) {
+                logToDebugPanel("🔧 Starting fetchDepartmentsWithRefresh for building:", bId);
+                const token = localStorage.getItem("authToken");
+                logToDebugPanel("🔧 Using token:", token?.substring(0, 20) + "...");
+                const requestUrl = `${API_BASE_URL}/departments/by-building/${bId}`;
+                logToDebugPanel("🔧 Making request to:", requestUrl);
+                const res = await fetch(requestUrl, {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                });
+                let resBody = null;
+                try { resBody = await res.clone().text(); } catch (e) { resBody = "(error reading body)"; }
+                logToDebugPanel("🔧 Initial response status:", res.status);
+                logToDebugPanel("🔧 Initial response headers:", [...res.headers.entries()]);
+                logToDebugPanel("🔧 Initial response body:", resBody);
+                if (res.status === 401) {
+                  logToDebugPanel("🔧 Got 401, attempting token refresh...");
+                  // Try refresh
+                  const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                  });
+                  let refreshBody = null;
+                  try { refreshBody = await refreshRes.clone().text(); } catch (e) { refreshBody = "(error reading body)"; }
+                  logToDebugPanel("🔧 Refresh response status:", refreshRes.status);
+                  logToDebugPanel("🔧 Refresh response headers:", [...refreshRes.headers.entries()]);
+                  logToDebugPanel("🔧 Refresh response body:", refreshBody);
+                  if (refreshRes.ok) {
+                    logToDebugPanel("🔧 Token refresh successful!");
+                    let data = {};
+                    try { data = await refreshRes.json(); } catch (e) { data = {error: "Failed to parse JSON"}; }
+                    logToDebugPanel("🔧 Refresh response data:", data);
+                    if (data.token) localStorage.setItem("authToken", data.token);
+                    if (data.userInfo) localStorage.setItem("userInfo", JSON.stringify(data.userInfo));
+                    // Retry original request with new token
+                    const newToken = data.token || localStorage.getItem("authToken");
+                    logToDebugPanel("🔧 Retrying with new token:", newToken?.substring(0, 20) + "...");
+                    return await fetch(requestUrl, {
+                      method: "GET",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${newToken}` },
+                    });
+                  } else {
+                    logToDebugPanel("🔧 Token refresh failed!");
+                  }
+                }
+                return res;
+              }
+
+              const response = await fetchDepartmentsWithRefresh(buildingId);
+              logToDebugPanel("🔧 Final response status:", response?.status);
+              
               let departments = [];
-              if (response.ok) {
+              if (response && response.ok) {
                 departments = await response.json();
+                logToDebugPanel("🔧 Received departments:", departments);
+              } else {
+                logToDebugPanel("🔧 Failed to get departments, response:", response);
               }
               if (departmentSelect) {
                 departmentSelect.innerHTML = '<option value="">Select Department</option>';
                 if (Array.isArray(departments)) {
+                  logToDebugPanel("🔧 Populating department select with", departments.length, "departments");
                   departments.forEach((dept) => {
                     const option = document.createElement("option");
                     option.value = dept.id;
                     option.textContent = dept.name;
                     departmentSelect.appendChild(option);
                   });
+                } else {
+                  logToDebugPanel("🔧 Departments is not an array:", departments);
                 }
                 departmentSelect.disabled = false;
+                logToDebugPanel("🔧 Department select enabled");
               }
             } catch (err) {
+              logToDebugPanel("🚨 Error in building onchange handler:", err);
+              logToDebugPanel("🚨 Error stack:", err.stack);
               if (departmentSelect) {
                 departmentSelect.innerHTML = '<option value="">Select Department</option>';
                 departmentSelect.disabled = true;
@@ -1629,7 +1761,7 @@
         // For admins, require building selection and set buildingId/buildingName
         let buildingId = null;
         let buildingName = "";
-        if (currentUser && currentUser.role === "ADMIN") {
+        if (user && user.role === "ADMIN") {
           const buildingSelect = document.getElementById("employeeBuilding");
           if (buildingSelect) {
             const val = buildingSelect.value;
@@ -1655,10 +1787,15 @@
           role,
           departmentId,
           adminId: user.id,
-          ...(currentUser && currentUser.role === "ADMIN" ? { buildingId, buildingName } : {}),
+          ...(user && user.role === "ADMIN" ? { buildingId, buildingName } : {}),
         };
         // Debug: log employeeData and adminId
         console.debug("employeeData", employeeData, "adminId", user.id);
+        
+        // Close modal immediately for better UX
+        form.reset();
+        closeEmployeeModal();
+        
         try {
           let apiResult;
           if (editingEmployeeId) {
@@ -1668,7 +1805,6 @@
               body: JSON.stringify(employeeData),
             });
             console.debug("Update result", apiResult);
-            showAlert("Employee updated successfully!", "success");
           } else {
             console.debug("Creating employee");
             apiResult = await apiRequest("/employees", {
@@ -1676,7 +1812,6 @@
               body: JSON.stringify(employeeData),
             });
             console.debug("Create result", apiResult);
-            showAlert("Employee created successfully!", "success");
           }
 
           // Add manager to building if role is MANAGER and buildingId is set
@@ -1692,18 +1827,27 @@
             } catch (err) {
               console.error("Failed to add manager to building", err);
               showAlert("Failed to add manager to building.", "error");
+              return;
             }
           }
 
-          form.reset();
-          closeEmployeeModal();
+          // Refresh employee list
           await loadEmployees();
+          
+          // Show success message
+          if (editingEmployeeId) {
+            showAlert("Employee updated successfully!", "success");
+          } else {
+            showAlert("Employee created successfully! A temporary password has been sent to their email address.", "success");
+          }
         } catch (error) {
           console.error("Failed to save employee", error);
           showAlert(
             "Failed to save employee. Please check required fields, role, and email uniqueness.",
             "error"
           );
+          // Re-open the modal if there was an error since we closed it early
+          document.getElementById("employeeModal").style.display = "block";
         }
       }
 
@@ -1711,16 +1855,28 @@
         e.preventDefault();
 
         const formData = new FormData(e.target);
+        
+        // Handle departmentId properly - only include if selected
+        let departmentId = null;
+        const deptValue = formData.get("departmentId");
+        if (deptValue && deptValue !== "" && !isNaN(deptValue)) {
+          departmentId = parseInt(deptValue);
+        }
+        
         const invitationData = {
           firstName: formData.get("firstName"),
           lastName: formData.get("lastName"),
           email: formData.get("email"),
           phoneNumber: formData.get("phoneNumber"),
           role: formData.get("role"),
-          departmentId: parseInt(formData.get("departmentId")),
           notes: formData.get("notes"),
           expiryDays: parseInt(formData.get("expiryDays")),
         };
+        
+        // Only add departmentId if it's valid
+        if (departmentId !== null) {
+          invitationData.departmentId = departmentId;
+        }
         // For admins, add buildingId/buildingName
         if (currentUser && currentUser.role === "ADMIN") {
           const buildingSelect = document.getElementById("inviteBuilding");
@@ -1737,7 +1893,7 @@
             body: JSON.stringify(invitationData),
           });
 
-          showAlert("Invitation created successfully!", "success");
+          showAlert("Invitation created successfully! The invitation link has been generated.", "success");
           closeInvitationModal();
           loadPendingInvitations();
 
@@ -1854,6 +2010,10 @@
                 <label for="buildingName">Building Name</label>
                 <input type="text" id="buildingName" name="buildingName" required />
               </div>
+              <div class="form-group">
+                <label for="buildingAddress">Address</label>
+                <input type="text" id="buildingAddress" name="buildingAddress" required />
+              </div>
               <div class="action-buttons">
                 <button type="submit" class="btn btn-primary">🏢 Create Building</button>
                 <button type="button" class="btn btn-secondary" onclick="closeCreateBuildingModal()">❌ Cancel</button>
@@ -1879,10 +2039,11 @@
         ?.addEventListener("submit", async function (e) {
           e.preventDefault();
           const name = document.getElementById("buildingName").value.trim();
-          if (!name) {
+          const address = document.getElementById("buildingAddress").value.trim();
+          if (!name || !address) {
             document.getElementById(
               "createBuildingResult"
-            ).innerHTML = `<div class='alert alert-error'>Building name is required.</div>`;
+            ).innerHTML = `<div class='alert alert-error'>Building name and address are required.</div>`;
             return;
           }
           const token = localStorage.getItem("authToken");
@@ -1893,7 +2054,7 @@
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ name }),
+              body: JSON.stringify({ name, address }),
             });
             const resultDiv = document.getElementById("createBuildingResult");
             if (response.status === 409) {
@@ -1982,7 +2143,7 @@
               return;
             }
             const data = await response.json();
-            let html = `<div class='alert alert-success'>${data.successCount} employees imported.`;
+            let html = `<div class='alert alert-success'>${data.successCount} employees imported successfully! Temporary passwords have been sent to their email addresses.`;
             if (data.failures && data.failures.length > 0) {
               html += `<br>Failures:<ul>`;
               data.failures.forEach((f) => {

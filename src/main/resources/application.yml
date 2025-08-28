@@ -14,6 +14,10 @@ spring:
       ddl-auto: update
     show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: America/Chicago
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -42,6 +46,29 @@ app:
     email:
       from: ${EMAIL_FROM:noreply@hotelscheduler.com}
       enabled: ${EMAIL_ENABLED:true}
+
+# Enhanced Security Configuration
+security:
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_RPM:60}    # Max requests per minute per IP
+    burst-threshold: ${RATE_LIMIT_BURST:10}      # Warning threshold for burst detection
+    block-duration-minutes: ${RATE_LIMIT_BLOCK:15}  # Block duration in minutes
+    cleanup-interval-minutes: 5                  # Cleanup interval for expired entries
+  
+  abuse:
+    enabled: ${ABUSE_DETECTION_ENABLED:true}     # Enable/disable abuse detection
+    auth-failure-threshold: ${AUTH_FAILURE_THRESHOLD:10}  # Failed auth attempts before block
+    detection-window-minutes: ${ABUSE_WINDOW:60} # Time window for abuse detection
+    temp-block-duration-minutes: ${TEMP_BLOCK_DURATION:30}  # Temporary block duration
+    perm-block-threshold: ${PERM_BLOCK_THRESHOLD:3}  # Violations before permanent block
+  
+  monitoring:
+    alert-threshold: ${SECURITY_ALERT_THRESHOLD:100}  # Events before triggering alert
+    time-window-minutes: ${SECURITY_ALERT_WINDOW:10}  # Alert time window
+    
+  enhanced-logging:
+    enabled: ${ENHANCED_LOGGING:true}            # Enable structured security logging
+    log-level: ${SECURITY_LOG_LEVEL:WARN}       # Minimum log level for security events
 
 logging:
   file:

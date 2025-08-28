@@ -377,6 +377,22 @@
         margin-top: 2rem;
       }
 
+      .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+      }
+
+      .modal-body {
+        padding: 1rem 0;
+      }
+
+      .modal-body p {
+        margin-bottom: 1rem;
+        color: #555;
+      }
+
       .no-data {
         text-align: center;
         padding: 3rem;
@@ -614,6 +630,35 @@
       </div>
     </div>
 
+    <!-- Assign Manager Modal -->
+    <div id="assignManagerModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-user-tie"></i> Assign Manager</h2>
+          <button class="close-btn" onclick="closeAssignManagerModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Select a manager for <strong id="managerDepartmentName">this department</strong>:</p>
+          <div class="form-group">
+            <label for="managerSelect">Available Managers:</label>
+            <select id="managerSelect" class="form-control">
+              <option value="">-- Select a Manager --</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" onclick="saveManagerAssignment()">
+              <i class="fas fa-save"></i> Assign Manager
+            </button>
+            <button class="btn btn-secondary" onclick="closeAssignManagerModal()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="auto-logout.js"></script>
     <script src="auth-manager.js"></script>
     <script>
@@ -786,15 +831,20 @@
             // Wait for DOM and user info before setting up event listeners
             setTimeout(setupEventListeners, 0);
       async function loadData() {
-        await Promise.all([loadDepartments(), loadEmployees()]);
+        // Load employees first, then departments (which enhances with employee data)
+        await loadEmployees();
+        await loadDepartments();
       }
 
       async function loadDepartments() {
         const container = document.getElementById("departmentsContainer");
         try {
           container.innerHTML = `<div class="loading"><i class="fas fa-spinner"></i><p>Loading departments...</p></div>`;
+          console.log('Loading departments...');
           const departmentsData = await window.authManager.apiRequest("/departments");
           departments = departmentsData || [];
+          console.log('Loaded departments:', departments.length, 'departments');
+          console.log('Department data:', departments);
           await enhanceDepartmentsWithEmployees();
           filteredDepartments = [...departments];
           renderDepartments();
@@ -809,8 +859,22 @@
 
       async function loadEmployees() {
         try {
-          const employeesData = await window.authManager.apiRequest("/employees");
+          console.log('Loading employees...');
+          console.log('Current user role:', currentUser?.role);
+          
+          let endpoint = '/employees';
+          if (currentUser?.role === 'MANAGER') {
+            endpoint = '/employees/my-building';
+            console.log('Using manager endpoint:', endpoint);
+          } else if (currentUser?.role === 'ADMIN') {
+            endpoint = '/employees';
+            console.log('Using admin endpoint:', endpoint);
+          }
+          
+          const employeesData = await window.authManager.apiRequest(endpoint);
           employees = employeesData || [];
+          console.log('Loaded employees:', employees.length, 'employees');
+          console.log('Employee data:', employees);
           populateManagerSelect();
         } catch (error) {
           console.error("Error loading employees:", error);
@@ -821,6 +885,10 @@
       }
 
       async function enhanceDepartmentsWithEmployees() {
+        console.log('Enhancing departments with employees...');
+        console.log('Departments to enhance:', departments.length);
+        console.log('Available employees:', employees.length);
+        
         departments.forEach((dept) => {
           dept.employees = employees.filter(
             (emp) => String(emp.departmentId) === String(dept.id)
@@ -834,6 +902,8 @@
               emp.role === "ADMIN" &&
               String(emp.departmentId) === String(dept.id)
           );
+          
+          console.log(`Department ${dept.name}: ${dept.employees.length} employees, manager: ${dept.manager?.firstName || 'None'}`);
         });
       }
 
@@ -951,47 +1021,88 @@
       window.confirmDeleteDepartment = confirmDeleteDepartment;
 
       // Add assignManager function at top-level scope
+      let currentManagerDepartmentId = null;
+      
       async function assignManager(departmentId) {
+        console.log('assignManager called with departmentId:', departmentId);
+        console.log('Available employees:', employees);
+        
         // Find department
         const dept = departments.find((d) => d.id === departmentId);
         if (!dept) {
           showAlert("Department not found", "error");
           return;
         }
+        
+        // Store current department ID for later use
+        currentManagerDepartmentId = departmentId;
+        
+        // Update modal title with department name
+        document.getElementById('managerDepartmentName').textContent = dept.name;
+        
         // Get list of available managers (MANAGER or ADMIN)
         const availableManagers = employees.filter(
           (emp) => (emp.role === "MANAGER" || emp.role === "ADMIN")
         );
+        
+        console.log('Available managers:', availableManagers);
+        
         if (availableManagers.length === 0) {
           showAlert("No available managers to assign.", "error");
           return;
         }
-        // Prompt user to select a manager
-        let managerOptions = availableManagers
-          .map((mgr) => `${mgr.id}: ${mgr.firstName} ${mgr.lastName}`)
-          .join("\n");
-        let selectedId = prompt(
-          `Enter the ID of the manager to assign to ${dept.name}:\n${managerOptions}`
-        );
-        if (!selectedId) return;
-        selectedId = parseInt(selectedId);
-        if (!availableManagers.some((mgr) => mgr.id === selectedId)) {
-          showAlert("Invalid manager ID selected.", "error");
+        
+        // Populate manager dropdown
+        const managerSelect = document.getElementById('managerSelect');
+        managerSelect.innerHTML = '<option value="">-- Select a Manager --</option>';
+        
+        availableManagers.forEach(manager => {
+          const option = document.createElement('option');
+          option.value = manager.id;
+          option.textContent = `${manager.firstName} ${manager.lastName}`;
+          managerSelect.appendChild(option);
+        });
+        
+        // Show the modal
+        document.getElementById('assignManagerModal').style.display = 'block';
+      }
+      window.assignManager = assignManager;
+
+      function closeAssignManagerModal() {
+        document.getElementById('assignManagerModal').style.display = 'none';
+        currentManagerDepartmentId = null;
+      }
+      window.closeAssignManagerModal = closeAssignManagerModal;
+
+      async function saveManagerAssignment() {
+        const selectedManagerId = document.getElementById('managerSelect').value;
+        
+        if (!selectedManagerId) {
+          showAlert("Please select a manager.", "error");
           return;
         }
+        
+        if (!currentManagerDepartmentId) {
+          showAlert("No department selected.", "error");
+          return;
+        }
+        
         try {
+          console.log('Attempting to assign manager:', selectedManagerId, 'to department:', currentManagerDepartmentId);
           await window.authManager.apiRequest(
-            `/departments/${departmentId}`,
+            `/departments/${currentManagerDepartmentId}`,
             "PUT",
-            { managerId: selectedId }
+            { managerId: parseInt(selectedManagerId) }
           );
           showAlert("Manager assigned successfully!", "success");
+          closeAssignManagerModal();
           await loadDepartments();
         } catch (error) {
+          console.error('Error assigning manager:', error);
           showAlert("Failed to assign manager.", "error");
         }
       }
-      window.assignManager = assignManager;
+      window.saveManagerAssignment = saveManagerAssignment;
 
       function openDepartmentDetailsModal(departmentId) {
         const dept = departments.find((d) => d.id === departmentId);
@@ -1183,17 +1294,48 @@
         document.getElementById("departmentForm").reset();
       }
 
+      window.assignManager = assignManager;
+
       function assignEmployees(departmentId) {
+        console.log('assignEmployees called with departmentId:', departmentId);
+        console.log('Available employees:', employees);
         currentDepartmentId = departmentId;
         const dept = departments.find((d) => d.id === departmentId);
 
+        if (!dept) {
+          showAlert("Department not found", "error");
+          return;
+        }
+
         const content = document.getElementById("assignEmployeesContent");
-        content.innerHTML = `
+        if (!content) {
+          showAlert("Modal content not found", "error");
+          return;
+        }
+
+        if (!employees || employees.length === 0) {
+          content.innerHTML = `
                 <div class="form-group">
                     <label>Department: <strong>${dept.name}</strong></label>
                 </div>
                 <div class="form-group">
                     <label>Available Employees:</label>
+                    <div style="padding: 1rem; text-align: center; color: #666;">
+                        No employees found. Please make sure employees are loaded.
+                        <button type="button" class="btn btn-primary" onclick="loadEmployees().then(() => assignEmployees(${departmentId}))">Reload Employees</button>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAssignEmployeesModal()">Cancel</button>
+                </div>
+            `;
+        } else {
+          content.innerHTML = `
+                <div class="form-group">
+                    <label>Department: <strong>${dept.name}</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>Available Employees (${employees.length} total):</label>
                     <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 1rem;">
                         ${employees
                           .map(
@@ -1230,30 +1372,46 @@
                     <button type="button" class="btn btn-primary" onclick="saveEmployeeAssignments()">Save Assignments</button>
                 </div>
             `;
+        }
 
         document.getElementById("assignEmployeesModal").style.display = "block";
       }
+
+      // Expose assignEmployees to global scope
+      window.assignEmployees = assignEmployees;
 
       function closeAssignEmployeesModal() {
         document.getElementById("assignEmployeesModal").style.display = "none";
         currentDepartmentId = null;
       }
 
+      // Expose other functions to global scope
+      window.closeAssignEmployeesModal = closeAssignEmployeesModal;
+      window.saveEmployeeAssignments = saveEmployeeAssignments;
+
       async function saveEmployeeAssignments() {
+        console.log('saveEmployeeAssignments called for department:', currentDepartmentId);
+        
         const selectedEmployees = [];
         employees.forEach((emp) => {
           const checkbox = document.getElementById(`emp_${emp.id}`);
           if (checkbox && checkbox.checked) {
-            selectedEmployees.push(emp.id);
+            // Ensure we're sending numbers, not strings
+            selectedEmployees.push(Number(emp.id));
           }
         });
 
+        console.log('Selected employees:', selectedEmployees);
+        console.log('Employee IDs types:', selectedEmployees.map(id => typeof id));
+
         try {
-          await window.authManager.apiRequest(
+          const response = await window.authManager.apiRequest(
             `/employees/departments/${currentDepartmentId}/assign`,
             "POST",
             { employeeIds: selectedEmployees }
           );
+          
+          console.log('Assignment response:', response);
 
           showAlert("Employee assignments updated successfully", "success");
           closeAssignEmployeesModal();

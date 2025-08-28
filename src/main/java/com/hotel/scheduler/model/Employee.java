@@ -112,7 +112,7 @@ public class Employee implements UserDetails {
     public Department department;
 
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "building_id", nullable = false)
     @JsonIgnore
     public Building building;

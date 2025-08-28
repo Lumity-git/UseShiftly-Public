@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
+@Table(uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"name", "admin_id"})
+})
 // Removed @Data to prevent Lombok from generating equals/hashCode
 public class Building {
     // --- Getters ---
@@ -39,7 +42,7 @@ public class Building {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     public String name;
 
     @Column(nullable = false)

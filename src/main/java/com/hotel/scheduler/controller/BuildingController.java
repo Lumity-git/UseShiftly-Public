@@ -23,6 +23,7 @@ public class BuildingController {
         BuildingDTO dto = new BuildingDTO();
         dto.setId(building.getId());
         dto.setName(building.getName());
+        dto.setAddress(building.getAddress());
         dto.setAdminId(building.getAdmin() != null ? building.getAdmin().getId() : null);
         // Set all manager IDs
         if (building.getManagers() != null) {
@@ -46,17 +47,22 @@ public class BuildingController {
     public ResponseEntity<?> createBuilding(@RequestBody Map<String, String> request,
                                            @AuthenticationPrincipal Employee currentUser) {
         String name = request.get("name");
+        String address = request.get("address");
         if (name == null || name.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Building name is required");
         }
+        if (address == null || address.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Building address is required");
+        }
         Building building = new Building();
         building.setName(name.trim());
+        building.setAddress(address.trim());
         building.setAdmin(currentUser);
         try {
             Building saved = buildingRepository.save(building);
             return ResponseEntity.ok(toDTO(saved));
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            return ResponseEntity.status(409).body("Building name already exists");
+            return ResponseEntity.status(409).body("Building name already exists for this admin");
         }
     }
 

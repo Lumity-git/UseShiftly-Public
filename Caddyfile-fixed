@@ -1,0 +1,53 @@
+asluxeco.org {
+    reverse_proxy nextcloud:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_down -Server
+    }
+
+    # Security Headers
+    header {
+        # HSTS - Force HTTPS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        
+        # Clickjacking protection - DENY is more secure than SAMEORIGIN for most cases
+        # Use SAMEORIGIN only if Nextcloud needs to be embedded in frames on same domain
+        X-Frame-Options "DENY"
+        
+        # XSS Protection (though modern browsers have this built-in)
+        X-XSS-Protection "1; mode=block"
+        
+        # Control referrer information
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Prevent file downloads from opening directly
+        X-Download-Options "noopen"
+        
+        # Restrict cross-domain policies
+        X-Permitted-Cross-Domain-Policies "none"
+        
+        # Content Security Policy - Basic policy, adjust based on your needs
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; child-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+        
+        # Remove server information
+        -Server
+        -X-Powered-By
+    }
+
+    # Additional security directives
+    encode gzip
+    
+    # Optional: Add rate limiting if available in your Caddy version
+    # rate_limit {
+    #     zone dynamic {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+}

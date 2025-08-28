@@ -443,14 +443,27 @@ public class EmployeeController {
     /**
      * Change password endpoint for employees, managers, and admins.
      * Requires old password, new password. Sets mustChangePassword=false on success.
+     * Exception: If user has mustChangePassword=true, old password is not required.
      */
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> req,
                                             @AuthenticationPrincipal Employee currentUser) {
         String oldPassword = req.get("oldPassword");
         String newPassword = req.get("newPassword");
-        if (oldPassword == null || newPassword == null) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Missing old or new password"));
+        
+        if (newPassword == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Missing new password"));
+        }
+        
+        // If user must change password, skip old password check
+        if (currentUser.isMustChangePassword()) {
+            employeeService.updatePassword(currentUser, newPassword);
+            return ResponseEntity.ok(new MessageResponse("Password changed successfully"));
+        }
+        
+        // Normal password change requires old password
+        if (oldPassword == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Missing old password"));
         }
         if (!employeeService.checkPassword(currentUser, oldPassword)) {
             return ResponseEntity.badRequest().body(new MessageResponse("Old password is incorrect"));

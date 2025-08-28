@@ -11,6 +11,8 @@ import com.hotel.scheduler.service.InvitationService;
 import com.hotel.scheduler.model.Invitation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.io.FileWriter;
+import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -105,27 +107,36 @@ public class AuthController {
         }
         // If code/token are provided, handle password reset via invitation
         if (code != null && token != null) {
+            log.info("[DEBUG] Password reset attempt with code={}, token={}", code, token);
             var invitationOpt = invitationService.validateInvitation(code, token);
             if (invitationOpt.isEmpty()) {
+                log.warn("[DEBUG] Password reset failed - Invalid or expired invitation: code={}, token={}", code, token);
                 return ResponseEntity.status(401).body(new MessageResponse("Invalid or expired password reset link."));
             }
             Invitation invitation = invitationOpt.get();
+            log.info("[DEBUG] Valid invitation found for email={}, type={}, expiresAt={}", 
+                invitation.getEmail(), invitation.getRole(), invitation.getExpiresAt());
             // Find employee by email from invitation
             var employeeOpt = employeeService.getEmployeeByEmail(invitation.getEmail());
             if (employeeOpt.isEmpty()) {
+                log.warn("[DEBUG] Password reset failed - User not found for email={}", invitation.getEmail());
                 return ResponseEntity.status(404).body(new MessageResponse("User not found for this invitation."));
             }
             Employee invitedEmployee = employeeOpt.get();
+            log.info("[DEBUG] Found employee for password reset: id={}, email={}", 
+                invitedEmployee.getId(), invitedEmployee.getEmail());
             employeeService.updatePassword(invitedEmployee, newPassword);
             invitationService.markInvitationUsed(code); // Mark/reset link as used
             userActionLogService.logAction("CHANGE_PASSWORD_BY_LINK", invitedEmployee.getId());
+            log.info("[DEBUG] Password reset successful for employee id={}", invitedEmployee.getId());
             return ResponseEntity
                     .ok(new MessageResponse("Password changed successfully! The reset link is now invalid."));
         }
-        // Otherwise, require authentication for normal password change
+        // Check if user is authenticated
         if (employee == null) {
             return ResponseEntity.status(401).body(new MessageResponse("Not authenticated"));
         }
+        // Allow password change for authenticated users (especially those with mustChangePassword=true)
         employeeService.updatePassword(employee, newPassword);
         userActionLogService.logAction("CHANGE_PASSWORD", employee.getId());
         return ResponseEntity.ok(new MessageResponse("Password changed successfully!"));
@@ -454,6 +465,77 @@ public class AuthController {
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.badRequest().body(new MessageResponse("Invalid token"));
+    }
+
+    /**
+     * Refreshes a JWT token for an authenticated user.
+     * Endpoint: POST /api/auth/refresh
+     * Response: New JWT token and user info
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@AuthenticationPrincipal Employee employee) {
+        try {
+            java.io.File logDir = new java.io.File("logs");
+            if (!logDir.exists()) logDir.mkdirs();
+            FileWriter fw = new FileWriter("logs/auth-refresh.log", true);
+            if (employee == null) {
+                String msg = "/auth/refresh called but @AuthenticationPrincipal is null. Likely due to expired or invalid JWT.";
+                log.warn(msg);
+                fw.write(msg + "\n");
+                fw.close();
+                return ResponseEntity.status(401).body(new MessageResponse("Invalid token: no principal. JWT may be expired or invalid."));
+            }
+
+            String infoMsg = String.format("/auth/refresh called for employee id %d email %s", employee.getId(), employee.getEmail());
+            log.info(infoMsg);
+            fw.write(infoMsg + "\n");
+            // Generate new JWT token
+            String jwt = jwtUtils.generateTokenFromUsername(employee.getEmail());
+
+            // Get building info
+            Long buildingId = null;
+            String buildingName = null;
+            if (employee.getBuilding() != null) {
+                try {
+                    buildingId = employee.getBuilding().getId();
+                    buildingName = employee.getBuilding().getName();
+                } catch (Exception e) {
+                    String warnMsg = "Could not initialize building for employee during refresh: " + e.getMessage();
+                    log.warn(warnMsg);
+                    fw.write(warnMsg + "\n");
+                }
+            }
+
+            // Return refreshed token and user info
+            String responseJson = String.format(
+                    "{\"token\":\"%s\",\"id\":%d,\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s,\"buildingId\":%s,\"buildingName\":%s}",
+                    jwt,
+                    employee.getId(),
+                    employee.getEmail(),
+                    employee.getFirstName(),
+                    employee.getLastName(),
+                    employee.getRole().name(),
+                    employee.isMustChangePassword() ? "true" : "false",
+                    buildingId == null ? "null" : buildingId.toString(),
+                    buildingName == null ? "null" : String.format("\"%s\"", buildingName));
+
+            userActionLogService.logAction("TOKEN_REFRESH", employee.getId());
+            fw.write("Token refresh successful for employee id " + employee.getId() + "\n");
+            fw.close();
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(responseJson);
+        } catch (Exception e) {
+            log.error("Token refresh failed: " + e.getMessage(), e);
+            try {
+                FileWriter fw = new FileWriter("logs/auth-refresh.log", true);
+                fw.write("Token refresh failed: " + e.getMessage() + "\n");
+                fw.close();
+            } catch (IOException ioe) {
+                log.error("Failed to write to auth-refresh.log: " + ioe.getMessage(), ioe);
+            }
+            return ResponseEntity.status(401).body(new MessageResponse("Token refresh failed: " + e.getMessage()));
+        }
     }
 
     /**

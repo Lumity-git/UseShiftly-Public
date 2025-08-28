@@ -3,6 +3,8 @@ package com.hotel.scheduler.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,6 +20,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
 
 import java.util.List;
 import org.springframework.core.io.ClassPathResource;
@@ -43,6 +53,7 @@ import java.io.IOException;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@EnableScheduling
 @RequiredArgsConstructor
 public class WebSecurityConfig {
 
@@ -68,7 +79,37 @@ public class WebSecurityConfig {
      */
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter(jwtUtils(), userDetailsService);
+        return new AuthTokenFilter(jwtUtils(), userDetailsService, securityEventService(), abuseDetectionService());
+    }
+    
+    /**
+     * Security event service bean for enhanced logging.
+     *
+     * @return the {@link SecurityEventService} bean
+     */
+    @Bean
+    public SecurityEventService securityEventService() {
+        return new SecurityEventService();
+    }
+    
+    /**
+     * Abuse detection service bean for threat detection.
+     *
+     * @return the {@link AbuseDetectionService} bean
+     */
+    @Bean
+    public AbuseDetectionService abuseDetectionService() {
+        return new AbuseDetectionService(securityEventService(), rateLimitingService());
+    }
+    
+    /**
+     * Rate limiting service bean for request throttling.
+     *
+     * @return the {@link RateLimitingService} bean
+     */
+    @Bean
+    public RateLimitingService rateLimitingService() {
+        return new RateLimitingService();
     }
 
     /**
@@ -118,11 +159,12 @@ public class WebSecurityConfig {
      * </ul>
      *
      * @param http the {@link HttpSecurity} builder
+     * @param enhancedSecurityFilter the enhanced security filter for rate limiting and abuse detection
      * @return the built {@link SecurityFilterChain}
      * @throws Exception if configuration fails
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, EnhancedSecurityFilter enhancedSecurityFilter) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
@@ -142,6 +184,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/auth/check-email").permitAll()
                 .requestMatchers("/api/auth/validate").authenticated()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/debug/**").permitAll()  // Temporary debug endpoint
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/logs/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -156,6 +199,10 @@ public class WebSecurityConfig {
         http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
 
         http.authenticationProvider(authenticationProvider());
+        
+        // Add enhanced security filter first (rate limiting, abuse detection)
+        http.addFilterBefore(enhancedSecurityFilter, UsernamePasswordAuthenticationFilter.class);
+        
         // Add custom redirect/rewrite filter before JWT filter
         http.addFilterBefore(new OncePerRequestFilter() {
             @Override

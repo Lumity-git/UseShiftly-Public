@@ -93,6 +93,12 @@
                     <label for="endDate">End Date</label>
                     <input type="date" id="endDate" name="endDate">
                 </div>
+                <div class="filter-group" id="buildingFilterGroup" style="display: none;">
+                    <label for="buildingFilter">Building</label>
+                    <select id="buildingFilter" name="buildingFilter">
+                        <option value="">All Buildings</option>
+                    </select>
+                </div>
                 <div class="filter-group">
                     <label for="departmentFilter">Department</label>
                     <select id="departmentFilter" name="departmentFilter">
@@ -173,15 +179,7 @@
                 function openAutoScheduleModal() {
                     const modal = document.getElementById('autoScheduleModal');
                     if (!modal) return;
-                    // Populate department select
-                    const deptSelect = document.getElementById('autoScheduleDepartment');
-                    deptSelect.innerHTML = '';
-                    departments.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.name;
-                        deptSelect.appendChild(option);
-                    });
+                    // Department select is already populated by populateDepartmentSelects()
                     // Set default dates
                     const start = document.getElementById('startDate').value;
                     const end = document.getElementById('endDate').value;
@@ -381,17 +379,39 @@
 
             loadUserInfo();
             setDefaultDates();
-            await loadDepartments();
+            
             if (currentUser?.role === 'ADMIN') {
-                // For admins, do not load employees until a building is selected
+                // Show building filter for admins
+                document.getElementById('buildingFilterGroup').style.display = 'block';
+                await loadBuildingsForFilter();
+                
+                // For admins, do not load departments or employees until a building is selected
+                departments = [];
                 employees = [];
+                populateDepartmentSelects();
                 populateEmployeeSelects(true); // disable
+            } else if (currentUser?.role === 'MANAGER') {
+                // Hide building filter for managers but set up automatic building selection
+                document.getElementById('buildingFilterGroup').style.display = 'none';
+                
+                // For managers, auto-load their building data
+                if (currentUser.buildingId) {
+                    await loadDepartments(currentUser.buildingId);
+                    await loadEmployees(currentUser.buildingId);
+                } else {
+                    // Fallback if manager doesn't have building assigned
+                    await loadDepartments();
+                    await loadEmployees();
+                }
             } else {
+                // For other roles, load all departments
+                await loadDepartments();
                 await loadEmployees();
             }
             await loadShifts();
 
             // Add event listeners
+            document.getElementById('buildingFilter').addEventListener('change', handleBuildingFilterChange);
             document.getElementById('startDate').addEventListener('change', loadShifts);
             document.getElementById('endDate').addEventListener('change', loadShifts);
             document.getElementById('departmentFilter').addEventListener('change', loadShifts);
@@ -534,12 +554,69 @@
         }
 
         // Load data
-        async function loadDepartments() {
+        // Load buildings for filter dropdown (admin only)
+        async function loadBuildingsForFilter() {
+            if (currentUser?.role !== 'ADMIN') return;
+            
             try {
-                departments = await apiRequest('/departments');
+                const buildings = await apiRequest('/buildings/my-buildings');
+                const buildingFilter = document.getElementById('buildingFilter');
+                buildingFilter.innerHTML = '<option value="">All Buildings</option>';
+                
+                if (Array.isArray(buildings)) {
+                    buildings.forEach(building => {
+                        const option = document.createElement('option');
+                        option.value = building.id;
+                        option.textContent = building.name;
+                        buildingFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading buildings:', error);
+            }
+        }
+
+        // Handle building filter change
+        async function handleBuildingFilterChange() {
+            if (currentUser?.role !== 'ADMIN') return;
+            
+            const selectedBuildingId = document.getElementById('buildingFilter').value;
+            
+            if (selectedBuildingId) {
+                // Load departments and employees for selected building
+                await loadDepartments(selectedBuildingId);
+                await loadEmployees(selectedBuildingId);
+            } else {
+                // Load all departments and employees
+                await loadDepartments();
+                await loadEmployees();
+            }
+            
+            // Reload shifts with new filter
+            await loadShifts();
+        }
+
+        async function loadDepartments(buildingId = null) {
+            try {
+                if (currentUser?.role === 'MANAGER') {
+                    // Managers: Load departments for their building only
+                    departments = await apiRequest('/departments');
+                } else if (currentUser?.role === 'ADMIN') {
+                    if (buildingId) {
+                        // Admin with building selected: Load departments for that building
+                        departments = await apiRequest(`/departments/by-building/${buildingId}`);
+                    } else {
+                        // Admin without building: Load all departments
+                        departments = await apiRequest('/departments');
+                    }
+                } else {
+                    departments = await apiRequest('/departments');
+                }
                 populateDepartmentSelects();
             } catch (error) {
                 console.error('Failed to load departments:', error);
+                departments = [];
+                populateDepartmentSelects();
             }
         }
 
@@ -567,14 +644,21 @@
             try {
                 const startDate = document.getElementById('startDate').value;
                 const endDate = document.getElementById('endDate').value;
+                let buildingId = document.getElementById('buildingFilter')?.value;
                 const departmentId = document.getElementById('departmentFilter').value;
                 const employeeId = document.getElementById('employeeFilter').value;
                 const status = document.getElementById('statusFilter').value;
+
+                // For managers, automatically use their building ID
+                if (currentUser?.role === 'MANAGER' && currentUser?.buildingId) {
+                    buildingId = currentUser.buildingId;
+                }
 
                 let endpoint = '/shifts?';
                 const params = new URLSearchParams();
                 if (startDate) params.append('startDate', startDate);
                 if (endDate) params.append('endDate', endDate);
+                if (buildingId) params.append('buildingId', buildingId);
                 if (departmentId) params.append('departmentId', departmentId);
                 // Only filter by employeeId if one is selected
                 if (employeeId && employeeId !== '') params.append('employeeId', employeeId);
@@ -592,9 +676,11 @@
 
         // Populate selects
         function populateDepartmentSelects() {
-            const selects = ['departmentFilter', 'shiftDepartment'];
+            const selects = ['departmentFilter', 'shiftDepartment', 'autoScheduleDepartment'];
             selects.forEach(selectId => {
                 const select = document.getElementById(selectId);
+                if (!select) return; // Skip if element doesn't exist
+                
                 if (selectId === 'departmentFilter') {
                     select.innerHTML = '<option value="">All Departments</option>';
                 } else {
@@ -812,12 +898,15 @@
             // Add listener to start date input for past date check
             setTimeout(() => {
                 const startInput = document.getElementById('shiftStartTime');
+                const endInput = document.getElementById('shiftEndTime');
                 if (startInput) {
                     startInput.addEventListener('change', function () {
                         let selected = new Date(startInput.value);
                         let now = new Date();
                         let warning = document.getElementById('dateWarning');
                         if (warning) warning.remove();
+                        
+                        // Check for past date
                         if (selected < now) {
                             let warnDiv = document.createElement('div');
                             warnDiv.id = 'dateWarning';
@@ -825,6 +914,21 @@
                             warnDiv.style.margin = '8px 0';
                             warnDiv.textContent = 'That day has passed. Please choose a day in the future.';
                             startInput.parentNode.insertBefore(warnDiv, startInput.nextSibling);
+                        }
+                        
+                        // Auto-select same day for end time
+                        if (endInput && startInput.value) {
+                            const startValue = startInput.value;
+                            const [datePart, timePart] = startValue.split('T');
+                            const currentEndValue = endInput.value;
+                            
+                            // If end time is empty or has a different date, set same date with default end time
+                            if (!currentEndValue || !currentEndValue.startsWith(datePart)) {
+                                // Set same date with a default end time (e.g., 5 PM if start is before 5 PM)
+                                const startHour = parseInt(timePart.split(':')[0]);
+                                const defaultEndTime = startHour < 17 ? '17:00' : '23:00';
+                                endInput.value = datePart + 'T' + defaultEndTime;
+                            }
                         }
                     });
                 }
@@ -880,12 +984,15 @@
                 buildingSelect.style.display = '';
                 // Add change listener to building and department selects to filter employees and departments
                 buildingSelect.addEventListener('change', async function () {
-                    populateDepartmentsForBuilding();
-                    // Fetch employees for selected building and update dropdown
                     const selectedBuildingId = buildingSelect.value;
                     if (selectedBuildingId) {
+                        // Reload departments for the selected building
+                        await loadDepartments(selectedBuildingId);
+                        // Fetch employees for selected building and update dropdown
                         await loadEmployees(selectedBuildingId);
                     } else {
+                        // No building selected - load all departments and clear employees
+                        await loadDepartments();
                         employees = [];
                         populateEmployeeSelects();
                     }
@@ -897,54 +1004,35 @@
                 });
                 // Initial filter for departments and employees
                 setTimeout(async () => {
-                    populateDepartmentsForBuilding();
                     const selectedBuildingId = document.getElementById('shiftBuilding')?.value;
                     if (selectedBuildingId) {
+                        await loadDepartments(selectedBuildingId);
                         await loadEmployees(selectedBuildingId);
                     } else {
+                        // No building selected - clear departments and employees
+                        departments = [];
                         employees = [];
+                        populateDepartmentSelects();
                         populateEmployeeSelects(true); // disable
                     }
                     filterEmployeeOptionsByBuildingDept();
                 }, 10);
-                // Helper to filter departments by selected building (for admin)
-                function populateDepartmentsForBuilding() {
-                    const deptSelect = document.getElementById('shiftDepartment');
-                    if (!deptSelect) return;
-                    deptSelect.innerHTML = '<option value="">Select Department</option>';
-                    let buildingId = document.getElementById('shiftBuilding')?.value;
-                    const seenDeptIds = new Set();
-                    departments.forEach(dept => {
-                        if (buildingId && String(dept.buildingId) !== String(buildingId)) return;
-                        if (seenDeptIds.has(dept.id)) return;
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.name;
-                        deptSelect.appendChild(option);
-                        seenDeptIds.add(dept.id);
-                    });
-                    // If no departments for building, keep only default option
-                    if (deptSelect.options.length === 1) {
-                        deptSelect.selectedIndex = 0;
-                    }
-                }
             } else if (currentUser?.role === 'MANAGER') {
+                // Hide building selection for managers
                 let buildingGroup = document.getElementById('buildingGroup');
                 if (buildingGroup) {
                     buildingGroup.style.display = 'none';
                 }
-                const deptSelect = document.getElementById('shiftDepartment');
-                deptSelect.innerHTML = '<option value="">Select Department</option>';
-                const seenDeptIds = new Set();
-                departments.forEach(dept => {
-                    if (String(dept.buildingId) === String(currentUser.buildingId) && !seenDeptIds.has(dept.id)) {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.name;
-                        deptSelect.appendChild(option);
-                        seenDeptIds.add(dept.id);
+                
+                // Load departments and employees for manager's building
+                (async () => {
+                    if (currentUser.buildingId) {
+                        await loadDepartments(currentUser.buildingId);
+                        await loadEmployees(currentUser.buildingId);
                     }
-                });
+                })();
+                
+                const deptSelect = document.getElementById('shiftDepartment');
                 deptSelect.addEventListener('change', function () {
                     filterEmployeeOptionsByBuildingDept(currentUser.buildingId);
                 });
@@ -1225,31 +1313,52 @@
             console.log('handleShiftSubmit fired');
             e.preventDefault();
             const formData = new FormData(e.target);
-            // Convert local datetime-local input (CST) to UTC ISO string for backend
+            // Convert local datetime-local input (Central Time) to UTC ISO string for backend
             function cstLocalToUTCISOString(localDateTimeStr) {
                 // localDateTimeStr: 'YYYY-MM-DDTHH:mm'
-                // Treat input as CST (America/Chicago), convert to UTC ISO string
-                // Create a Date object from the input string as if it is CST
-                // Use toLocaleString to get the CST time, then create a Date object from that
-                const cstDate = new Date(new Date(localDateTimeStr + ':00').toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-                // Now get the UTC ISO string
-                return new Date(cstDate.getTime() - cstDate.getTimezoneOffset() * 60000).toISOString();
+                // The simplest approach: treat the input as being in America/Chicago timezone
+                
+                // Parse the components
+                const [datePart, timePart] = localDateTimeStr.split('T');
+                const [year, month, day] = datePart.split('-').map(Number);
+                const [hour, minute] = timePart.split(':').map(Number);
+                
+                // Create a date object treating it as local time first
+                const localDate = new Date(year, month - 1, day, hour, minute, 0);
+                
+                // Get what this time would be in America/Chicago timezone
+                const chicagoTime = new Date(localDate.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+                
+                // Calculate the offset needed to get to UTC
+                const offset = localDate.getTime() - chicagoTime.getTime();
+                
+                // Apply the offset to convert to UTC
+                const utcTime = new Date(localDate.getTime() + offset);
+                
+                return utcTime.toISOString();
             }
 
             const startTimeStr = formData.get('startTime');
             const endTimeStr = formData.get('endTime');
-            // For duration calculation, treat as CST
-            const startTime = new Date(new Date(startTimeStr + ':00').toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-            const endTime = new Date(new Date(endTimeStr + ':00').toLocaleString('en-US', { timeZone: 'America/Chicago' }));
-            const durationHours = (endTime - startTime) / (1000 * 60 * 60);
+            
+            // For duration calculation, use the raw input times
+            const startDateTime = new Date(startTimeStr);
+            const endDateTime = new Date(endTimeStr);
+            
+            const durationHours = (endDateTime - startDateTime) / (1000 * 60 * 60);
             if (isNaN(durationHours) || durationHours <= 0) {
                 showAlert('End time must be after start time. Duration cannot be negative or zero.', 'error');
                 return;
             }
 
+            const convertedStart = cstLocalToUTCISOString(startTimeStr);
+            const convertedEnd = cstLocalToUTCISOString(endTimeStr);
+            console.debug('[ShiftSubmit] Raw start/end', startTimeStr, endTimeStr);
+            console.debug('[ShiftSubmit] Converted UTC', convertedStart, convertedEnd);
+            
             const shiftData = {
-                startTime: cstLocalToUTCISOString(startTimeStr),
-                endTime: cstLocalToUTCISOString(endTimeStr),
+                startTime: convertedStart,
+                endTime: convertedEnd,
                 employeeId: formData.get('employeeId') || null,
                 departmentId: parseInt(formData.get('departmentId')),
                 notes: formData.get('notes') || null

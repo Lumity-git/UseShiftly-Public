@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * JWT authentication filter for processing and validating JWT tokens in
@@ -48,6 +49,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
      * Loads user details for authentication context.
      */
     private final UserDetailsService userDetailsService;
+    
+    /**
+     * Enhanced security event logging service.
+     */
+    private final SecurityEventService securityEventService;
+    
+    /**
+     * Abuse detection service for tracking authentication failures.
+     */
+    private final AbuseDetectionService abuseDetectionService;
 
     /**
      * Filters incoming requests to authenticate users based on JWT tokens.
@@ -78,6 +89,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 path.equals("/api/auth/login") ||
                 path.equals("/api/auth/register") ||
                 path.equals("/api/auth/validate-invitation") ||
+                path.equals("/api/auth/change-password") ||
                 path.equals("/api/super-admin/auth/login") ||
                 path.equals("/api/auth/request-admin-access") ||
                 path.equals("/api/auth/verify-admin-code") ||
@@ -98,6 +110,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                     log.debug("AuthTokenFilter: Loaded UserDetails for {}: roles={}", username,
                             userDetails.getAuthorities());
+                    
+                    // Log successful authentication
+                    securityEventService.logAuthenticationSuccess(request, username);
+                    
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null,
                             userDetails.getAuthorities());
@@ -107,6 +123,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                 } else {
                     log.warn("AuthTokenFilter: Invalid JWT for path {}: {}", path, jwt);
+                    
+                    // Enhanced logging for invalid JWT
+                    securityEventService.logAuthenticationFailure(request, "unknown", "Invalid JWT token");
+                    
                     if (!response.isCommitted()) {
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         response.setContentType("application/json");
@@ -116,6 +136,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 }
             } else {
                 log.warn("AuthTokenFilter: Missing JWT for path {}", path);
+                
+                // Enhanced logging for missing JWT
+                securityEventService.logAuthenticationFailure(request, "anonymous", "Missing JWT token");
+                
                 if (!response.isCommitted()) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
@@ -125,6 +149,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             log.error("AuthTokenFilter: Cannot set user authentication for path {}: {}", path, e.getMessage(), e);
+            
+            // Enhanced logging for authentication errors
+            securityEventService.logSecurityEvent(
+                SecurityEventService.EventType.AUTHENTICATION_FAILURE,
+                SecurityEventService.Severity.ERROR,
+                request,
+                "Authentication processing error: " + e.getMessage(),
+                Map.of("error_type", e.getClass().getSimpleName())
+            );
+            
             if (!response.isCommitted()) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");

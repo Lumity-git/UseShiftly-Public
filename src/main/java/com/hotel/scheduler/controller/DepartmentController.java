@@ -218,6 +218,44 @@ public class DepartmentController {
     }
     
     /**
+     * Returns departments for a specific building.
+     * Called by frontend when building selection changes in employee creation.
+     * Endpoint: /api/admin/departments/by-building/{buildingId}
+     */
+    @GetMapping("/by-building/{buildingId}")
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public ResponseEntity<List<DepartmentDTO>> getDepartmentsByBuilding(@PathVariable Long buildingId, 
+                                                                        @AuthenticationPrincipal Employee currentUser) {
+        try {
+            // Check if user has access to this building
+            Building building = buildingRepository.findById(buildingId).orElse(null);
+            if (building == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            boolean hasAccess = false;
+            if (currentUser.getRole() == Employee.Role.ADMIN) {
+                hasAccess = building.getAdmin().getId().equals(currentUser.getId());
+            } else if (currentUser.getRole() == Employee.Role.MANAGER) {
+                hasAccess = building.getManagers() != null &&
+                           building.getManagers().stream().anyMatch(m -> m.getId().equals(currentUser.getId()));
+            }
+            
+            if (!hasAccess) {
+                return ResponseEntity.status(403).build();
+            }
+            
+            List<Department> departments = departmentRepository.findAllByBuildingId(buildingId);
+            List<DepartmentDTO> departmentDTOs = departments.stream()
+                    .map(DepartmentDTO::fromEntity)
+                    .toList();
+            return ResponseEntity.ok(departmentDTOs);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
      * Helper class for response messages (used for error/success responses).
      */
     public static class MessageResponse {
