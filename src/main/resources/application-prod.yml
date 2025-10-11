@@ -3,10 +3,10 @@ server:
 
 spring:
   application:
-    name: hotel-scheduler
+    name: scheduler_db
   datasource:
-    url: jdbc:postgresql://scheduler-postgres:5432/hotel_scheduler
-    username: ${DB_USERNAME}
+    url: jdbc:postgresql://scheduler-postgres:5432/scheduler_db
+    username: scheduler_user
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
@@ -30,7 +30,7 @@ spring:
 
   flyway:
     enabled: true
-    locations: filesystem:db/migration
+    locations: classpath:db/migration
     baseline-on-migrate: true
     out-of-order: true
     validate-on-migrate: false
@@ -56,5 +56,6 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
+# Stripe configuration temporarily disabled
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
