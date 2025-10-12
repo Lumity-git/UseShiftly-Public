@@ -6,28 +6,32 @@ spring:
     name: scheduler_db
   datasource:
     url: jdbc:postgresql://scheduler-postgres:5432/scheduler_db
-    username: scheduler_user
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
-      ddl-auto: update          # changed from validate to update to match your first file
-    show-sql: false
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        type: trace
+        jdbc:
+          time_zone: America/Chicago
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:noreply@useshiftly.com}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
-
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -37,25 +41,45 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:NUkpwZybKi2HGV0AHPf704rpGkubj94WXL7hYH7hoyDs}
     expiration: 86400000 # 24 hours
   cors:
-    allowed-origins: ${CORS_ORIGINS:https://scheduler.asluxeco.org}
+  allowed-origins: ${CORS_ORIGINS:https://scheduler.asluxeco.org}
   notification:
     email:
-      from: ${EMAIL_FROM:noreply@useshiftly.com}
+      from: ${EMAIL_FROM:noreply@hotelscheduler.com}
       enabled: ${EMAIL_ENABLED:true}
+
+# Enhanced Security Configuration
+security:
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_RPM:60}    # Max requests per minute per IP
+    burst-threshold: ${RATE_LIMIT_BURST:10}      # Warning threshold for burst detection
+    block-duration-minutes: ${RATE_LIMIT_BLOCK:15}  # Block duration in minutes
+    cleanup-interval-minutes: 5                  # Cleanup interval for expired entries
+  
+  abuse:
+    enabled: ${ABUSE_DETECTION_ENABLED:true}     # Enable/disable abuse detection
+    auth-failure-threshold: ${AUTH_FAILURE_THRESHOLD:10}  # Failed auth attempts before block
+    detection-window-minutes: ${ABUSE_WINDOW:60} # Time window for abuse detection
+    temp-block-duration-minutes: ${TEMP_BLOCK_DURATION:30}  # Temporary block duration
+    perm-block-threshold: ${PERM_BLOCK_THRESHOLD:3}  # Violations before permanent block
+  
+  monitoring:
+    alert-threshold: ${SECURITY_ALERT_THRESHOLD:100}  # Events before triggering alert
+    time-window-minutes: ${SECURITY_ALERT_WINDOW:10}  # Alert time window
+    
+  enhanced-logging:
+    enabled: ${ENHANCED_LOGGING:true}            # Enable structured security logging
+    log-level: ${SECURITY_LOG_LEVEL:WARN}       # Minimum log level for security events
 
 logging:
   file:
     name: logs/hotel-scheduler.log
   level:
     com.hotel.scheduler: INFO
-    org.springframework.security: WARN
-    org.hibernate: WARN
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-
-# Stripe configuration temporarily disabled
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY}
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
