@@ -20,7 +20,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employees/import")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 @Slf4j
 public class BulkEmployeeImportController {
     private final EmployeeService employeeService;

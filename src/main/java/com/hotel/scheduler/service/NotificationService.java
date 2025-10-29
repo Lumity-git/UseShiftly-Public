@@ -186,7 +186,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "If the offer is not accepted in time, you are expected to show up for your scheduled shift.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\nShiftly Team",
                 requestingEmployee.getFirstName(),
                 targetEmployee.getFirstName(),
@@ -230,7 +230,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "If no one picks up the shift in time, you are expected to show up for your scheduled shift.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\nShiftly Team",
                 requestingEmployee.getFirstName(),
                 shift.getStartTime().format(formatter),
@@ -252,6 +252,9 @@ public class NotificationService {
     
     @Value("${app.notification.email.enabled:true}")
     private boolean emailEnabled;
+    
+    @Value("${app.notification.base-url:https://useshiftly.com}")
+    private String notificationBaseUrl;
     
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm");
     
@@ -279,7 +282,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "Please log into Shiftly to view more details.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 employee.getFirstName(),
@@ -319,7 +322,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "Please log into Shiftly to view the updated details.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 employee.getFirstName(),
@@ -358,7 +361,7 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n\n" +
                 "If you have any questions, please contact your manager.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 employee.getFirstName(),
@@ -399,7 +402,7 @@ public class NotificationService {
                 "Date & Time: %s - %s\n" +
                 "Department: %s\n\n" +
                 "Thank you for making your shift available.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 originalEmployee.getFirstName(),
@@ -429,7 +432,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "Thank you for your flexibility.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 pickupEmployee.getFirstName(),
@@ -471,7 +474,7 @@ public class NotificationService {
                 "Department: %s\n" +
                 "Notes: %s\n\n" +
                 "Please log into Shiftly to accept or decline this offer.\n\n" +
-                "You can log in at: https://useshiftly.com/\n\n" +
+                "You can log in at: " + notificationBaseUrl + "/\n\n" +
                 "Best regards,\n" +
                 "Shiftly Team",
                 targetEmployee.getFirstName(),
@@ -516,7 +519,7 @@ public class NotificationService {
                     "Department: %s\n" +
                     "Notes: %s\n\n" +
                     "Log into Shiftly to pick up this shift if interested.\n\n" +
-                    "You can log in at: https://useshiftly.com/\n\n" +
+                    "You can log in at: " + notificationBaseUrl + "/\n\n" +
                     "Best regards,\n" +
                     "Shiftly Team",
                     employee.getFirstName(),
@@ -639,7 +642,7 @@ public class NotificationService {
             message.setText(String.format(
                 "Hello %s,\n\n" +
                 "Your account has been created on Shiftly Scheduler.\n" +
-                "You can log in at: https://useshiftly.com\n\n" +
+                "You can log in at: " + notificationBaseUrl + "\n\n" +
                 "Your temporary password: %s\n" +
                 "You will be required to change your password on first login.\n\n" +
                 "If you have any questions, please contact your manager or HR.\n\n" +

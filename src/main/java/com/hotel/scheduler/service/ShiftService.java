@@ -13,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
  * <p>
  * Handles shift CRUD operations, trade offers, pickups, cancellations, and aggregates statistics for reporting endpoints.
  * Integrates with notification service for employee and manager notifications.
+ * Uses injected Clock for consistent timezone-aware time operations.
  * <b>Usage:</b> Injected into controllers and other services for shift-related business logic.
  */
 @Service
@@ -30,40 +33,53 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class ShiftService {
+
+    private final ShiftRepository shiftRepository;
+    private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
+    private final NotificationService notificationService;
+    private final com.hotel.scheduler.repository.ShiftTradeRepository shiftTradeRepository;
+    private final Clock clock;
+
     /**
      * Scheduled task to auto-cancel pending trades and posted shifts 2 hours before shift start.
      * Runs every 15 minutes.
+     * Optimized to query only shifts starting within the next 2 hours.
      */
     @org.springframework.scheduling.annotation.Scheduled(cron = "0 */15 * * * *")
     @Transactional
     public void autoCancelExpiringTradesAndPosts() {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(clock);
         OffsetDateTime cutoff = now.plusHours(2);
-        // Find all shifts starting within the next 2 hours
-        List<Shift> upcomingShifts = shiftRepository.findAll().stream()
-            .filter(s -> s.getStartTime() != null &&
-                s.getStartTime().isAfter(now) && s.getStartTime().isBefore(cutoff))
-            .collect(Collectors.toList());
+        
+        // Query only shifts starting within the next 2 hours (optimized query)
+        List<Shift> upcomingShifts = shiftRepository.findExpiringShifts(now, cutoff);
+        
+        log.info("Auto-cancel task: Found {} expiring shifts", upcomingShifts.size());
+        
         for (Shift shift : upcomingShifts) {
             Long shiftId = shift.getId();
-            // Cancel all PENDING trades for this shift
+            
+            // Cancel all PENDING/POSTED_TO_EVERYONE trades for this shift
             List<com.hotel.scheduler.model.ShiftTrade> trades = shiftTradeRepository.findByShiftId(shiftId);
             for (com.hotel.scheduler.model.ShiftTrade trade : trades) {
                 if (trade.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING ||
                     trade.getStatus() == com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE) {
                     trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
-                    trade.setCompletedAt(OffsetDateTime.now());
+                    trade.setCompletedAt(OffsetDateTime.now(clock));
                     shiftTradeRepository.save(trade);
                     // Send notification to requester and/or pickup employee
                     notificationService.sendTradeDeclinedNotification(trade);
                 }
             }
+            
             // If shift is AVAILABLE_FOR_PICKUP or PENDING, set back to SCHEDULED
-            if (shift.getStatus() == Shift.ShiftStatus.AVAILABLE_FOR_PICKUP || shift.getStatus() == Shift.ShiftStatus.PENDING) {
+            if (shift.getStatus() == Shift.ShiftStatus.AVAILABLE_FOR_PICKUP || 
+                shift.getStatus() == Shift.ShiftStatus.PENDING) {
                 shift.setStatus(Shift.ShiftStatus.SCHEDULED);
                 shift.setAvailableForPickup(false);
                 shiftRepository.save(shift);
-                // Optionally notify shift owner
+                // Notify shift owner
                 if (shift.getEmployee() != null) {
                     notificationService.sendShiftCancellationNotification(shift.getEmployee(), shift);
                 }
@@ -88,7 +104,7 @@ public class ShiftService {
         validateTradeAcceptance(trade, currentUser);
         // Set status to PENDING_APPROVAL so manager/admin can review
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL);
-        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        trade.setCompletedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
         // Notify manager/admin for approval
         notificationService.sendTradeAcceptedNotification(trade);
@@ -117,7 +133,7 @@ public class ShiftService {
         }
         // Set trade status to CANCELLED
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.CANCELLED);
-        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        trade.setCompletedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
         // Set associated shift status back to SCHEDULED so it can be reposted
         Shift shift = trade.getShift();
@@ -472,12 +488,6 @@ public class ShiftService {
         return stats;
     }
     
-    private final ShiftRepository shiftRepository;
-    private final EmployeeRepository employeeRepository;
-    private final DepartmentRepository departmentRepository;
-    private final NotificationService notificationService;
-    private final com.hotel.scheduler.repository.ShiftTradeRepository shiftTradeRepository;
-    
     /**
      * Creates a new shift and assigns it to an employee if provided.
      * Sends notification to the assigned employee.
@@ -709,7 +719,7 @@ public class ShiftService {
         // Assign the pickup employee and set trade status to PENDING_APPROVAL
         trade.setPickupEmployee(pickupEmployee);
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING_APPROVAL);
-        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        trade.setCompletedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
 
         // Mark shift as pending approval, not scheduled yet
@@ -836,7 +846,7 @@ public class ShiftService {
         trade.setRequestingEmployee(requestingEmployee);
         trade.setPickupEmployee(targetEmployee);
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.PENDING);
-        trade.setRequestedAt(java.time.OffsetDateTime.now());
+        trade.setRequestedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
         notificationService.sendShiftTradeOfferNotification(targetEmployee, shift, requestingEmployee);
         // Notify the requesting employee that they are still responsible until accepted
@@ -872,7 +882,7 @@ public class ShiftService {
         trade.setRequestingEmployee(requestingEmployee);
         trade.setPickupEmployee(null); // No specific pickup employee
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.POSTED_TO_EVERYONE);
-        trade.setRequestedAt(java.time.OffsetDateTime.now());
+        trade.setRequestedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
         // Notify all employees except the requester
         List<Employee> allEmployees = employeeRepository.findAll();
@@ -942,7 +952,7 @@ public class ShiftService {
         // Set status to APPROVED, record manager, update shift assignment
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.APPROVED);
         trade.setApprovedByManagerId(currentUser.getId());
-        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        trade.setCompletedAt(OffsetDateTime.now(clock));
         shiftTradeRepository.save(trade);
         // Assign shift to pickup employee
         Shift shift = trade.getShift();
@@ -972,7 +982,7 @@ public class ShiftService {
         }
         trade.setStatus(com.hotel.scheduler.model.ShiftTrade.TradeStatus.REJECTED);
         trade.setApprovedByManagerId(currentUser.getId());
-        trade.setCompletedAt(java.time.OffsetDateTime.now());
+        trade.setCompletedAt(OffsetDateTime.now(clock));
         if (reason != null) trade.setReason(reason);
         shiftTradeRepository.save(trade);
         // Optionally, set shift back to SCHEDULED and available for reposting

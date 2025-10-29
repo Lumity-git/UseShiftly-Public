@@ -25,13 +25,39 @@ A professional, enterprise-ready scheduling application built with Spring Boot f
 
 ## 🛠 Tech Stack
 
-- **Backend**: Spring Boot 3.2, Java 17
+- **Backend**: Spring Boot 3.2, Java 21
 - **Database**: PostgreSQL (production), H2 (testing)
 - **Build Tool**: Maven
 - **Testing**: JUnit 5, Spring Boot Test
-
-
+- **Security**: JWT, Spring Security 6
+- **Database Migration**: Flyway
 - **Deployment**: Docker & Docker Compose ready
+
+## 🔧 Environment Variables
+
+The application uses the following environment variables for configuration:
+
+### Required Variables
+- `DB_USERNAME` - PostgreSQL database username
+- `DB_PASSWORD` - PostgreSQL database password
+- `JWT_SECRET` - Secret key for JWT token signing
+
+### Optional Variables
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (default: `https://scheduler.asluxeco.org`)
+- `NOTIFICATION_BASE_URL` - Base URL for notification links (default: `https://useshiftly.com`)
+- `EMAIL_FROM` - Sender email address (default: `noreply@hotelscheduler.com`)
+- `EMAIL_ENABLED` - Enable/disable email notifications (default: `true`)
+- `MAIL_HOST` - SMTP server host (default: `smtp.gmail.com`)
+- `MAIL_PORT` - SMTP server port (default: `587`)
+- `MAIL_USERNAME` - SMTP username
+- `MAIL_PASSWORD` - SMTP password
+- `RATE_LIMIT_RPM` - Rate limit requests per minute (default: `60`)
+- `ABUSE_DETECTION_ENABLED` - Enable abuse detection (default: `true`)
+- `ENHANCED_LOGGING` - Enable structured security logging (default: `true`)
+
+### Application Profiles
+- `dev` - Development profile (enables DataInitializer for sample data)
+- `prod` - Production profile (uses Flyway migrations only)
 
    ```bash
    git clone <repository>

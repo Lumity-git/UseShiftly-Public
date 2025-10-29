@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/super-admin/waitlist")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SuperAdminWaitlistController {
 

@@ -14,10 +14,15 @@ import com.hotel.scheduler.repository.ShiftRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import java.time.Clock;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+/**
+ * Service for auto-scheduling shifts based on requirements and employee availability.
+ * Uses injected Clock for consistent timezone-aware operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class AutoSchedulingService {
@@ -26,6 +31,7 @@ public class AutoSchedulingService {
     private final EmployeeAvailabilityRepository employeeAvailabilityRepository;
     private final ShiftRepository shiftRepository;
     private final com.hotel.scheduler.repository.ShiftTemplateRepository shiftTemplateRepository;
+    private final Clock clock;
 
     @Transactional
     public AutoScheduleResultDTO autoSchedule(AutoScheduleRequestDTO request) {
@@ -77,8 +83,8 @@ public class AutoSchedulingService {
                     }
                     if (!available) continue;
                         // Check for shift conflicts
-                        OffsetDateTime shiftStart = current.atTime(startTemplate.getStartTime()).atOffset(OffsetDateTime.now().getOffset());
-                        OffsetDateTime shiftEnd = current.atTime(endTemplate.getEndTime()).atOffset(OffsetDateTime.now().getOffset());
+                        OffsetDateTime shiftStart = current.atTime(startTemplate.getStartTime()).atOffset(clock.getZone().getRules().getOffset(clock.instant()));
+                        OffsetDateTime shiftEnd = current.atTime(endTemplate.getEndTime()).atOffset(clock.getZone().getRules().getOffset(clock.instant()));
                         long conflicts = shiftRepository.countConflictingShifts(emp.getId(), shiftStart, shiftEnd);
                         if (conflicts > 0) continue;
                         // Assign shift
@@ -89,7 +95,7 @@ public class AutoSchedulingService {
                         shift.setDepartment(startTemplate.getDepartment());
                         shift.setStatus(Shift.ShiftStatus.SCHEDULED);
                         shift.setAvailableForPickup(false);
-                        shift.setCreatedAt(OffsetDateTime.now());
+                        shift.setCreatedAt(OffsetDateTime.now(clock));
                         shift.setCreatedBy(emp);
                         shiftRepository.save(shift);
                         totalShiftsScheduled++;
@@ -124,8 +130,8 @@ public class AutoSchedulingService {
                     }
                     if (!available) continue;
                     // Check for shift conflicts
-                    OffsetDateTime shiftStart = req.getShiftDate().atTime(req.getStartTime()).atOffset(OffsetDateTime.now().getOffset());
-                    OffsetDateTime shiftEnd = req.getShiftDate().atTime(req.getEndTime()).atOffset(OffsetDateTime.now().getOffset());
+                    OffsetDateTime shiftStart = req.getShiftDate().atTime(req.getStartTime()).atOffset(clock.getZone().getRules().getOffset(clock.instant()));
+                    OffsetDateTime shiftEnd = req.getShiftDate().atTime(req.getEndTime()).atOffset(clock.getZone().getRules().getOffset(clock.instant()));
                     long conflicts = shiftRepository.countConflictingShifts(emp.getId(), shiftStart, shiftEnd);
                     if (conflicts > 0) continue;
                     // Assign shift
@@ -136,7 +142,7 @@ public class AutoSchedulingService {
                     shift.setDepartment(req.getDepartment());
                     shift.setStatus(Shift.ShiftStatus.SCHEDULED);
                     shift.setAvailableForPickup(false);
-                    shift.setCreatedAt(OffsetDateTime.now());
+                    shift.setCreatedAt(OffsetDateTime.now(clock));
                     shift.setCreatedBy(emp); // Optionally set to system/admin
                     shiftRepository.save(shift);
                     assigned++;

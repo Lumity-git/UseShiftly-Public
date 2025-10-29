@@ -43,11 +43,12 @@ app:
     secret: ${JWT_SECRET:NUkpwZybKi2HGV0AHPf704rpGkubj94WXL7hYH7hoyDs}
     expiration: 86400000 # 24 hours
   cors:
-  allowed-origins: ${CORS_ORIGINS:https://scheduler.asluxeco.org}
+    allowed-origins: ${ALLOWED_ORIGINS:https://scheduler.asluxeco.org}
   notification:
     email:
       from: ${EMAIL_FROM:noreply@hotelscheduler.com}
       enabled: ${EMAIL_ENABLED:true}
+    base-url: ${NOTIFICATION_BASE_URL:https://useshiftly.com}
 
 # Enhanced Security Configuration
 security:

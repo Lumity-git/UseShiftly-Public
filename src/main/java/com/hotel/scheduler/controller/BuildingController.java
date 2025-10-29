@@ -16,7 +16,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/buildings")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class BuildingController {
     private BuildingDTO toDTO(Building building) {
         if (building == null) return null;

@@ -13,7 +13,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class NotificationController {
     /**
      * NotificationController: Handles notification-related REST API endpoints for hotel employees.

@@ -13,7 +13,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/public/waitlist")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class WaitlistController {
 
     private final WaitlistService waitlistService;

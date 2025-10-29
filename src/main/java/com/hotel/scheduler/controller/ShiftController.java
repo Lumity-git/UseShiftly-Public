@@ -71,7 +71,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/shifts")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 @Slf4j
 public class ShiftController {
     /**

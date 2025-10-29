@@ -106,4 +106,16 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
      */
     @Query("SELECT s FROM Shift s LEFT JOIN FETCH s.department LEFT JOIN FETCH s.employee WHERE s.id = :id")
     Optional<Shift> findByIdWithDepartmentAndEmployee(@Param("id") Long id);
+
+    /**
+     * Finds shifts starting within a given time window (for auto-cancellation of expiring trades).
+     * Only returns shifts with status AVAILABLE_FOR_PICKUP or PENDING.
+     * @param now Current time
+     * @param cutoff Cutoff time (e.g., 2 hours from now)
+     * @return List of shifts starting within the time window
+     */
+    @Query("SELECT s FROM Shift s WHERE s.startTime > :now AND s.startTime < :cutoff " +
+           "AND (s.status = 'AVAILABLE_FOR_PICKUP' OR s.status = 'PENDING')")
+    List<Shift> findExpiringShifts(@Param("now") OffsetDateTime now, 
+                                   @Param("cutoff") OffsetDateTime cutoff);
 }

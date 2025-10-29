@@ -9,11 +9,18 @@ import com.hotel.scheduler.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Initializes sample data for development environment only.
+ * This component is disabled in production to prevent unwanted data creation.
+ * Use Flyway migrations for production data initialization.
+ */
 @Slf4j
-// Component disabled: data is initialized via schema_rebuild.sql in deployment
+@Component
+@Profile("dev") // Only run in development profile
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

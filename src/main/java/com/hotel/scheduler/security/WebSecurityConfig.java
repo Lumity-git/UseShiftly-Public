@@ -1,6 +1,7 @@
 package com.hotel.scheduler.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -27,16 +28,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
-
-import java.util.List;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.web.filter.OncePerRequestFilter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 /**
  * Spring Security configuration for the Hotel Employee Scheduler application.
@@ -71,6 +64,12 @@ public class WebSecurityConfig {
      * Custom entry point for handling unauthorized access (returns JSON error).
      */
     private final AuthEntryPointJwt unauthorizedHandler;
+
+    /**
+     * Allowed origins for CORS, loaded from application configuration.
+     */
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     /**
      * JWT authentication filter bean for processing JWT tokens in requests.
@@ -273,17 +272,21 @@ public class WebSecurityConfig {
     }
 
     /**
-     * Configures CORS to allow requests from any origin and standard HTTP methods.
+     * Configures CORS to allow requests from configured origins with credentials support.
+     * Origins are loaded from the app.cors.allowed-origins property.
      *
      * @return the {@link CorsConfigurationSource} bean
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // Parse comma-separated allowed origins from configuration
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
