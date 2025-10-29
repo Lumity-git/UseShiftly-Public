@@ -35,7 +35,7 @@ public class Employee implements UserDetails {
     private String phoneNumber;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "employee_role_enum")
     private Role role;
     
     @ManyToOne

@@ -56,9 +56,12 @@ public class BuildingController {
         Building building = new Building();
         building.setName(name.trim());
         building.setAddress(address.trim());
-        building.setAdmin(currentUser);
+        // Note: Building doesn't have setAdmin anymore - admin is determined by employees with ADMIN role
         try {
             Building saved = buildingRepository.save(building);
+            //Assign current user (admin) to the building
+            currentUser.setBuilding(saved);
+            employeeRepository.save(currentUser);
             return ResponseEntity.ok(toDTO(saved));
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
             return ResponseEntity.status(409).body("Building name already exists for this admin");

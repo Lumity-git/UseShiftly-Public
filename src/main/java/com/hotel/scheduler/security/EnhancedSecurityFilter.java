@@ -58,9 +58,9 @@ public class EnhancedSecurityFilter extends OncePerRequestFilter {
         log.debug("EnhancedSecurityFilter: Processing request from {} to {} {}", clientIP, method, endpoint);
 
         try {
-            // Skip security checks for static resources and whitelisted paths
-            if (isStaticResource(endpoint) || abuseDetectionService.isWhitelisted(clientIP)) {
-                log.debug("EnhancedSecurityFilter: Skipping security checks for {} (static/whitelisted)", endpoint);
+            // Skip security checks for static resources, whitelisted paths, and auth endpoints
+            if (isStaticResource(endpoint) || abuseDetectionService.isWhitelisted(clientIP) || isAuthEndpoint(endpoint)) {
+                log.debug("EnhancedSecurityFilter: Skipping security checks for {} (static/whitelisted/auth)", endpoint);
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -278,6 +278,15 @@ public class EnhancedSecurityFilter extends OncePerRequestFilter {
                path.startsWith("/js/") ||
                path.startsWith("/images/") ||
                path.matches(".*\\.(html|css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$");
+    }
+
+    /**
+     * Checks if the endpoint is an authentication endpoint that should skip security checks.
+     */
+    private boolean isAuthEndpoint(String path) {
+        return path.startsWith("/api/auth/") ||
+               path.startsWith("/api/super-admin/auth/") ||
+               path.equals("/h2-console");
     }
 
     /**

@@ -4,31 +4,33 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@Table(uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"name", "admin_id"})
-})
+@Table(name = "building")
 // Removed @Data to prevent Lombok from generating equals/hashCode
 public class Building {
     // --- Getters ---
     public Long getId() { return id; }
     public String getName() { return name; }
     public String getAddress() { return address; }
-    public Employee getAdmin() { return admin; }
     public java.util.Set<Employee> getManagers() { return managers; }
     public List<Employee> getEmployees() { return employees; }
+    
+    /**
+     * Gets the admin for this building (first ADMIN role employee assigned to this building)
+     */
+    public Employee getAdmin() {
+        if (employees == null) return null;
+        return employees.stream()
+            .filter(e -> e.getRole() == Employee.Role.ADMIN)
+            .findFirst()
+            .orElse(null);
+    }
 
     // --- Setters ---
     public void setId(Long id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setAddress(String address) { this.address = address; }
-    public void setAdmin(Employee admin) { this.admin = admin; }
     public void setManagers(java.util.Set<Employee> managers) { this.managers = managers; }
     public void setEmployees(List<Employee> employees) { this.employees = employees; }
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "admin_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    public Employee admin;
 
     @ManyToMany
     @JoinTable(

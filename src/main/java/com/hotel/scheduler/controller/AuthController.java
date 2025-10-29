@@ -40,25 +40,24 @@ public class AuthController {
             if (employeeService.getEmployeeByEmail(request.getOwnerEmail()).isPresent()) {
                 return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already taken!"));
             }
-            // Create new admin employee
+            // Create building first
+            var building = new com.hotel.scheduler.model.Building();
+            building.setName(request.getBuildingName());
+            building.setAddress(request.getBuildingAddress());
+            com.hotel.scheduler.model.Building savedBuilding = buildingRepository.save(building);
+            
+            // Create new admin employee and assign to building
             Employee admin = new Employee();
             admin.setEmail(request.getOwnerEmail());
             admin.setPassword(request.getPassword());
             admin.setFirstName(request.getOwnerName());
             admin.setLastName("");
             admin.setRole(Employee.Role.ADMIN);
-            // Create building and assign admin
-            var building = new com.hotel.scheduler.model.Building();
-            building.setName(request.getBuildingName());
-            building.setAddress(request.getBuildingAddress());
-            building.setAdmin(admin);
-            // Save admin first so it has an ID (if needed by building)
-            employeeService.createEmployeeWithUserPassword(admin);
-            // Persist building to generate unique ID
-            com.hotel.scheduler.model.Building savedBuilding = buildingRepository.save(building);
-            // Assign building to admin (if Employee has a building field)
             admin.setBuilding(savedBuilding);
-            employeeService.updateEmployee(admin); // Save admin with building assigned
+            
+            // Save admin with encoded password
+            employeeService.createEmployeeWithUserPassword(admin);
+            
             log.info("Created building: {} (ID: {}) for admin: {}", savedBuilding.getName(), savedBuilding.getId(), admin.getEmail());
             return ResponseEntity.ok(new MessageResponse("Admin and building registered successfully! Building ID: " + savedBuilding.getId()));
         } catch (Exception e) {
