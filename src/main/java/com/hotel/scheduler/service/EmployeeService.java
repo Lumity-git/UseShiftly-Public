@@ -88,17 +88,13 @@ public class EmployeeService implements UserDetailsService {
     /**
      * Returns all employees for all buildings owned by this admin.
      * Only employees for the admin's buildings are returned.
+     * Uses database-level filtering for optimal performance.
      */
     public List<Employee> getAllByAdminId(Long adminId) {
-        // Defensive: fallback to repository query in case JPA relationships are not always populated
-        List<Employee> all = employeeRepository.findAll();
-        java.util.List<Employee> result = new java.util.ArrayList<>();
-        for (Employee e : all) {
-            if (e.getBuilding() != null && e.getBuilding().getAdmin() != null && e.getBuilding().getAdmin().getId().equals(adminId)) {
-                result.add(e);
-            }
+        if (adminId == null) {
+            return List.of();
         }
-        return result;
+        return employeeRepository.findAllByAdminId(adminId);
     }
 
     public Optional<com.hotel.scheduler.model.Building> getBuildingById(Long buildingId) {

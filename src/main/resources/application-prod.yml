@@ -11,7 +11,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none  # Use Flyway exclusively for schema management; no automatic schema operations
     show-sql: false  # Disabled in production to prevent sensitive data exposure in logs
     properties:
       hibernate:
@@ -78,8 +78,8 @@ logging:
     name: logs/hotel-scheduler.log
   level:
     com.hotel.scheduler: INFO
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
+    org.springframework.security: INFO  # Reduced from DEBUG to avoid exposing security internals
+    org.hibernate.SQL: INFO  # Reduced from DEBUG to prevent SQL query logging in production
+    org.hibernate.type.descriptor.sql: INFO  # Reduced from TRACE to avoid verbose type binding logs
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

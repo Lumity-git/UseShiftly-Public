@@ -142,9 +142,7 @@ public class ShiftService {
             shift.setAvailableForPickup(false);
             shiftRepository.save(shift);
         }
-        // Optionally notify requester
-        notificationService.sendTradeDeclinedNotification(trade);
-        // Optionally notify requester
+        // Notify requester that trade was declined
         notificationService.sendTradeDeclinedNotification(trade);
     }
     /**

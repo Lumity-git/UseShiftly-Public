@@ -6,8 +6,8 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM building WHERE id = 1) THEN
-        INSERT INTO building (id, name, address, admin_id, created_at)
-        VALUES (1, 'Main Building', '123 Main St, Headquarters', NULL, CURRENT_TIMESTAMP);
+        INSERT INTO building (id, name, address, created_at)
+        VALUES (1, 'Main Building', '123 Main St, Headquarters', CURRENT_TIMESTAMP);
         
         -- Reset sequence to ensure next insert gets correct ID
         PERFORM setval('building_id_seq', 1);

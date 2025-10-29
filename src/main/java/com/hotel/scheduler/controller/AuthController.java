@@ -106,28 +106,28 @@ public class AuthController {
         }
         // If code/token are provided, handle password reset via invitation
         if (code != null && token != null) {
-            log.info("[DEBUG] Password reset attempt with code={}, token={}", code, token);
+            log.info("Password reset attempt via invitation link for code ending in: ...{}", 
+                code.length() > 4 ? code.substring(code.length() - 4) : "****");
             var invitationOpt = invitationService.validateInvitation(code, token);
             if (invitationOpt.isEmpty()) {
-                log.warn("[DEBUG] Password reset failed - Invalid or expired invitation: code={}, token={}", code, token);
+                log.warn("Password reset failed - Invalid or expired invitation");
                 return ResponseEntity.status(401).body(new MessageResponse("Invalid or expired password reset link."));
             }
             Invitation invitation = invitationOpt.get();
-            log.info("[DEBUG] Valid invitation found for email={}, type={}, expiresAt={}", 
-                invitation.getEmail(), invitation.getRole(), invitation.getExpiresAt());
+            log.info("Valid invitation found for email={}, type={}", 
+                invitation.getEmail(), invitation.getRole());
             // Find employee by email from invitation
             var employeeOpt = employeeService.getEmployeeByEmail(invitation.getEmail());
             if (employeeOpt.isEmpty()) {
-                log.warn("[DEBUG] Password reset failed - User not found for email={}", invitation.getEmail());
+                log.warn("Password reset failed - User not found for invitation email");
                 return ResponseEntity.status(404).body(new MessageResponse("User not found for this invitation."));
             }
             Employee invitedEmployee = employeeOpt.get();
-            log.info("[DEBUG] Found employee for password reset: id={}, email={}", 
-                invitedEmployee.getId(), invitedEmployee.getEmail());
+            log.info("Processing password reset for employee id={}", invitedEmployee.getId());
             employeeService.updatePassword(invitedEmployee, newPassword);
             invitationService.markInvitationUsed(code); // Mark/reset link as used
             userActionLogService.logAction("CHANGE_PASSWORD_BY_LINK", invitedEmployee.getId());
-            log.info("[DEBUG] Password reset successful for employee id={}", invitedEmployee.getId());
+            log.info("Password reset successful for employee id={}", invitedEmployee.getId());
             return ResponseEntity
                     .ok(new MessageResponse("Password changed successfully! The reset link is now invalid."));
         }

@@ -129,9 +129,15 @@
             <artifactId>flyway-maven-plugin</artifactId>
             <version>9.22.3</version>
             <configuration>
-                <url>jdbc:postgresql://localhost:5432/hotel_scheduler</url>
-                <user>scheduler_user</user>
-                <password>testPassword123!</password>
+                <!-- 
+                    Flyway credentials externalized to environment variables or profiles.
+                    Use: mvn flyway:migrate -Dflyway.url=... -Dflyway.user=... -Dflyway.password=...
+                    Or configure via settings.xml or environment variables:
+                    FLYWAY_URL, FLYWAY_USER, FLYWAY_PASSWORD
+                -->
+                <url>${flyway.url}</url>
+                <user>${flyway.user}</user>
+                <password>${flyway.password}</password>
             </configuration>
         </plugin>
     </plugins>

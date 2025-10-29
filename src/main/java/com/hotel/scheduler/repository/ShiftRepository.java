@@ -88,13 +88,17 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
     /**
      * Counts the number of shifts that conflict with a given time range for an employee.
      * Used to prevent scheduling conflicts.
+     * 
+     * <p>Overlap detection logic: Two time intervals [s1, e1] and [s2, e2] overlap if:
+     * s1 < e2 AND e1 > s2
+     * 
      * @param employeeId Employee ID
      * @param startTime Proposed shift start
      * @param endTime Proposed shift end
      * @return Number of conflicting shifts
      */
     @Query("SELECT COUNT(s) FROM Shift s WHERE s.employee.id = :employeeId AND " +
-           "s.startTime >= :startTime AND s.endTime <= :endTime")
+           "s.startTime < :endTime AND s.endTime > :startTime")
     long countConflictingShifts(@Param("employeeId") Long employeeId,
                                @Param("startTime") OffsetDateTime startTime,
                                @Param("endTime") OffsetDateTime endTime);
