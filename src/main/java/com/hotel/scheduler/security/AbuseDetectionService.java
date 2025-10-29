@@ -78,7 +78,7 @@ public class AbuseDetectionService {
             Pattern.compile("(?i).*(script|javascript|vbscript|onload|onerror|alert|eval).*"),
             "Cross-site scripting attempt"),
         new MaliciousPattern("admin_scan", 
-            Pattern.compile("(?i).*(admin|wp-admin|phpmyadmin|administrator|management|config).*"),
+            Pattern.compile("(?i).*(wp-admin|phpmyadmin|administrator|pma|adminer|webadmin|sqladmin|mysqladmin).*"),
             "Admin interface scanning"),
         new MaliciousPattern("file_inclusion", 
             Pattern.compile("(?i).*(php://|file://|data://|expect://|zip://).*"),

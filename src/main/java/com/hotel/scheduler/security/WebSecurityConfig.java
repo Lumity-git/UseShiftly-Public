@@ -170,8 +170,48 @@ public class WebSecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/frontend/**").permitAll()
-                .requestMatchers("/frontend/*").permitAll()
+                // Public pages - accessible to everyone
+                .requestMatchers("/frontend/login.html").permitAll()
+                .requestMatchers("/frontend/register.html").permitAll()
+                .requestMatchers("/frontend/register-admin.html").permitAll()
+                .requestMatchers("/frontend/super-admin-login.html").permitAll()
+                .requestMatchers("/frontend/change-password.html").permitAll()
+                
+                // Shared static resources - accessible to authenticated users
+                .requestMatchers("/frontend/style.css").permitAll()
+                .requestMatchers("/frontend/*.css").permitAll()
+                .requestMatchers("/frontend/*.js").permitAll()
+                .requestMatchers("/frontend/header.html").authenticated()
+                
+                // Employee pages - require EMPLOYEE role
+                .requestMatchers("/frontend/employee-dashboard.html").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/employee-notifications.html").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/employee-profile.html").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/employee-shifts.html").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/employee-trades.html").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN", "SUPER_ADMIN")
+                
+                // Admin pages - require ADMIN role
+                .requestMatchers("/frontend/dashboard.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/departments.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/employees.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/notifications.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/reports.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/shifts.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/trades.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/waitlist.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/frontend/admin-logs.html").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                
+                // Super Admin pages - require SUPER_ADMIN role
+                .requestMatchers("/frontend/super-admin-admins.html").hasRole("SUPER_ADMIN")
+                .requestMatchers("/frontend/super-admin-billing.html").hasRole("SUPER_ADMIN")
+                
+                // AI features - accessible to authenticated users
+                .requestMatchers("/frontend/ai-bubble.html").authenticated()
+                
+                // Remove the old permissive rules
+                // .requestMatchers("/frontend/**").permitAll()
+                // .requestMatchers("/frontend/*").permitAll()
+                
                 .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
                 .requestMatchers("/super-admin-login.html").permitAll()
                 .requestMatchers("/*.html", "/*.css", "/*.js", "/*.png", "/*.jpg", "/*.ico").permitAll()
@@ -184,7 +224,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/auth/check-email").permitAll()
                 .requestMatchers("/api/auth/validate").authenticated()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/debug/**").permitAll()  // Temporary debug endpoint
+                // .requestMatchers("/api/debug/**").permitAll()  // REMOVED: Debug endpoint was a security vulnerability
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/logs/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
