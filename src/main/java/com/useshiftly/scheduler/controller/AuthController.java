@@ -1,5 +1,6 @@
 package com.useshiftly.scheduler.controller;
 
+import com.useshiftly.scheduler.dto.auth.JwtResponse;
 import com.useshiftly.scheduler.dto.auth.LoginRequest;
 import com.useshiftly.scheduler.dto.auth.RegisterRequest;
 import com.useshiftly.scheduler.model.Employee;
@@ -202,7 +203,7 @@ public class AuthController {
             String jwt = jwtUtils.generateJwtToken(employee);
             
             // Build response using DTO
-            com.hotel.scheduler.dto.auth.JwtResponse response = com.hotel.scheduler.dto.auth.JwtResponse.builder()
+            JwtResponse response = JwtResponse.builder()
                     .token(jwt)
                     .type("Bearer")
                     .id(employee.getId())
@@ -491,7 +492,7 @@ public class AuthController {
             String jwt = jwtUtils.generateTokenFromUsername(employee.getEmail());
 
             // Build response using DTO
-            com.hotel.scheduler.dto.auth.JwtResponse response = com.hotel.scheduler.dto.auth.JwtResponse.builder()
+            JwtResponse response = JwtResponse.builder()
                     .token(jwt)
                     .type("Bearer")
                     .id(employee.getId())
