@@ -1,4 +1,4 @@
-// Auto-logout utility for hotel scheduler
+// Auto-logout utility for UseShiftly
 // Logs out users after 10 minutes of inactivity
 
 class AutoLogout {

@@ -1,6 +1,6 @@
-# Hotel Employee Scheduler
+# UseShiftly Shift Scheduler
 
-A professional, enterprise-ready scheduling application built with Spring Boot for hotel employee management. This system replaces traditional whiteboard scheduling with a modern, digital solution that includes shift trading, notifications, and role-based access control.
+A professional, enterprise-ready scheduling application built with Spring Boot for cross-industry shift team management. This system replaces traditional whiteboard scheduling with a modern, digital solution that includes shift trading, notifications, and role-based access control.
 
 ## 🚀 Features
 
@@ -9,7 +9,7 @@ A professional, enterprise-ready scheduling application built with Spring Boot f
 - **Shift Scheduling**: Create, view, and manage shifts with conflict detection
 - **Shift Trading**: Employees can give away and pick up shifts seamlessly
 - **Real-time Notifications**: Email notifications for all shift changes
-- **Department Management**: Organize employees by hotel departments
+- **Department Management**: Organize employees by business departments
 - **Mobile-Ready API**: RESTful API ready for mobile/web frontend integration
 
 ### Security & Access Control
@@ -45,7 +45,7 @@ The application uses the following environment variables for configuration:
 ### Optional Variables
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (default: `https://scheduler.asluxeco.org`)
 - `NOTIFICATION_BASE_URL` - Base URL for notification links (default: `https://useshiftly.com`)
-- `EMAIL_FROM` - Sender email address (default: `noreply@hotelscheduler.com`)
+- `EMAIL_FROM` - Sender email address (default: `noreply@useshiftly.com`)
 - `EMAIL_ENABLED` - Enable/disable email notifications (default: `true`)
 - `MAIL_HOST` - SMTP server host (default: `smtp.gmail.com`)
 - `MAIL_PORT` - SMTP server port (default: `587`)
@@ -63,7 +63,7 @@ The application uses the following environment variables for configuration:
    git clone <repository>
 
    spring:
-       url: jdbc:postgresql://localhost:5432/hotel_scheduler
+       url: jdbc:postgresql://localhost:5432/useshiftly
        username: your_username
        password: your_password
    ```
@@ -84,9 +84,9 @@ docker-compose logs -f app
 
 ### Default Users
 The system creates these default users on first run:
-- **Admin**: `admin@hotel.com` / `admin123`
-- **Manager**: `manager@hotel.com` / `manager123`
-- **Employee**: `employee@hotel.com` / `employee123`
+- **Admin**: `admin@useshiftly.com` / `admin123`
+- **Manager**: `manager@useshiftly.com` / `manager123`
+- **Employee**: `employee@useshiftly.com` / `employee123`
 
 ## 📚 API Documentation
 
@@ -126,7 +126,7 @@ POST /api/shifts/{id}/pick-up      # Pick up an available shift
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"manager@hotel.com","password":"manager123"}'
+  -d '{"email":"manager@useshiftly.com","password":"manager123"}'
 ```
 
 **Create Shift:**
@@ -146,7 +146,7 @@ curl -X POST http://localhost:8080/api/shifts \
 ## 🏗 Architecture
 
 ```
-src/main/java/com/hotel/scheduler/
+src/main/java/com/useshiftly/scheduler/
 ├── controller/     # REST API endpoints
 ├── service/        # Business logic layer
 ├── repository/     # Data access layer (JPA)
@@ -158,7 +158,7 @@ src/main/java/com/hotel/scheduler/
 
 ### Database Schema
 - **employees**: User accounts with roles and contact info
-- **departments**: Hotel departments (Front Desk, Housekeeping, etc.)
+- **departments**: Business departments (Front Desk, Housekeeping, etc.)
 - **shifts**: Scheduled work periods with date/time and assignments
 - **shift_trades**: Tracks shift give-away/pickup requests
 
@@ -188,8 +188,8 @@ src/main/java/com/hotel/scheduler/
 
 3. **Deploy with Docker**:
    ```bash
-   docker build -t hotel-scheduler .
-   docker run -p 8080:8080 hotel-scheduler
+   docker build -t useshiftly .
+   docker run -p 8080:8080 useshiftly
    ```
 
 ### Cloud Deployment Options
@@ -237,13 +237,13 @@ The application includes:
 
 ## 💼 Business Value
 
-This application solves real hotel management problems:
+This application solves real workforce management problems:
 - **Eliminates manual whiteboard scheduling**
 - **Reduces scheduling conflicts and confusion**
 - **Improves employee communication**
 - **Provides audit trail for shift changes**
 - **Enables flexible shift trading**
-- **Scales with hotel growth**
+- **Scales with business growth**
 
 ## 🔄 Future Enhancements
 
@@ -266,8 +266,8 @@ For technical support or feature requests, contact:
 
 ## 📄 License
 
-Proprietary - Built for [Hotel Company Name]
+Proprietary - Built for UseShiftly
 
 ---
 
-**This is a production-ready application designed specifically for hotel employee scheduling. It replaces manual processes with automated, digital solutions that improve efficiency and employee satisfaction.**
+**This is a production-ready application designed specifically for shift scheduling. It replaces manual processes with automated, digital solutions that improve efficiency and employee satisfaction.**

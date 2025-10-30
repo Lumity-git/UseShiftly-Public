@@ -9,7 +9,7 @@ Shiftly Scheduler is a free application that allows anyone (individuals or compa
 1. **Access Registration Page**: Navigate to `/register-admin.html` in the application.
 2. **Fill Registration Form**:
    - Owner Name: Full name of the account owner
-   - Building/Business Name: Name of the hotel, business, or organization
+   - Building/Business Name: Name of the workplace, business, or organization
    - Building Address: Physical address of the building/business
    - Email: Valid email address (will be used for login)
    - Password: Minimum 8 characters
@@ -24,7 +24,7 @@ Shiftly Scheduler is a free application that allows anyone (individuals or compa
 ```json
 {
   "ownerName": "John Doe",
-  "buildingName": "Grand Hotel",
+  "buildingName": "Grand Workspace",
   "buildingAddress": "123 Main St, City, State 12345",
   "ownerEmail": "john.doe@example.com",
   "password": "securepassword123"

@@ -1,0 +1,34 @@
+package com.useshiftly.scheduler.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+/**
+ * Entity representing a waitlist entry for users interested in early access to mobile app features.
+ */
+@Entity
+@Table(name = "waitlist")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Waitlist {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+}
