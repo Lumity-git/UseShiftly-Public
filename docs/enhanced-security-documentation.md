@@ -1,6 +1,6 @@
 # Enhanced Security Layer Documentation
 
-This document describes the comprehensive security enhancements implemented for the Hotel Employee Scheduler application.
+This document describes the comprehensive security enhancements implemented for the UseShiftly Shift Scheduler application.
 
 ## Overview
 

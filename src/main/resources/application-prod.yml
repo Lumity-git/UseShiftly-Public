@@ -46,7 +46,7 @@ app:
     allowed-origins: ${ALLOWED_ORIGINS:https://scheduler.asluxeco.org}
   notification:
     email:
-      from: ${EMAIL_FROM:noreply@hotelscheduler.com}
+      from: ${EMAIL_FROM:noreply@useshiftly.com}
       enabled: ${EMAIL_ENABLED:true}
     base-url: ${NOTIFICATION_BASE_URL:https://useshiftly.com}
 
@@ -75,9 +75,9 @@ security:
 
 logging:
   file:
-    name: logs/hotel-scheduler.log
+    name: logs/useshiftly.log
   level:
-    com.hotel.scheduler: INFO
+    com.useshiftly.scheduler: INFO
     org.springframework.security: INFO  # Reduced from DEBUG to avoid exposing security internals
     org.hibernate.SQL: INFO  # Reduced from DEBUG to prevent SQL query logging in production
     org.hibernate.type.descriptor.sql: INFO  # Reduced from TRACE to avoid verbose type binding logs

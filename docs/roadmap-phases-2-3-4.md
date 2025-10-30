@@ -1,6 +1,6 @@
-# Hotel Scheduler: Roadmap for Future Phases
+# UseShiftly: Roadmap for Future Phases
 
-This document outlines the next phases of development for the Hotel Scheduler project, following the successful completion of Phase 1 (core website, backend, and frontend support).
+This document outlines the next phases of development for the UseShiftly project, following the successful completion of Phase 1 (core website, backend, and frontend support).
 
 ## Phase 2: Pro Package – Mobile/iPhone Support
 
@@ -8,7 +8,7 @@ This document outlines the next phases of development for the Hotel Scheduler pr
 Expand the platform to support mobile users, providing access to the same APIs and core features as the web version, optimized for iOS devices.
 
 **Key Features:**
-- Develop a native iOS application (or cross-platform mobile app) for hotel staff and admins.
+- Develop a native iOS application (or cross-platform mobile app) for shift teams and admins.
 - Integrate with existing backend APIs for authentication, scheduling, notifications, and management.
 - Implement mobile-optimized UI/UX for shift management, notifications, and profile management.
 - Push notification support for shift changes, approvals, and urgent alerts.
@@ -41,7 +41,7 @@ Automate payroll calculations and reporting, integrating with shift data and sup
 ## Phase 4: HR Support System
 
 **Objective:**
-Provide comprehensive HR management tools for hotel staff and administrators.
+Provide comprehensive HR management tools for workforce staff and administrators.
 
 **Key Features:**
 - Employee onboarding and document management.
@@ -62,7 +62,7 @@ Provide comprehensive HR management tools for hotel staff and administrators.
 - Multi-factor authentication for admin and HR roles.
 
 **Scalability & Performance:**
-- Design for multi-tenant support and easy onboarding of new hotels.
+- Design for multi-tenant support and easy onboarding of new organizations.
 - Cloud-native deployment options (Docker, Kubernetes, AWS/GCP/Azure).
 - Load balancing and auto-scaling for peak usage periods.
 
@@ -84,10 +84,10 @@ Provide comprehensive HR management tools for hotel staff and administrators.
 
 **Next Steps:**
 
-*This roadmap will guide the continued evolution of the Hotel Scheduler platform, ensuring robust support for web, mobile, payroll, HR, and advanced enterprise needs.*
+*This roadmap will guide the continued evolution of the UseShiftly platform, ensuring robust support for web, mobile, payroll, HR, and advanced enterprise needs.*
 **Next Steps:**
 - Prioritize and break down each phase into actionable tasks.
 - Define technical requirements and select appropriate frameworks/tools.
 - Schedule development sprints and assign responsibilities.
 
-*This roadmap will guide the continued evolution of the Hotel Scheduler platform, ensuring robust support for web, mobile, payroll, and HR needs.*
+*This roadmap will guide the continued evolution of the UseShiftly platform, ensuring robust support for web, mobile, payroll, and HR needs.*

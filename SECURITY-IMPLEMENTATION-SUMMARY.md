@@ -115,7 +115,7 @@ java -jar target/scheduler-0.0.1-SNAPSHOT.jar
 ## 📊 Monitoring & Maintenance
 
 ### Log Analysis
-- **Location**: `logs/hotel-scheduler.log`
+- **Location**: `logs/useshiftly.log`
 - **Format**: Structured JSON for easy parsing
 - **Tools**: Use ELK stack, Splunk, or similar for log aggregation
 
@@ -200,4 +200,4 @@ The enhanced security system provides:
 
 ---
 
-**Implementation Complete**: All requested security features have been successfully integrated into the Hotel Scheduler application with comprehensive documentation and testing capabilities.
+**Implementation Complete**: All requested security features have been successfully integrated into the UseShiftly application with comprehensive documentation and testing capabilities.

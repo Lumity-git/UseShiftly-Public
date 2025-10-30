@@ -1,5 +1,5 @@
 -- V1__initial_schema.sql
--- Initial database schema for Hotel Scheduler application
+-- Initial database schema for the UseShiftly application
 -- Creates all core tables with proper constraints and indexes
 
 -- Create custom enum types

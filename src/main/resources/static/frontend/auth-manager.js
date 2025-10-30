@@ -1,4 +1,4 @@
-// Global authentication utility for hotel scheduler
+// Global authentication utility for UseShiftly
 class AuthManager {
   // Utility: Render large lists/tables in batches for responsive UI
   renderBatch(items, renderFn, container, batchSize = 20) {
