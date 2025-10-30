@@ -43,9 +43,9 @@ echo
 
 # Check logs for security events
 echo "4. Checking security logs:"
-if [ -f "logs/hotel-scheduler.log" ]; then
+if [ -f "logs/useshiftly.log" ]; then
     echo "Recent security events:"
-    tail -20 logs/hotel-scheduler.log | grep -i "security\|rate\|abuse\|blocked"
+    tail -20 logs/useshiftly.log | grep -i "security\|rate\|abuse\|blocked"
 else
     echo "No log file found yet"
 fi

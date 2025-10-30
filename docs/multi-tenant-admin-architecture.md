@@ -50,7 +50,7 @@ To reduce redundant checks in every controller, use an interceptor or filter:
 - Short-circuit invalid requests
 
 ---
-# Multi-Tenant Admin Architecture for Hotel Scheduler
+# Multi-Tenant Admin Architecture for UseShiftly
 
 ## Overview
 This document outlines the requirements and implementation plan for a strict multi-tenant architecture where each admin manages their own isolated set of buildings, managers, departments, and employees. The super-admin (developer) manages only admin accounts and has no access to regular employee/manager/building data.

@@ -1,7 +1,7 @@
-# Role & Permission System - Hotel Scheduler
+# Role & Permission System - UseShiftly
 
 ## Overview
-This document outlines the plan for a flexible role and permission system for the Hotel Scheduler application. The goal is to allow admins to create new roles (e.g., Manager, Supervisor, Custom Roles) and assign granular permissions to each role.
+This document outlines the plan for a flexible role and permission system for the UseShiftly application. The goal is to allow admins to create new roles (e.g., Manager, Supervisor, Custom Roles) and assign granular permissions to each role.
 
 ## Key Features
 - **Role Management:**

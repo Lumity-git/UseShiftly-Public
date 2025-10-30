@@ -1,4 +1,4 @@
-# Auto-Scheduling Feature: Hotel Employee Scheduler
+# Auto-Scheduling Feature: UseShiftly Shift Scheduler
 
 ## Goal
 Enable managers/admins to auto-generate shift schedules for departments based on employee availability, ensuring no conflicts and proper coverage.
@@ -44,7 +44,7 @@ Enable managers/admins to auto-generate shift schedules for departments based on
   - Plan for employees on leave, sudden availability changes, or last-minute swaps. Include a mechanism to refresh or partially regenerate schedules as needed.
 
 - **Scalability & Performance:**
-  - For larger hotels, consider efficient data structures or heuristics to keep the scheduling algorithm performant.
+  - For larger organizations, consider efficient data structures or heuristics to keep the scheduling algorithm performant.
 
 - **Audit Trail and Versioning:**
   - Store previous schedule versions and track who generated/edited them for accountability and rollback if needed.
