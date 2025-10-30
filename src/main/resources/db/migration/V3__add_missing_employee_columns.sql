@@ -11,7 +11,14 @@ ALTER TABLE employees ADD COLUMN IF NOT EXISTS package_type VARCHAR(50) DEFAULT 
 
 -- Make uuid unique and not null after adding it
 ALTER TABLE employees ALTER COLUMN uuid SET NOT NULL;
-ALTER TABLE employees ADD CONSTRAINT uk_employees_uuid UNIQUE (uuid);
+
+-- Add unique constraint only if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uk_employees_uuid') THEN
+        ALTER TABLE employees ADD CONSTRAINT uk_employees_uuid UNIQUE (uuid);
+    END IF;
+END $$;
 
 -- Update existing records to have uuids
 UPDATE employees SET uuid = gen_random_uuid()::text WHERE uuid IS NULL;

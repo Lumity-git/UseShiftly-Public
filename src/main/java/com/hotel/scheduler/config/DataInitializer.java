@@ -102,7 +102,7 @@ public class DataInitializer implements CommandLineRunner {
 
             Employee admin = new Employee();
             admin.setEmail("admin@hotel.com");
-            admin.setPassword("admin123");
+            admin.setPassword("Admin123!");
             admin.setFirstName("System");
             admin.setLastName("Administrator");
             admin.setRole(Employee.Role.ADMIN);
@@ -114,7 +114,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setAddress("123 Main St, Testville, TX");
 
             employeeService.createEmployee(admin, false);
-            log.info("Default admin user created: admin@hotel.com");
+            log.info("Default admin user created: admin@hotel.com / Admin123!");
         }
     }
 
@@ -125,7 +125,7 @@ public class DataInitializer implements CommandLineRunner {
 
             Employee superAdmin = new Employee();
             superAdmin.setEmail("superadmin@hotel.com");
-            superAdmin.setPassword("$2a$10$BuuRV7kOJjHapTMJgEI2JuDQlGN1LlGrqzAJLwxDxWYW1weggI/26"); // testpassword123!
+            superAdmin.setPassword("Admin123!"); // Will be hashed by EmployeeService
             superAdmin.setFirstName("Super");
             superAdmin.setLastName("Admin");
             superAdmin.setRole(Employee.Role.SUPER_ADMIN);
@@ -137,7 +137,7 @@ public class DataInitializer implements CommandLineRunner {
             superAdmin.setAddress("1 Admin Plaza, Root City, TX");
 
             employeeService.createEmployee(superAdmin, false);
-            log.info("Default SUPER_ADMIN user created: superadmin@hotel.com");
+            log.info("Default SUPER_ADMIN user created: superadmin@hotel.com / Admin123!");
         }
     }
 }
