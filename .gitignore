@@ -1,2 +1,39 @@
-# Ignore build output
+# Build artifacts
 /target/
+/out/
+
+# IDE and tooling
+/.idea/
+/.project
+/.classpath
+/.settings/
+/.vscode/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+
+# Logs and runtime data
+/logs/
+*.log
+*.tmp
+
+# Dependencies and packages
+/node_modules/
+/vendor/
+
+# Compiled classes and archives
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar
+*.tar.gz
+
+# OS-specific files
+.DS_Store
+Thumbs.db
