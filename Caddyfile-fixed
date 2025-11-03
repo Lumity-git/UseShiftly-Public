@@ -1,4 +1,4 @@
-asluxeco.org {
+<your-domain-here> {
     reverse_proxy nextcloud:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
