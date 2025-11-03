@@ -1,5 +1,9 @@
 # UseShiftly Shift Scheduler
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-blue)
+![Security](https://img.shields.io/badge/Security-Audited-success)
+
 A professional, enterprise-ready scheduling application built with Spring Boot for cross-industry shift team management. This system replaces traditional whiteboard scheduling with a modern, digital solution that includes shift trading, notifications, and role-based access control.
 
 ## 🚀 Features
@@ -23,6 +27,10 @@ A professional, enterprise-ready scheduling application built with Spring Boot f
 - **Department Filtering**: View shifts by department or employee
 - **Date Range Queries**: Filter shifts by custom date ranges
 
+## 📸 Preview
+
+![Scheduler Dashboard](https://via.placeholder.com/1200x675.png?text=Scheduler+Dashboard+Preview)
+
 ## 🛠 Tech Stack
 
 - **Backend**: Spring Boot 3.2, Java 21
@@ -43,9 +51,9 @@ The application uses the following environment variables for configuration:
 - `JWT_SECRET` - Secret key for JWT token signing
 
 ### Optional Variables
-- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (default: `https://scheduler.asluxeco.org`)
-- `NOTIFICATION_BASE_URL` - Base URL for notification links (default: `https://useshiftly.com`)
-- `EMAIL_FROM` - Sender email address (default: `noreply@useshiftly.com`)
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (default: `https://example.com`)
+- `NOTIFICATION_BASE_URL` - Base URL for notification links (default: `https://example.com`)
+- `EMAIL_FROM` - Sender email address (default: `noreply@example.com`)
 - `EMAIL_ENABLED` - Enable/disable email notifications (default: `true`)
 - `MAIL_HOST` - SMTP server host (default: `smtp.gmail.com`)
 - `MAIL_PORT` - SMTP server port (default: `587`)
@@ -56,14 +64,14 @@ The application uses the following environment variables for configuration:
 - `ENHANCED_LOGGING` - Enable structured security logging (default: `true`)
 
 ### Application Profiles
-- `dev` - Development profile (enables DataInitializer for sample data)
-- `prod` - Production profile (uses Flyway migrations only)
+- `dev` - Development profile for local testing (configure sample data manually)
+- `prod` - Production profile using Flyway migrations and externalized secrets
 
    ```bash
    git clone <repository>
 
    spring:
-       url: jdbc:postgresql://localhost:5432/useshiftly
+       url: jdbc:postgresql://localhost:5432/scheduler_db
        username: your_username
        password: your_password
    ```
@@ -83,10 +91,10 @@ docker-compose logs -f app
 ```
 
 ### Default Users
-The system creates these default users on first run:
-- **Admin**: `admin@useshiftly.com` / `admin123`
-- **Manager**: `manager@useshiftly.com` / `manager123`
-- **Employee**: `employee@useshiftly.com` / `employee123`
+The system seeds placeholder accounts for testing. Update credentials before going live:
+- **Admin**: `admin@example.com` / `<choose-strong-password>`
+- **Manager**: `manager@example.com` / `<choose-strong-password>`
+- **Employee**: `employee@example.com` / `<choose-strong-password>`
 
 ## 📚 API Documentation
 
@@ -126,7 +134,7 @@ POST /api/shifts/{id}/pick-up      # Pick up an available shift
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"manager@useshiftly.com","password":"manager123"}'
+  -d '{"email":"manager@example.com","password":"<choose-strong-password>"}'
 ```
 
 **Create Shift:**
@@ -188,8 +196,8 @@ src/main/java/com/useshiftly/scheduler/
 
 3. **Deploy with Docker**:
    ```bash
-   docker build -t useshiftly .
-   docker run -p 8080:8080 useshiftly
+   docker build -t scheduler-app .
+   docker run -p 8080:8080 scheduler-app
    ```
 
 ### Cloud Deployment Options
@@ -266,7 +274,7 @@ For technical support or feature requests, contact:
 
 ## 📄 License
 
-Proprietary - Built for UseShiftly
+MIT License - see [LICENSE](LICENSE)
 
 ---
 
@@ -284,7 +292,7 @@ _Since v2.0.0_
 | GET checkEmail | Check if email is registered. | GET `/api/auth/check-email` | Query: `email` (String, required) | 200 JSON `{ "registered": boolean }`. | 400 on invalid inputs. | `curl '/api/auth/check-email?email=foo@bar.com'` |
 | POST changePassword | Change current or invited user's password. | POST `/api/auth/change-password` | Body: `ChangePasswordRequest` {newPassword (String, required), code/token (String, optional for invite flow)}; Auth principal optional. | 200 message on success. | 400 invalid password pattern or errors; 401 when unauthenticated or invalid reset link; 404 when invited user missing. | `curl -X POST /api/auth/change-password -H 'Content-Type: application/json' -d '{"newPassword":"Abc123!@#"}'` |
 | GET me | Return authenticated user profile summary. | GET `/api/auth/me` | Auth principal required. | 200 JSON with id, email, names, role, department/building info. | 401 when principal null. | `curl -H 'Authorization: Bearer <token>' /api/auth/me` |
-| POST login | Authenticate user and issue JWT. | POST `/api/auth/login` | Body: `LoginRequest` {email (String), password (String)} | 200 JSON string containing token and user details. | 400 invalid credentials. | `curl -X POST /api/auth/login -d '{"email":"user","password":"pass"}'` |
+| POST login | Authenticate user and issue JWT. | POST `/api/auth/login` | Body: `LoginRequest` {email (String), password (String)} | 200 JSON string containing token and user details. | 400 invalid credentials. | `curl -X POST /api/auth/login -d '{"email":"user","password":"<choose-strong-password>"}'` |
 | POST register | Register invited user. | POST `/api/auth/register` | Form-data `RegisterRequest` {invitationCode (String), invitationToken (String), email, password, firstName, lastName, phoneNumber?, dateOfBirth?, address?, emergency contacts?, departmentId?} | 200 message success. | 400 missing/invalid invitation or duplicates; 401 invalid invitation; 403 mismatched department. | `curl -X POST -F 'invitationCode=...' -F 'email=...' /api/auth/register` |
 | GET validateInvitation | Validate invitation token. | GET `/api/auth/validate-invitation` | Query: `code` (String), `token` (String). | 200 JSON invitation details. | 400 invalid; 401 expired invitation. | `curl '/api/auth/validate-invitation?code=...&token=...'` |
 | POST generateInvitation | Create invitation for employee or reset. | POST `/api/auth/generate-invitation` | Body Map {email (String, required), role (String, optional default EMPLOYEE), departmentId?, departmentName?, type?, buildingId?, buildingName?}; Auth principal with MANAGER/ADMIN. | 200 JSON codes, token, expiry, optional building/department. | 400 missing email/building or validation errors. | `curl -X POST /api/auth/generate-invitation -H 'Authorization: Bearer <token>' -d '{"email":"new@staff.com"}'` |
@@ -302,7 +310,7 @@ _Since v2.0.0_
 #### SuperAdminAuthController
 | Name / Signature | Description | Path | Parameters | Response | Errors | Example |
 | --- | --- | --- | --- | --- | --- | --- |
-| POST superAdminLogin | Authenticate super admin user and return JWT. | POST `/api/super-admin/auth/login` | Body Map {email (String, required), password (String, required)}. | 200 JSON with token and profile. | 403 when authenticated non-super-admin; 401 invalid credentials. | `curl -X POST /api/super-admin/auth/login -d '{"email":"root@useshiftly.com","password":"pass"}'` |
+| POST superAdminLogin | Authenticate super admin user and return JWT. | POST `/api/super-admin/auth/login` | Body Map {email (String, required), password (String, required)}. | 200 JSON with token and profile. | 403 when authenticated non-super-admin; 401 invalid credentials. | `curl -X POST /api/super-admin/auth/login -d '{"email":"root@example.com","password":"<choose-strong-password>"}'` |
 
 ### Security Operations
 
