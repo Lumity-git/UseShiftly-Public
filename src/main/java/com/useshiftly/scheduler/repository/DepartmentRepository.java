@@ -20,7 +20,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
     boolean existsByName(String name);
 
-    @Query("SELECT d FROM Department d WHERE d.building.admin.id = :adminId")
+    @Query("SELECT d FROM Department d WHERE d.building.id IN (SELECT b.id FROM Building b JOIN b.employees admin WHERE admin.id = :adminId AND admin.role = 'ADMIN')")
     List<Department> findAllByAdminId(@Param("adminId") Long adminId);
 
     @Query("SELECT d FROM Department d WHERE d.building.id = :buildingId")

@@ -17,9 +17,17 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
      */
     @Query("SELECT e FROM Employee e WHERE e.building.id = :buildingId AND (e.deletedAt IS NULL OR e.deletedAt > :periodStart)")
     List<Employee> findActiveForBillingPeriod(@Param("buildingId") Long buildingId, @Param("periodStart") java.time.LocalDateTime periodStart);
-    // Find all employees by admin (scoped to admin's buildings)
-    @Query("SELECT e FROM Employee e JOIN e.building b JOIN b.employees admin WHERE admin.id = :adminId AND admin.role = 'ADMIN'")
+    
+    /**
+     * Find all employees by admin (scoped to admin's buildings).
+     * Uses a subquery to find buildings where the admin works with ADMIN role,
+     * then returns all employees from those buildings.
+     */
+    @Query("SELECT e FROM Employee e WHERE e.building.id IN " +
+           "(SELECT b.id FROM Building b JOIN b.employees admin " +
+           "WHERE admin.id = :adminId AND admin.role = 'ADMIN')")
     List<Employee> findAllByAdminId(@Param("adminId") Long adminId);
+    
     // Find all employees by department (active or not)
     List<Employee> findByDepartmentId(Long departmentId);
     
@@ -53,6 +61,14 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e LEFT JOIN FETCH e.building WHERE e.id = :id")
     Optional<Employee> findByIdWithBuilding(@Param("id") Long id);
 
-    @Query("SELECT COUNT(e) FROM Employee e JOIN e.building b JOIN b.employees admin WHERE admin.id = :adminId AND admin.role = 'ADMIN' AND e.role = :role")
+    /**
+     * Count employees by admin and role.
+     * Uses a subquery to find buildings where the admin works with ADMIN role,
+     * then counts employees from those buildings matching the specified role.
+     */
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.building.id IN " +
+           "(SELECT b.id FROM Building b JOIN b.employees admin " +
+           "WHERE admin.id = :adminId AND admin.role = 'ADMIN') " +
+           "AND e.role = :role")
     long countByAdminIdAndRole(@Param("adminId") Long adminId, @Param("role") com.useshiftly.scheduler.model.Employee.Role role);
 }
