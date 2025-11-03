@@ -2,8 +2,8 @@ package com.useshiftly.scheduler.service;
 
 import com.useshiftly.scheduler.model.Employee;
 import com.useshiftly.scheduler.model.Shift;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -25,9 +25,16 @@ import java.util.List;
  * <b>Usage:</b> Injected into controllers and services to trigger notifications for scheduling events.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class NotificationService {
+    
+    private final com.useshiftly.scheduler.repository.NotificationRepository notificationRepository;
+    
+    @Autowired
+    public NotificationService(com.useshiftly.scheduler.repository.NotificationRepository notificationRepository) {
+        this.notificationRepository = notificationRepository;
+    }
+    
     /**
      * Sends a general email to the specified recipient.
      * @param to recipient email address
@@ -35,8 +42,8 @@ public class NotificationService {
      * @param body email body
      */
     public void sendEmail(String to, String subject, String body) {
-        if (!emailEnabled) {
-            log.info("Email notifications disabled");
+        if (mailSender == null || !emailEnabled) {
+            log.info("Email notifications disabled or mailSender not configured");
             return;
         }
         try {
@@ -90,11 +97,6 @@ public class NotificationService {
         }
     }
         
-    /**
-     * Notify manager/admin that a trade was accepted by the employee (for approval).
-     */
-    private final com.useshiftly.scheduler.repository.NotificationRepository notificationRepository;
-
     /**
      * Returns all notifications for the given user ID.
      */
@@ -245,12 +247,13 @@ public class NotificationService {
         }
     }
     
-    private final JavaMailSender mailSender;
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
     
-    @Value("${app.notification.email.from}")
+    @Value("${app.notification.email.from:noreply@useshiftly.com}")
     private String fromEmail;
     
-    @Value("${app.notification.email.enabled:true}")
+    @Value("${app.notification.email.enabled:false}")
     private boolean emailEnabled;
     
     @Value("${app.notification.base-url:https://useshiftly.com}")

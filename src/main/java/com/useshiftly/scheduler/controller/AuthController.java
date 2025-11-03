@@ -1,5 +1,6 @@
 package com.useshiftly.scheduler.controller;
 
+import com.useshiftly.scheduler.dto.auth.JwtResponse;
 import com.useshiftly.scheduler.dto.auth.LoginRequest;
 import com.useshiftly.scheduler.dto.auth.RegisterRequest;
 import com.useshiftly.scheduler.model.Employee;
@@ -200,33 +201,33 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             Employee employee = (Employee) authentication.getPrincipal();
             String jwt = jwtUtils.generateJwtToken(employee);
-            // Get building info if available
-            Long buildingId = null;
-            String buildingName = null;
-            if (employee.getBuilding() != null) {
-                buildingId = employee.getBuilding().getId();
-                buildingName = employee.getBuilding().getName();
-            }
-            // Add mustChangePassword and building info to the response
-            String responseJson = String.format(
-                    "{\"token\":\"%s\",\"id\":%d,\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s,\"buildingId\":%s,\"buildingName\":%s}",
-                    jwt,
-                    employee.getId(),
-                    employee.getEmail(),
-                    employee.getFirstName(),
-                    employee.getLastName(),
-                    employee.getRole().name(),
-                    employee.isMustChangePassword() ? "true" : "false",
-                    buildingId == null ? "null" : buildingId.toString(),
-                    buildingName == null ? "null" : String.format("\"%s\"", buildingName));
+            
+            // Build response using DTO
+            JwtResponse response = JwtResponse.builder()
+                    .token(jwt)
+                    .type("Bearer")
+                    .id(employee.getId())
+                    .email(employee.getEmail())
+                    .firstName(employee.getFirstName())
+                    .lastName(employee.getLastName())
+                    .role(employee.getRole().name())
+                    .mustChangePassword(employee.isMustChangePassword())
+                    .buildingId(employee.getBuilding() != null ? employee.getBuilding().getId() : null)
+                    .buildingName(employee.getBuilding() != null ? employee.getBuilding().getName() : null)
+                    .build();
+            
             userActionLogService.logAction("LOGIN_SUCCESS", employee.getId());
-            return ResponseEntity.ok()
-                    .header("Content-Type", "application/json")
-                    .body(responseJson);
-        } catch (Exception e) {
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
             userActionLogService.logAction("LOGIN_FAILED", null);
+            log.warn("Login failed for user: {} - Bad credentials", loginRequest.getEmail());
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Error: Invalid credentials!"));
+        } catch (Exception e) {
+            userActionLogService.logAction("LOGIN_FAILED", null);
+            log.error("Unexpected error during login for user: {}", loginRequest.getEmail(), e);
+            return ResponseEntity.status(500)
+                    .body(new MessageResponse("Error: An unexpected error occurred during login"));
         }
     }
 
@@ -490,39 +491,24 @@ public class AuthController {
             // Generate new JWT token
             String jwt = jwtUtils.generateTokenFromUsername(employee.getEmail());
 
-            // Get building info
-            Long buildingId = null;
-            String buildingName = null;
-            if (employee.getBuilding() != null) {
-                try {
-                    buildingId = employee.getBuilding().getId();
-                    buildingName = employee.getBuilding().getName();
-                } catch (Exception e) {
-                    String warnMsg = "Could not initialize building for employee during refresh: " + e.getMessage();
-                    log.warn(warnMsg);
-                    fw.write(warnMsg + "\n");
-                }
-            }
-
-            // Return refreshed token and user info
-            String responseJson = String.format(
-                    "{\"token\":\"%s\",\"id\":%d,\"type\":\"Bearer\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"role\":\"%s\",\"mustChangePassword\":%s,\"buildingId\":%s,\"buildingName\":%s}",
-                    jwt,
-                    employee.getId(),
-                    employee.getEmail(),
-                    employee.getFirstName(),
-                    employee.getLastName(),
-                    employee.getRole().name(),
-                    employee.isMustChangePassword() ? "true" : "false",
-                    buildingId == null ? "null" : buildingId.toString(),
-                    buildingName == null ? "null" : String.format("\"%s\"", buildingName));
+            // Build response using DTO
+            JwtResponse response = JwtResponse.builder()
+                    .token(jwt)
+                    .type("Bearer")
+                    .id(employee.getId())
+                    .email(employee.getEmail())
+                    .firstName(employee.getFirstName())
+                    .lastName(employee.getLastName())
+                    .role(employee.getRole().name())
+                    .mustChangePassword(employee.isMustChangePassword())
+                    .buildingId(employee.getBuilding() != null ? employee.getBuilding().getId() : null)
+                    .buildingName(employee.getBuilding() != null ? employee.getBuilding().getName() : null)
+                    .build();
 
             userActionLogService.logAction("TOKEN_REFRESH", employee.getId());
             fw.write("Token refresh successful for employee id " + employee.getId() + "\n");
             fw.close();
-            return ResponseEntity.ok()
-                    .header("Content-Type", "application/json")
-                    .body(responseJson);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Token refresh failed: " + e.getMessage(), e);
             try {
